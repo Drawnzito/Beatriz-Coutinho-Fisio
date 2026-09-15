@@ -7,5 +7,15 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  redirect(user ? "/inicio" : "/login");
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: perfil } = await supabase
+    .from("perfis")
+    .select("papel")
+    .eq("id", user.id)
+    .single();
+
+  redirect(perfil?.papel === "admin" ? "/dashboard" : "/inicio");
 }
