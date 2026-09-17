@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
+import { redirect } from "next/navigation";
 
 export default async function InicioPage() {
   const supabase = createClient();
@@ -10,13 +11,13 @@ export default async function InicioPage() {
   const { data: perfil } = await supabase
     .from("perfis")
     .select("nome")
-    .eq("id", user?.id)
+    .eq("id", user.id)
     .single();
 
   const { data: planos } = await supabase
     .from("planos")
     .select("id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*))")
-    .eq("paciente_id", user?.id)
+    .eq("paciente_id", user.id)
     .eq("ativo", true)
     .order("criado_em", { ascending: false });
 
@@ -26,6 +27,10 @@ export default async function InicioPage() {
     .eq("ativo", true)
     .order("criado_em", { ascending: false })
     .limit(5);
+
+  if (!user) {
+  redirect("/login");
+  }
 
   return (
     <>
