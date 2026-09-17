@@ -4,15 +4,16 @@ import { redirect } from "next/navigation";
 
 export default async function InicioPage() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: perfil } = await supabase
-    .from("perfis")
-    .select("nome")
-    .eq("id", user.id)
-    .single();
+if (!user) {
+ redirect("/login");
+}
+const { data: perfil } = await supabase
+ .from("perfis")
+ .select("nome")
+ .eq("id", user.id)
+ .single();
 
   const { data: planos } = await supabase
     .from("planos")
