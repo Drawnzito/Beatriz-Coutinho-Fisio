@@ -25,8 +25,8 @@ export function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // chamado de um Server Component sem permissão de escrita de cookie;
-            // pode ignorar se o middleware já cuida de renovar a sessão.
+            // O middleware cuida da renovação quando a escrita
+            // ocorre dentro de um Server Component.
           }
         },
       },

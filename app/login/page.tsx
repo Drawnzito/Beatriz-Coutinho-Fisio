@@ -1,9 +1,28 @@
 "use client";
 
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const MENSAGENS_ERRO: Record<string, string> = {
+  auth_sem_codigo:
+    "O Google não retornou um código de autenticação. Tente entrar novamente.",
+  auth: "Não foi possível concluir o login. Tente novamente em instantes.",
+};
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const erro = searchParams.get("erro");
+  const mensagemErro = erro ? MENSAGENS_ERRO[erro] ?? "Algo deu errado ao entrar. Tente novamente." : null;
 
   async function entrarComGoogle() {
     await supabase.auth.signInWithOAuth({
@@ -60,6 +79,22 @@ export default function LoginPage() {
         <p style={{ color: "var(--cor-texto-suave)", fontSize: 14, margin: "0 0 24px" }}>
           Entre com sua conta Google para ver seus exercícios e sessões.
         </p>
+
+        {mensagemErro && (
+          <p
+            style={{
+              background: "#fdecea",
+              color: "#b3261e",
+              borderRadius: 8,
+              padding: "10px 12px",
+              fontSize: 13,
+              margin: "0 0 20px",
+              textAlign: "left",
+            }}
+          >
+            {mensagemErro}
+          </p>
+        )}
 
         <button
           onClick={entrarComGoogle}
