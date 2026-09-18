@@ -2,6 +2,11 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+
+function irComSucesso(mensagem: string) {
+  redirect(`/dashboard?sucesso=${encodeURIComponent(mensagem)}`);
+}
 
 async function exigirAdmin() {
   const supabase = createClient();
@@ -55,12 +60,14 @@ export async function criarExercicio(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
+  irComSucesso("Exercício adicionado à biblioteca");
 }
 
 export async function removerExercicio(id: string) {
   const { supabase } = await exigirAdmin();
   await supabase.from("exercicios").delete().eq("id", id);
   revalidatePath("/dashboard");
+  irComSucesso("Exercício removido");
 }
 
 export async function criarAviso(formData: FormData) {
@@ -74,6 +81,7 @@ export async function criarAviso(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
+  irComSucesso("Aviso publicado");
 }
 
 export async function removerAviso(id: string) {
@@ -81,6 +89,7 @@ export async function removerAviso(id: string) {
   await supabase.from("avisos").delete().eq("id", id);
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
+  irComSucesso("Aviso removido");
 }
 
 export async function criarPlano(formData: FormData) {
@@ -109,6 +118,7 @@ export async function criarPlano(formData: FormData) {
   await supabase.from("plano_exercicios").insert(itens);
 
   revalidatePath("/dashboard");
+  irComSucesso("Plano criado com sucesso");
 }
 
 export async function criarSessao(formData: FormData) {
@@ -133,6 +143,7 @@ export async function criarSessao(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
+  irComSucesso("Sessão agendada com sucesso");
 }
 
 export async function removerSessao(id: string) {
@@ -140,4 +151,5 @@ export async function removerSessao(id: string) {
   await supabase.from("sessoes").delete().eq("id", id);
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
+  irComSucesso("Sessão removida");
 }

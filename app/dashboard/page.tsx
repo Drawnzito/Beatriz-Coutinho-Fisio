@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
+import { Feedback } from "@/components/Feedback";
 import { redirect } from "next/navigation";
 import {
   criarExercicio,
@@ -15,7 +16,11 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { sucesso?: string };
+}) {
   const supabase = createClient();
 
   const {
@@ -53,6 +58,7 @@ export default async function DashboardPage() {
 
   return (
     <>
+      <Feedback mensagem={searchParams.sucesso} />
       <Header
         titulo="Beatriz Coutinho"
         subtitulo="Painel da fisioterapeuta"
