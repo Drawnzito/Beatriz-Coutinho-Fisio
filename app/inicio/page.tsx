@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
+import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,7 @@ export default async function InicioPage() {
         titulo={`Olá, ${perfil?.nome?.split(" ")[0] || "por aqui"}`}
         subtitulo="Beatriz Coutinho Fisioterapia"
         papel={perfil?.papel === "admin" ? "admin" : "paciente"}
+        avatarUrl={user.user_metadata?.avatar_url}
       />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 20px 80px" }}>
@@ -84,14 +86,9 @@ export default async function InicioPage() {
                         <p style={{ margin: "4px 0", fontSize: 13 }}>{ex.descricao}</p>
                       )}
                       {ex.video_url && (
-                        <a
-                          href={ex.video_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ fontSize: 13, color: "var(--cor-acento)" }}
-                        >
-                          Ver vídeo de demonstração →
-                        </a>
+                        <div style={{ marginTop: 8 }}>
+                          <MidiaExercicio url={ex.video_url} />
+                        </div>
                       )}
                     </div>
                   );

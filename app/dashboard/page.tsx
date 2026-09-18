@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
+import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { redirect } from "next/navigation";
 import { criarExercicio, removerExercicio, criarAviso, removerAviso, criarPlano } from "./actions";
 
@@ -39,7 +40,12 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <Header titulo="Beatriz Coutinho" subtitulo="Painel da fisioterapeuta" papel="admin" />
+      <Header
+        titulo="Beatriz Coutinho"
+        subtitulo="Painel da fisioterapeuta"
+        papel="admin"
+        avatarUrl={user.user_metadata?.avatar_url}
+      />
 
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px 80px" }}>
         {/* ---------- Biblioteca de exercícios ---------- */}
@@ -48,7 +54,18 @@ export default async function DashboardPage() {
             <input name="titulo" placeholder="Nome do exercício" required style={campo} />
             <input name="categoria" placeholder="Categoria (ex: mobilidade, fortalecimento)" style={campo} />
             <textarea name="descricao" placeholder="Descrição / como executar" rows={3} style={campo} />
-            <input name="video_url" placeholder="Link do vídeo/gif demonstrativo (opcional)" style={campo} />
+            <div style={{ display: "grid", gap: 4 }}>
+              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                Vídeo/gif demonstrativo — envie um arquivo:
+              </label>
+              <input name="video_arquivo" type="file" accept="video/*,image/gif" style={campo} />
+            </div>
+            <div style={{ display: "grid", gap: 4 }}>
+              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                ...ou cole um link (Youtube, Instagram, Drive):
+              </label>
+              <input name="video_url" placeholder="https://..." style={campo} />
+            </div>
             <div style={{ display: "flex", gap: 10 }}>
               <input name="series_padrao" type="number" placeholder="Séries padrão" style={campo} />
               <input name="repeticoes_padrao" type="number" placeholder="Repetições padrão" style={campo} />
@@ -59,13 +76,17 @@ export default async function DashboardPage() {
           <div style={{ display: "grid", gap: 10 }}>
             {(exercicios ?? []).map((ex) => (
               <div key={ex.id} style={cartao}>
-                <div>
+                <div style={{ flex: 1 }}>
                   <strong>{ex.titulo}</strong>{" "}
                   <span style={{ fontSize: 12, color: "var(--cor-acento)" }}>{ex.categoria}</span>
                   <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
                     {ex.series_padrao ?? "-"}x{ex.repeticoes_padrao ?? "-"} rep
-                    {ex.video_url ? " · vídeo disponível" : ""}
                   </p>
+                  {ex.video_url && (
+                    <div style={{ marginTop: 8, maxWidth: 220 }}>
+                      <MidiaExercicio url={ex.video_url} />
+                    </div>
+                  )}
                 </div>
                 <form action={removerExercicio.bind(null, ex.id)}>
                   <button type="submit" style={botaoTexto}>remover</button>

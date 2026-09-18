@@ -24,17 +24,37 @@ async function exigirAdmin() {
 export async function criarExercicio(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 
+  let videoUrl = String(formData.get("video_url") || "") || null;
+
+  const arquivo = formData.get("video_arquivo") as File | null;
+  if (arquivo && arquivo.size > 0) {
+    const extensao = arquivo.name.split(".").pop() || "bin";
+    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
+
+    const { error: erroUpload } = await supabase.storage
+      .from("exercicios")
+      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
+
+    if (!erroUpload) {
+      const { data: publicUrlData } = supabase.storage
+        .from("exercicios")
+        .getPublicUrl(caminho);
+      videoUrl = publicUrlData.publicUrl;
+    }
+  }
+
   await supabase.from("exercicios").insert({
     titulo: String(formData.get("titulo") || ""),
     categoria: String(formData.get("categoria") || "geral"),
     descricao: String(formData.get("descricao") || ""),
-    video_url: String(formData.get("video_url") || "") || null,
+    video_url: videoUrl,
     series_padrao: Number(formData.get("series_padrao")) || null,
     repeticoes_padrao: Number(formData.get("repeticoes_padrao")) || null,
     criado_por: user.id,
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/inicio");
 }
 
 export async function removerExercicio(id: string) {
