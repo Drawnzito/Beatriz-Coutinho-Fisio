@@ -56,6 +56,13 @@ export async function criarAviso(formData: FormData) {
   revalidatePath("/inicio");
 }
 
+export async function removerAviso(id: string) {
+  const { supabase } = await exigirAdmin();
+  await supabase.from("avisos").delete().eq("id", id);
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+}
+
 export async function criarPlano(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 

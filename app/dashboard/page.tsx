@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { redirect } from "next/navigation";
-import { criarExercicio, removerExercicio, criarAviso, criarPlano } from "./actions";
+import { criarExercicio, removerExercicio, criarAviso, removerAviso, criarPlano } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -16,20 +16,11 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: perfilAtual, error: erroPerfilAtual } = await supabase
+  const { data: perfilAtual } = await supabase
     .from("perfis")
     .select("papel")
     .eq("id", user.id)
     .single();
-
-  console.log(
-    "[dashboard] user.id:",
-    user.id,
-    "perfilAtual:",
-    perfilAtual,
-    "erroPerfilAtual:",
-    erroPerfilAtual
-  );
 
   if (perfilAtual?.papel !== "admin") {
     redirect("/inicio");
@@ -154,6 +145,9 @@ export default async function DashboardPage() {
                     {a.conteudo}
                   </p>
                 </div>
+                <form action={removerAviso.bind(null, a.id)}>
+                  <button type="submit" style={botaoTexto}>remover</button>
+                </form>
               </div>
             ))}
           </div>
