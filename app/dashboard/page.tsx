@@ -1,11 +1,39 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
+import { redirect } from "next/navigation";
 import { criarExercicio, removerExercicio, criarAviso, criarPlano } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: perfilAtual, error: erroPerfilAtual } = await supabase
+    .from("perfis")
+    .select("papel")
+    .eq("id", user.id)
+    .single();
+
+  console.log(
+    "[dashboard] user.id:",
+    user.id,
+    "perfilAtual:",
+    perfilAtual,
+    "erroPerfilAtual:",
+    erroPerfilAtual
+  );
+
+  if (perfilAtual?.papel !== "admin") {
+    redirect("/inicio");
+  }
 
   const [{ data: exercicios }, { data: pacientes }, { data: avisos }, { data: planos }] =
     await Promise.all([
@@ -20,7 +48,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <Header titulo="Beatriz Coutinho" subtitulo="Painel da fisioterapeuta" />
+      <Header titulo="Beatriz Coutinho" subtitulo="Painel da fisioterapeuta" papel="admin" />
 
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px 80px" }}>
         {/* ---------- Biblioteca de exercícios ---------- */}

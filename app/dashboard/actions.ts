@@ -9,6 +9,15 @@ async function exigirAdmin() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autenticado");
+
+  const { data: perfil } = await supabase
+    .from("perfis")
+    .select("papel")
+    .eq("id", user.id)
+    .single();
+
+  if (perfil?.papel !== "admin") throw new Error("Acesso restrito à fisioterapeuta");
+
   return { supabase, user };
 }
 

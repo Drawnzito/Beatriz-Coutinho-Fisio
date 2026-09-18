@@ -16,7 +16,7 @@ export default async function InicioPage() {
 
   const { data: perfil } = await supabase
     .from("perfis")
-    .select("nome")
+    .select("nome, papel")
     .eq("id", user.id)
     .single();
 
@@ -39,6 +39,7 @@ export default async function InicioPage() {
       <Header
         titulo={`Olá, ${perfil?.nome?.split(" ")[0] || "por aqui"}`}
         subtitulo="Beatriz Coutinho Fisioterapia"
+        papel={perfil?.papel === "admin" ? "admin" : "paciente"}
       />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 20px 80px" }}>
