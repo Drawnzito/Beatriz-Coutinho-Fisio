@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
+import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { redirect } from "next/navigation";
 import { criarExercicio, removerExercicio, criarAviso, removerAviso, criarPlano } from "./actions";
@@ -43,11 +44,10 @@ export default async function DashboardPage() {
       <Header
         titulo="Beatriz Coutinho"
         subtitulo="Painel da fisioterapeuta"
-        papel="admin"
         avatarUrl={user.user_metadata?.avatar_url}
       />
 
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px 80px" }}>
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px 100px" }}>
         {/* ---------- Biblioteca de exercícios ---------- */}
         <Secao titulo="Biblioteca de exercícios">
           <form action={criarExercicio} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
@@ -174,6 +174,8 @@ export default async function DashboardPage() {
           </div>
         </Secao>
       </main>
+
+      <BottomNav papel="admin" />
     </>
   );
 }

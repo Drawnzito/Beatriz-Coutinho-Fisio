@@ -1,9 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
-import { MidiaExercicio } from "@/components/MidiaExercicio";
+import { BottomNav } from "@/components/BottomNav";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+
+function rotuloData(data: Date): string {
+  const hoje = new Date();
+  const ontem = new Date();
+  ontem.setDate(hoje.getDate() - 1);
+
+  const mesmoDia = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+  if (mesmoDia(data, hoje)) return "Hoje";
+  if (mesmoDia(data, ontem)) return "Ontem";
+
+  return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+}
 
 export default async function InicioPage() {
   const supabase = createClient();
@@ -21,82 +35,98 @@ export default async function InicioPage() {
     .eq("id", user.id)
     .single();
 
-  const { data: planos } = await supabase
-    .from("planos")
-    .select("id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*))")
-    .eq("paciente_id", user.id)
-    .eq("ativo", true)
-    .order("criado_em", { ascending: false });
-
   const { data: avisos } = await supabase
     .from("avisos")
     .select("*")
     .eq("ativo", true)
-    .order("criado_em", { ascending: false })
-    .limit(5);
+    .order("criado_em", { ascending: false });
+
+  const grupos = new Map<string, { data: Date; itens: any[] }>();
+  for (const aviso of avisos ?? []) {
+    const data = new Date(aviso.criado_em);
+    const chave = data.toDateString();
+    if (!grupos.has(chave)) grupos.set(chave, { data, itens: [] });
+    grupos.get(chave)!.itens.push(aviso);
+  }
 
   return (
     <>
       <Header
         titulo={`Olá, ${perfil?.nome?.split(" ")[0] || "por aqui"}`}
         subtitulo="Beatriz Coutinho Fisioterapia"
-        papel={perfil?.papel === "admin" ? "admin" : "paciente"}
         avatarUrl={user.user_metadata?.avatar_url}
       />
 
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "32px 20px 80px" }}>
-        {(avisos ?? []).length > 0 && (
-          <section style={{ marginBottom: 32 }}>
-            {(avisos ?? []).map((a) => (
-              <div key={a.id} style={avisoCartao}>
-                <strong style={{ color: "var(--cor-acento)", fontSize: 13 }}>{a.titulo}</strong>
-                <p style={{ margin: "4px 0 0", fontSize: 14 }}>{a.conteudo}</p>
-              </div>
-            ))}
-          </section>
-        )}
-
-        <h2 style={{ fontFamily: "var(--fonte-titulo)", color: "var(--cor-primaria)", fontSize: 20 }}>
-          Seus exercícios
+      <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
+        <h2
+          style={{
+            fontFamily: "var(--fonte-titulo)",
+            color: "var(--cor-primaria)",
+            fontSize: 20,
+            marginBottom: 20,
+          }}
+        >
+          Sua agenda
         </h2>
 
-        {(!planos || planos.length === 0) && (
+        {grupos.size === 0 && (
           <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-            Nenhum plano atribuído ainda. Assim que a Beatriz montar o seu, ele aparece aqui.
+            Nenhum aviso por aqui ainda. Quando a Beatriz publicar algo, aparece nesta agenda.
           </p>
         )}
 
-        {(planos ?? []).map((plano: any) => (
-          <div key={plano.id} style={{ marginBottom: 28 }}>
-            <h3 style={{ fontSize: 15, color: "var(--cor-texto)", marginBottom: 10 }}>{plano.titulo}</h3>
+        <div style={{ display: "grid", gap: 24 }}>
+          {[...grupos.values()].map(({ data, itens }) => (
+            <div key={data.toDateString()} style={{ display: "flex", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 52, flexShrink: 0 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: "50%",
+                    background: "var(--cor-primaria)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 15,
+                    fontWeight: 700,
+                  }}
+                >
+                  {data.getDate()}
+                </div>
+                <div style={{ flex: 1, width: 2, background: "var(--cor-borda)", marginTop: 6 }} />
+              </div>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              {(plano.plano_exercicios ?? [])
-                .sort((a: any, b: any) => a.ordem - b.ordem)
-                .map((item: any) => {
-                  const ex = item.exercicios;
-                  return (
-                    <div key={item.id} style={exercicioCartao}>
-                      <strong>{ex.titulo}</strong>
-                      <p style={{ margin: "4px 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                        {item.series ?? ex.series_padrao ?? "-"} séries ×{" "}
-                        {item.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
-                      </p>
-                      {ex.descricao && (
-                        <p style={{ margin: "4px 0", fontSize: 13 }}>{ex.descricao}</p>
-                      )}
-                      {ex.video_url && (
-                        <div style={{ marginTop: 8 }}>
-                          <MidiaExercicio url={ex.video_url} />
-                        </div>
-                      )}
+              <div style={{ flex: 1, paddingBottom: 4 }}>
+                <p
+                  style={{
+                    margin: "0 0 10px",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: "var(--cor-texto-suave)",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                  }}
+                >
+                  {rotuloData(data)}
+                </p>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  {itens.map((a) => (
+                    <div key={a.id} style={avisoCartao}>
+                      <strong style={{ color: "var(--cor-acento)", fontSize: 13 }}>{a.titulo}</strong>
+                      <p style={{ margin: "4px 0 0", fontSize: 14 }}>{a.conteudo}</p>
                     </div>
-                  );
-                })}
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </main>
+
+      <BottomNav papel={perfil?.papel === "admin" ? "admin" : "paciente"} />
     </>
   );
 }
@@ -105,12 +135,4 @@ const avisoCartao: React.CSSProperties = {
   background: "var(--cor-acento-suave)",
   borderRadius: 10,
   padding: "12px 14px",
-  marginBottom: 8,
-};
-
-const exercicioCartao: React.CSSProperties = {
-  border: "1px solid var(--cor-borda)",
-  borderRadius: 10,
-  padding: "14px 16px",
-  background: "var(--cor-superficie)",
 };
