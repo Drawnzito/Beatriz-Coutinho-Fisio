@@ -43,6 +43,8 @@ export function BottomNav({ papel }: { papel: "admin" | "paciente" }) {
   const itens: Item[] =
     papel === "admin"
       ? [
+          { href: "/inicio", label: "Início", icon: ICONE_INICIO },
+          { href: "/exercicios", label: "Exercícios", icon: ICONE_EXERCICIOS },
           { href: "/dashboard", label: "Painel", icon: ICONE_PAINEL },
           { href: "/perfil", label: "Perfil", icon: ICONE_PERFIL },
         ]
