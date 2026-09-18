@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Marca } from "@/components/Marca";
 
 const MENSAGENS_ERRO: Record<string, string> = {
   auth_sem_codigo:
@@ -38,42 +39,80 @@ function LoginForm() {
       style={{
         minHeight: "100vh",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "24px",
+        gap: 28,
+        padding: "40px 24px",
+        position: "relative",
+        overflow: "hidden",
+        background:
+          "radial-gradient(120% 70% at 20% 0%, rgba(255,255,255,0.10), transparent 55%), linear-gradient(165deg, var(--cor-primaria) 0%, var(--cor-primaria-escura) 78%)",
       }}
     >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 260 540"
+        preserveAspectRatio="none"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.5 }}
+      >
+        <path d="M 30 40 C 10 100, 60 140, 40 200" fill="none" stroke="#fff" strokeWidth="1.4" opacity="0.22" />
+        <path d="M 220 70 C 250 130, 195 170, 225 230" fill="none" stroke="#fff" strokeWidth="1.4" opacity="0.22" />
+        <circle cx="40" cy="200" r="3.4" fill="#fff" opacity="0.3" />
+        <circle cx="30" cy="40" r="3.4" fill="#fff" opacity="0.3" />
+        <path
+          d="M 20 300 C 70 270, 90 330, 150 300 C 190 280, 210 320, 245 300"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="1.2"
+          opacity="0.16"
+        />
+      </svg>
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", right: -32, bottom: -24, opacity: 0.08, pointerEvents: "none" }}
+      >
+        <Marca tamanho={280} corB="#fff" corC="#fff" />
+      </div>
+
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        <Marca animada tamanho={110} corB="#ffffff" corC="rgba(255,255,255,0.82)" />
+        <p
+          style={{
+            fontSize: 12.5,
+            letterSpacing: 3,
+            color: "rgba(255,255,255,0.85)",
+            margin: 0,
+            fontWeight: 600,
+          }}
+        >
+          FISIOTERAPIA
+        </p>
+      </div>
+
       <div
         style={{
+          position: "relative",
           width: "100%",
           maxWidth: 380,
-          background: "var(--cor-superficie)",
-          border: "1px solid var(--cor-borda)",
-          borderRadius: 12,
-          padding: "40px 32px",
+          background: "rgba(255,255,255,0.95)",
+          borderRadius: 18,
+          padding: "32px 28px",
           textAlign: "center",
+          boxShadow: "0 24px 50px -18px rgba(22,63,60,0.45)",
+          backdropFilter: "blur(6px)",
         }}
       >
         <p
           style={{
             fontFamily: "var(--fonte-titulo)",
-            fontSize: 26,
+            fontSize: 19,
             fontWeight: 700,
-            color: "var(--cor-primaria)",
-            margin: "0 0 4px",
+            color: "var(--cor-primaria-escura)",
+            margin: "0 0 6px",
           }}
         >
-          Beatriz Coutinho
-        </p>
-        <p
-          style={{
-            fontSize: 13,
-            letterSpacing: 3,
-            color: "var(--cor-acento)",
-            margin: "0 0 32px",
-          }}
-        >
-          FISIOTERAPIA
+          Bem-vinda de volta
         </p>
 
         <p style={{ color: "var(--cor-texto-suave)", fontSize: 14, margin: "0 0 24px" }}>

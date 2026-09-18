@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/BottomNav";
+import { AcentoArabesque } from "@/components/Acentos";
 import { redirect } from "next/navigation";
 import { SairBotao } from "./SairBotao";
 
@@ -32,8 +33,15 @@ export default async function PerfilPage() {
           margin: "0 auto",
           padding: "40px 20px 100px",
           textAlign: "center",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        <AcentoArabesque
+          tamanho={230}
+          opacidade={0.08}
+          style={{ position: "absolute", top: 8, right: -30, zIndex: -1, pointerEvents: "none" }}
+        />
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img

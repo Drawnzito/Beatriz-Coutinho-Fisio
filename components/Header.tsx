@@ -1,5 +1,8 @@
 "use client";
 
+import { Marca } from "./Marca";
+import { AcentoCadencia } from "./Acentos";
+
 export function Header({
   titulo,
   subtitulo,
@@ -21,10 +24,10 @@ export function Header({
           display: "flex",
           alignItems: "center",
           gap: 12,
-          padding: "20px 24px",
+          padding: "18px 24px 14px",
         }}
       >
-        {avatarUrl && (
+        {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={avatarUrl}
@@ -33,6 +36,8 @@ export function Header({
             height={40}
             style={{ borderRadius: "50%", objectFit: "cover" }}
           />
+        ) : (
+          <Marca tamanho={34} />
         )}
         <div>
           <p
@@ -53,6 +58,11 @@ export function Header({
           )}
         </div>
       </div>
+      <AcentoCadencia
+        largura={220}
+        opacidade={0.55}
+        style={{ display: "block", margin: "0 24px 12px" }}
+      />
     </header>
   );
 }

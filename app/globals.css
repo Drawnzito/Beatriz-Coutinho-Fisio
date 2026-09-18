@@ -9,8 +9,8 @@
   --cor-texto-suave: #5c6b68;
   --cor-borda: #e4ded4;
 
-  --fonte-titulo: "Georgia", "Playfair Display", serif;
-  --fonte-corpo: "Montserrat", "Segoe UI", Arial, sans-serif;
+  --fonte-titulo: var(--fonte-titulo-base), "Georgia", serif;
+  --fonte-corpo: var(--fonte-corpo-base), "Segoe UI", Arial, sans-serif;
 }
 
 * {

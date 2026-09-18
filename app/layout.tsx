@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { Playfair_Display, Montserrat } from "next/font/google";
 import "./globals.css";
+
+const fonteTitulo = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["600", "700", "900"],
+  variable: "--fonte-titulo-base",
+  display: "swap",
+});
+
+const fonteCorpo = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--fonte-corpo-base",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Beatriz Coutinho Fisioterapia",
@@ -12,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className={`${fonteTitulo.variable} ${fonteCorpo.variable}`}>
       <body>{children}</body>
     </html>
   );
