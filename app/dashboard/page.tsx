@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { criarExercicio, removerExercicio, criarAviso, criarPlano } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const supabase = createClient();
 
