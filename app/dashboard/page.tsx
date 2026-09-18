@@ -3,7 +3,15 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { redirect } from "next/navigation";
-import { criarExercicio, removerExercicio, criarAviso, removerAviso, criarPlano } from "./actions";
+import {
+  criarExercicio,
+  removerExercicio,
+  criarAviso,
+  removerAviso,
+  criarPlano,
+  criarSessao,
+  removerSessao,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +36,7 @@ export default async function DashboardPage() {
     redirect("/inicio");
   }
 
-  const [{ data: exercicios }, { data: pacientes }, { data: avisos }, { data: planos }] =
+  const [{ data: exercicios }, { data: pacientes }, { data: avisos }, { data: planos }, { data: sessoes }] =
     await Promise.all([
       supabase.from("exercicios").select("*").order("criado_em", { ascending: false }),
       supabase.from("perfis").select("id, nome, email").eq("papel", "paciente"),
@@ -37,6 +45,10 @@ export default async function DashboardPage() {
         .from("planos")
         .select("id, titulo, ativo, paciente_id, perfis(nome, email)")
         .order("criado_em", { ascending: false }),
+      supabase
+        .from("sessoes")
+        .select("id, data, hora, status, observacoes, paciente_id, perfis(nome, email), planos(titulo)")
+        .order("data", { ascending: false }),
     ]);
 
   return (
@@ -146,6 +158,72 @@ export default async function DashboardPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </Secao>
+
+        {/* ---------- Agenda de sessões ---------- */}
+        <Secao titulo="Agendar sessão">
+          {(pacientes ?? []).length === 0 ? (
+            <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+              Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
+            </p>
+          ) : (
+            <form action={criarSessao} style={{ display: "grid", gap: 10 }}>
+              <select name="paciente_id" required style={campo}>
+                <option value="">Selecione o paciente</option>
+                {(pacientes ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nome || p.email}
+                  </option>
+                ))}
+              </select>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <input name="data" type="date" required style={campo} />
+                <input name="hora" type="time" style={campo} />
+              </div>
+
+              <select name="plano_id" style={campo}>
+                <option value="">Sem plano vinculado (opcional)</option>
+                {(planos ?? []).map((pl: any) => (
+                  <option key={pl.id} value={pl.id}>
+                    {pl.titulo} — {pl.perfis?.nome || pl.perfis?.email}
+                  </option>
+                ))}
+              </select>
+
+              <textarea name="observacoes" placeholder="Observações (opcional)" rows={2} style={campo} />
+
+              <button type="submit" style={botaoPrimario}>Agendar sessão</button>
+            </form>
+          )}
+
+          <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
+            {(sessoes ?? []).map((s: any) => (
+              <div key={s.id} style={cartao}>
+                <div>
+                  <strong>
+                    {new Date(s.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                    {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""}
+                  </strong>
+                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                    {s.perfis?.nome || s.perfis?.email}
+                    {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
+                  </p>
+                  {s.observacoes && (
+                    <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>
+                  )}
+                </div>
+                <form action={removerSessao.bind(null, s.id)}>
+                  <button type="submit" style={botaoTexto}>remover</button>
+                </form>
+              </div>
+            ))}
+            {(!sessoes || sessoes.length === 0) && (
+              <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                Nenhuma sessão agendada ainda.
+              </p>
+            )}
           </div>
         </Secao>
 

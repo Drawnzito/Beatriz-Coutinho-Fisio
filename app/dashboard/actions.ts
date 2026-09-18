@@ -110,3 +110,34 @@ export async function criarPlano(formData: FormData) {
 
   revalidatePath("/dashboard");
 }
+
+export async function criarSessao(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const paciente_id = String(formData.get("paciente_id") || "");
+  const data = String(formData.get("data") || "");
+  const hora = String(formData.get("hora") || "") || null;
+  const plano_id = String(formData.get("plano_id") || "") || null;
+  const observacoes = String(formData.get("observacoes") || "") || null;
+
+  if (!paciente_id || !data) return;
+
+  await supabase.from("sessoes").insert({
+    paciente_id,
+    data,
+    hora,
+    plano_id,
+    observacoes,
+    criado_por: user.id,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+}
+
+export async function removerSessao(id: string) {
+  const { supabase } = await exigirAdmin();
+  await supabase.from("sessoes").delete().eq("id", id);
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+}
