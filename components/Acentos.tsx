@@ -3,18 +3,24 @@
  * Usados como flourish discreto em telas específicas, não como logo.
  */
 
+import styles from "./acentos.module.css";
+
 export function AcentoCadencia({
   largura = 240,
   cor = "var(--cor-acento)",
   opacidade = 0.85,
   className,
   style,
+  animada = false,
+  atraso = 0,
 }: {
   largura?: number;
   cor?: string;
   opacidade?: number;
   className?: string;
   style?: React.CSSProperties;
+  animada?: boolean;
+  atraso?: number;
 }) {
   return (
     <svg
@@ -26,6 +32,9 @@ export function AcentoCadencia({
       aria-hidden="true"
     >
       <path
+        className={animada ? styles.desenha : undefined}
+        style={animada ? { animationDelay: `${atraso}s` } : undefined}
+        pathLength={animada ? 1 : undefined}
         d="M 4 18 C 22 4, 38 24, 60 12 C 82 -2, 98 22, 120 10 C 142 -2, 158 20, 180 8 C 202 -4, 220 18, 242 6 C 262 -4, 282 14, 304 4"
         fill="none"
         stroke={cor}
@@ -43,12 +52,16 @@ export function AcentoArabesque({
   opacidade = 1,
   className,
   style,
+  animada = false,
+  atraso = 0,
 }: {
   tamanho?: number;
   cor?: string;
   opacidade?: number;
   className?: string;
   style?: React.CSSProperties;
+  animada?: boolean;
+  atraso?: number;
 }) {
   return (
     <svg
@@ -60,6 +73,9 @@ export function AcentoArabesque({
       aria-hidden="true"
     >
       <path
+        className={animada ? styles.desenha : undefined}
+        style={animada ? { animationDelay: `${atraso}s` } : undefined}
+        pathLength={animada ? 1 : undefined}
         d="M 210 20 C 150 20, 130 70, 150 105 C 165 130, 205 128, 215 150 C 222 165, 210 172, 195 170"
         fill="none"
         stroke={cor}

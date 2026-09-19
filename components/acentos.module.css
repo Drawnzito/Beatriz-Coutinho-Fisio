@@ -1,0 +1,18 @@
+.desenha {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: desenhaTraco 1.4s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+}
+
+@keyframes desenhaTraco {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .desenha {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

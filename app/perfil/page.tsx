@@ -38,9 +38,9 @@ export default async function PerfilPage() {
         }}
       >
         <AcentoArabesque
-          tamanho={230}
-          opacidade={0.08}
-          style={{ position: "absolute", top: 8, right: -30, zIndex: -1, pointerEvents: "none" }}
+          tamanho={260}
+          opacidade={0.16}
+          style={{ position: "absolute", top: 4, right: -6, zIndex: -1, pointerEvents: "none" }}
         />
         {avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
