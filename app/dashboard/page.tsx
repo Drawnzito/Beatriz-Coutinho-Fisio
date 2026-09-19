@@ -36,6 +36,8 @@ export default async function DashboardPage({
     dia?: string;
     categoria?: string;
     editar?: string;
+    busca?: string;
+    ordem?: string;
   };
 }) {
   const supabase = createClient();
@@ -104,20 +106,31 @@ export default async function DashboardPage({
   }
 
   const categoriaFiltro = searchParams.categoria || undefined;
+  const buscaFiltro = searchParams.busca || undefined;
+  const ordem = searchParams.ordem === "desc" ? "desc" : "asc";
   const categoriasDisponiveis = [...new Set((exercicios ?? []).map((e) => e.categoria))].sort();
-  const exerciciosFiltrados = categoriaFiltro
-    ? (exercicios ?? []).filter((e) => e.categoria === categoriaFiltro)
-    : exercicios ?? [];
+
+  let exerciciosFiltrados = exercicios ?? [];
+  if (categoriaFiltro) exerciciosFiltrados = exerciciosFiltrados.filter((e) => e.categoria === categoriaFiltro);
+  if (buscaFiltro) {
+    const alvo = buscaFiltro.toLowerCase();
+    exerciciosFiltrados = exerciciosFiltrados.filter((e) => e.titulo.toLowerCase().includes(alvo));
+  }
+  if (ordem === "desc") exerciciosFiltrados = [...exerciciosFiltrados].reverse();
 
   const hojeIso = new Date().toISOString().slice(0, 10);
   const editandoId = searchParams.editar || undefined;
 
-  function hrefBiblioteca(overrides: { categoria?: string; editar?: string }) {
+  function hrefBiblioteca(overrides: { categoria?: string; editar?: string; busca?: string; ordem?: string }) {
     const params = new URLSearchParams({ aba: "biblioteca" });
     const categoria = "categoria" in overrides ? overrides.categoria : categoriaFiltro;
     const editar = "editar" in overrides ? overrides.editar : editandoId;
+    const busca = "busca" in overrides ? overrides.busca : buscaFiltro;
+    const ordemAtual = "ordem" in overrides ? overrides.ordem : ordem;
     if (categoria) params.set("categoria", categoria);
     if (editar) params.set("editar", editar);
+    if (busca) params.set("busca", busca);
+    if (ordemAtual && ordemAtual !== "asc") params.set("ordem", ordemAtual);
     return `/dashboard?${params.toString()}`;
   }
 
@@ -175,18 +188,41 @@ export default async function DashboardPage({
                     <button type="submit" style={botaoPrimario}>Adicionar à biblioteca</button>
                   </form>
 
-                  {categoriasDisponiveis.length > 1 && (
-                    <div style={{ marginBottom: 14 }}>
-                      <SeletorOpcao
-                        opcoes={categoriasDisponiveis.map((c) => ({ valor: c, rotulo: c }))}
-                        selecionado={categoriaFiltro}
-                        nomeParam="categoria"
-                        baseHref="/dashboard"
-                        manterParams={{ aba: "biblioteca" }}
-                        placeholder="Todas as categorias"
-                      />
-                    </div>
-                  )}
+                  <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                    <input type="hidden" name="aba" value="biblioteca" />
+                    {categoriaFiltro && <input type="hidden" name="categoria" value={categoriaFiltro} />}
+                    {ordem !== "asc" && <input type="hidden" name="ordem" value={ordem} />}
+                    <input
+                      name="busca"
+                      defaultValue={buscaFiltro ?? ""}
+                      placeholder="Buscar pelo nome do exercício…"
+                      style={campo}
+                    />
+                    <button type="submit" style={botaoTextoPrimario}>buscar</button>
+                    {buscaFiltro && (
+                      <a href={hrefBiblioteca({ busca: "" })} style={botaoTexto}>
+                        limpar
+                      </a>
+                    )}
+                  </form>
+
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
+                    {categoriasDisponiveis.length > 1 && (
+                      <div style={{ flex: 1 }}>
+                        <SeletorOpcao
+                          opcoes={categoriasDisponiveis.map((c) => ({ valor: c, rotulo: c }))}
+                          selecionado={categoriaFiltro}
+                          nomeParam="categoria"
+                          baseHref="/dashboard"
+                          manterParams={{ aba: "biblioteca", busca: buscaFiltro, ordem: ordem !== "asc" ? ordem : undefined }}
+                          placeholder="Todas as categorias"
+                        />
+                      </div>
+                    )}
+                    <a href={hrefBiblioteca({ ordem: ordem === "asc" ? "desc" : "asc" })} style={botaoTexto}>
+                      {ordem === "asc" ? "A → Z" : "Z → A"}
+                    </a>
+                  </div>
 
                   <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
                     {exerciciosFiltrados.length} exercício{exerciciosFiltrados.length === 1 ? "" : "s"} · ordem alfabética
@@ -581,6 +617,16 @@ const botaoTexto: React.CSSProperties = {
   color: "var(--cor-acento)",
   fontSize: 13,
   cursor: "pointer",
+};
+
+const botaoTextoPrimario: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "var(--cor-primaria)",
+  fontSize: 13,
+  fontWeight: 600,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
 };
 
 const cartao: React.CSSProperties = {

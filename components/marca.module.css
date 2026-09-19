@@ -1,13 +1,13 @@
 .letra {
   opacity: 0;
   transform: translateY(10px);
-  animation: letraEntra 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: letraEntra 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 .b {
-  animation-delay: 0.3s;
+  animation-delay: 0.21s;
 }
 .c {
-  animation-delay: 0.64s;
+  animation-delay: 0.45s;
 }
 
 .arco {
@@ -17,8 +17,8 @@
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: arcoDesenha 2.3s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
-  animation-delay: 1.1s;
+  animation: arcoDesenha 1.6s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+  animation-delay: 0.77s;
 }
 
 .ponto {
@@ -26,9 +26,9 @@
   transform-origin: 150px 40px;
   transform: scale(0);
   animation:
-    pontoSurge 1s cubic-bezier(0.2, 1.4, 0.4, 1) forwards,
-    pontoRespira 6.4s ease-in-out infinite;
-  animation-delay: 3.1s, 4.2s;
+    pontoSurge 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) forwards,
+    pontoRespira 4.5s ease-in-out infinite;
+  animation-delay: 2.17s, 2.9s;
 }
 
 @keyframes letraEntra {

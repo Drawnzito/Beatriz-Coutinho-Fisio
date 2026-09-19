@@ -43,10 +43,31 @@ export default async function InicioPage() {
     .eq("id", user.id)
     .single();
 
+  const ehAdmin = perfil?.papel === "admin";
+
   const dias = semanaAtual();
   const inicioSemana = dias[0].iso;
   const fimSemana = dias[6].iso;
   const hojeIso = new Date().toISOString().slice(0, 10);
+
+  let consultaSemana = supabase
+    .from("sessoes")
+    .select(
+      "id, data, hora, status, tipo, observacoes, perfis(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
+    )
+    .gte("data", inicioSemana)
+    .lte("data", fimSemana)
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true });
+  if (!ehAdmin) consultaSemana = consultaSemana.eq("paciente_id", user.id);
+
+  let consultaOutras = supabase
+    .from("sessoes")
+    .select("id, data, hora, tipo, perfis(nome, email), planos(titulo)")
+    .or(`data.lt.${inicioSemana},data.gt.${fimSemana}`)
+    .order("data", { ascending: false })
+    .limit(8);
+  if (!ehAdmin) consultaOutras = consultaOutras.eq("paciente_id", user.id);
 
   const [{ data: avisos }, { data: sessoesSemana }, { data: outrasSessoes }] = await Promise.all([
     supabase
@@ -55,23 +76,8 @@ export default async function InicioPage() {
       .eq("ativo", true)
       .or(`validade.is.null,validade.gte.${hojeIso}`)
       .order("criado_em", { ascending: false }),
-    supabase
-      .from("sessoes")
-      .select(
-        "id, data, hora, status, tipo, observacoes, planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
-      )
-      .eq("paciente_id", user.id)
-      .gte("data", inicioSemana)
-      .lte("data", fimSemana)
-      .order("data", { ascending: true })
-      .order("hora", { ascending: true }),
-    supabase
-      .from("sessoes")
-      .select("id, data, hora, tipo, planos(titulo)")
-      .eq("paciente_id", user.id)
-      .or(`data.lt.${inicioSemana},data.gt.${fimSemana}`)
-      .order("data", { ascending: false })
-      .limit(8),
+    consultaSemana,
+    consultaOutras,
   ]);
 
   const contagens: Record<string, number> = {};
@@ -122,11 +128,13 @@ export default async function InicioPage() {
         </div>
 
         {/* ---------- Sua semana ---------- */}
-        <h2 style={{ ...tituloSecao, marginTop: 36 }}>Sua semana</h2>
+        <h2 style={{ ...tituloSecao, marginTop: 36 }}>{ehAdmin ? "Pacientes desta semana" : "Sua semana"}</h2>
 
         <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "var(--cor-texto-suave)" }}>
           {totalSemana === 0
             ? "Nenhuma sessão agendada essa semana."
+            : ehAdmin
+            ? `${totalSemana} sessão${totalSemana > 1 ? "ões" : ""} de pacientes essa semana.`
             : `Você tem ${totalSemana} sessão${totalSemana > 1 ? "ões" : ""} agendada${totalSemana > 1 ? "s" : ""} essa semana.`}
         </p>
 
@@ -162,6 +170,7 @@ export default async function InicioPage() {
                         }}
                       />
                       <strong style={{ color: "var(--cor-primaria)", fontSize: 13 }}>
+                        {ehAdmin && (item.perfis?.nome || item.perfis?.email) ? `${item.perfis.nome || item.perfis.email} · ` : ""}
                         {rotuloTipoSessao(item.tipo)}
                         {item.hora ? ` · ${item.hora.slice(0, 5)}` : ""}
                       </strong>
@@ -177,7 +186,7 @@ export default async function InicioPage() {
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>
                             Plano: {item.planos.titulo}
                           </p>
-                          {(item.planos.plano_exercicios ?? []).length > 0 && (
+                          {!ehAdmin && (item.planos.plano_exercicios ?? []).length > 0 && (
                             <Link
                               href={`/treino/${item.planos.id}`}
                               style={{
@@ -234,6 +243,7 @@ export default async function InicioPage() {
                   <p style={{ margin: 0, fontSize: 13 }}>
                     <strong>{new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}</strong>
                     {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""} · {rotuloTipoSessao(s.tipo)}
+                    {ehAdmin && (s.perfis?.nome || s.perfis?.email) ? ` · ${s.perfis.nome || s.perfis.email}` : ""}
                     {s.planos?.titulo ? ` · ${s.planos.titulo}` : ""}
                   </p>
                 </div>

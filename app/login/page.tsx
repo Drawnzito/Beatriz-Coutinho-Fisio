@@ -31,7 +31,7 @@ function LoginForm() {
 
   useEffect(() => {
     const reduzMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(() => setFase("entrada"), reduzMovimento ? 300 : 6800);
+    const t = setTimeout(() => setFase("entrada"), reduzMovimento ? 300 : 4760);
     return () => clearTimeout(t);
   }, []);
 
