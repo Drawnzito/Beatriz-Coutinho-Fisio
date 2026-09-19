@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { TiraSemana } from "@/components/TiraSemana";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
@@ -45,13 +46,19 @@ export default async function InicioPage() {
   const dias = semanaAtual();
   const inicioSemana = dias[0].iso;
   const fimSemana = dias[6].iso;
+  const hojeIso = new Date().toISOString().slice(0, 10);
 
   const [{ data: avisos }, { data: sessoesSemana }, { data: outrasSessoes }] = await Promise.all([
-    supabase.from("avisos").select("*").eq("ativo", true).order("criado_em", { ascending: false }),
+    supabase
+      .from("avisos")
+      .select("*")
+      .eq("ativo", true)
+      .or(`validade.is.null,validade.gte.${hojeIso}`)
+      .order("criado_em", { ascending: false }),
     supabase
       .from("sessoes")
       .select(
-        "id, data, hora, status, tipo, observacoes, planos(titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
+        "id, data, hora, status, tipo, observacoes, planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
       )
       .eq("paciente_id", user.id)
       .gte("data", inicioSemana)
@@ -106,7 +113,9 @@ export default async function InicioPage() {
         <div style={{ display: "grid", gap: 10 }}>
           {(avisos ?? []).map((a) => (
             <div key={a.id} style={avisoCartao}>
-              <strong style={{ color: "var(--cor-acento)", fontSize: 13 }}>{a.titulo}</strong>
+              <strong style={{ fontFamily: "var(--fonte-titulo)", color: "var(--cor-primaria-escura)", fontSize: 14.5 }}>
+                {a.titulo}
+              </strong>
               <p style={{ margin: "4px 0 0", fontSize: 14 }}>{a.conteudo}</p>
             </div>
           ))}
@@ -164,9 +173,27 @@ export default async function InicioPage() {
 
                     {item.planos && (
                       <div style={{ marginTop: 10 }}>
-                        <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700 }}>
-                          Plano: {item.planos.titulo}
-                        </p>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                          <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>
+                            Plano: {item.planos.titulo}
+                          </p>
+                          {(item.planos.plano_exercicios ?? []).length > 0 && (
+                            <Link
+                              href={`/treino/${item.planos.id}`}
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: "#fff",
+                                background: "var(--cor-primaria)",
+                                padding: "5px 10px",
+                                borderRadius: 999,
+                                textDecoration: "none",
+                              }}
+                            >
+                              ▶ Iniciar
+                            </Link>
+                          )}
+                        </div>
                         <div style={{ display: "grid", gap: 8 }}>
                           {(item.planos.plano_exercicios ?? [])
                             .sort((a: any, b: any) => a.ordem - b.ordem)
@@ -230,8 +257,9 @@ const tituloSecao: React.CSSProperties = {
 
 const avisoCartao: React.CSSProperties = {
   background: "var(--cor-acento-suave)",
-  borderRadius: 10,
-  padding: "12px 14px",
+  borderRadius: "0 12px 12px 0",
+  borderLeft: "3px solid var(--cor-acento)",
+  padding: "12px 16px",
 };
 
 const sessaoCartao: React.CSSProperties = {

@@ -5,7 +5,9 @@ import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { Feedback } from "@/components/Feedback";
 import { Abas } from "@/components/Abas";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
+import { SeletorOpcao } from "@/components/SeletorOpcao";
 import { TiraSemana } from "@/components/TiraSemana";
+import { CampoValidade } from "@/components/CampoValidade";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { TIPOS_SESSAO, rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
@@ -17,6 +19,8 @@ import {
   criarPlano,
   criarSessao,
   removerSessao,
+  criarConvitePaciente,
+  removerConvitePaciente,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +28,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { sucesso?: string; aba?: string; paciente?: string; dia?: string };
+  searchParams: { sucesso?: string; aba?: string; paciente?: string; dia?: string; categoria?: string };
 }) {
   const supabase = createClient();
 
@@ -72,9 +76,10 @@ export default async function DashboardPage({
     { data: planos },
     { data: sessoes },
     { data: sessoesSemana },
+    { data: convites },
   ] = await Promise.all([
-    supabase.from("exercicios").select("*").order("criado_em", { ascending: false }),
-    supabase.from("perfis").select("id, nome, email").eq("papel", "paciente").order("nome"),
+    supabase.from("exercicios").select("*").order("titulo", { ascending: true }),
+    supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").order("nome"),
     supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
     supabase
       .from("planos")
@@ -82,12 +87,21 @@ export default async function DashboardPage({
       .order("criado_em", { ascending: false }),
     listaSessoes,
     contagemSemana,
+    supabase.from("convites_paciente").select("*").order("criado_em", { ascending: false }),
   ]);
 
   const contagens: Record<string, number> = {};
   for (const s of sessoesSemana ?? []) {
     contagens[s.data] = (contagens[s.data] ?? 0) + 1;
   }
+
+  const categoriaFiltro = searchParams.categoria || undefined;
+  const categoriasDisponiveis = [...new Set((exercicios ?? []).map((e) => e.categoria))].sort();
+  const exerciciosFiltrados = categoriaFiltro
+    ? (exercicios ?? []).filter((e) => e.categoria === categoriaFiltro)
+    : exercicios ?? [];
+
+  const hojeIso = new Date().toISOString().slice(0, 10);
 
   function hrefAgenda(overrides: { paciente?: string; dia?: string }) {
     const params = new URLSearchParams({ aba: "agenda" });
@@ -143,8 +157,25 @@ export default async function DashboardPage({
                     <button type="submit" style={botaoPrimario}>Adicionar à biblioteca</button>
                   </form>
 
+                  {categoriasDisponiveis.length > 1 && (
+                    <div style={{ marginBottom: 14 }}>
+                      <SeletorOpcao
+                        opcoes={categoriasDisponiveis.map((c) => ({ valor: c, rotulo: c }))}
+                        selecionado={categoriaFiltro}
+                        nomeParam="categoria"
+                        baseHref="/dashboard"
+                        manterParams={{ aba: "biblioteca" }}
+                        placeholder="Todas as categorias"
+                      />
+                    </div>
+                  )}
+
+                  <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                    {exerciciosFiltrados.length} exercício{exerciciosFiltrados.length === 1 ? "" : "s"} · ordem alfabética
+                  </p>
+
                   <div style={{ display: "grid", gap: 10 }}>
-                    {(exercicios ?? []).map((ex) => (
+                    {exerciciosFiltrados.map((ex) => (
                       <div key={ex.id} style={cartao}>
                         <div style={{ flex: 1 }}>
                           <strong>{ex.titulo}</strong>{" "}
@@ -163,9 +194,75 @@ export default async function DashboardPage({
                         </form>
                       </div>
                     ))}
-                    {(!exercicios || exercicios.length === 0) && (
+                    {exerciciosFiltrados.length === 0 && (
                       <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                        Nenhum exercício cadastrado ainda.
+                        Nenhum exercício {categoriaFiltro ? "nessa categoria" : "cadastrado ainda"}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "pacientes",
+              rotulo: "Pacientes",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  <form action={criarConvitePaciente} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                    <input name="nome" placeholder="Nome do paciente" required style={campo} />
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <input name="idade" type="number" placeholder="Idade (opcional)" style={campo} />
+                      <input name="email" type="email" placeholder="E-mail do Google" required style={campo} />
+                    </div>
+                    <button type="submit" style={botaoPrimario}>Pré-cadastrar paciente</button>
+                    <p style={{ margin: 0, fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                      Ele entra pra lista assim que fizer login com esse mesmo e-mail no Google — não precisa
+                      convite por link nem senha.
+                    </p>
+                  </form>
+
+                  {(convites ?? []).length > 0 && (
+                    <>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                        Aguardando primeiro login
+                      </p>
+                      <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                        {(convites ?? []).map((c) => (
+                          <div key={c.id} style={cartao}>
+                            <div>
+                              <strong>{c.nome}</strong>
+                              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                {c.email}
+                                {c.idade ? ` · ${c.idade} anos` : ""} · pendente
+                              </p>
+                            </div>
+                            <form action={removerConvitePaciente.bind(null, c.id)}>
+                              <button type="submit" style={botaoTexto}>remover</button>
+                            </form>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                    Pacientes ativos
+                  </p>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(pacientes ?? []).map((p) => (
+                      <div key={p.id} style={cartao}>
+                        <div>
+                          <strong>{p.nome || p.email}</strong>
+                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                            {p.email}
+                            {p.idade ? ` · ${p.idade} anos` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {(!pacientes || pacientes.length === 0) && (
+                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                        Nenhum paciente logou ainda.
                       </p>
                     )}
                   </div>
@@ -351,23 +448,32 @@ export default async function DashboardPage({
                   <form action={criarAviso} style={{ display: "grid", gap: 10, marginBottom: 20 }}>
                     <input name="titulo" placeholder="Título do aviso" required style={campo} />
                     <textarea name="conteudo" placeholder="Mensagem" rows={2} required style={campo} />
+                    <CampoValidade />
                     <button type="submit" style={botaoPrimario}>Publicar aviso</button>
                   </form>
 
                   <div style={{ display: "grid", gap: 10 }}>
-                    {(avisos ?? []).map((a) => (
-                      <div key={a.id} style={cartao}>
-                        <div>
-                          <strong>{a.titulo}</strong>
-                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                            {a.conteudo}
-                          </p>
+                    {(avisos ?? []).map((a) => {
+                      const expirado = a.validade && a.validade < hojeIso;
+                      return (
+                        <div key={a.id} style={{ ...avisoCartaoAdmin, opacity: expirado ? 0.55 : 1 }}>
+                          <div>
+                            <strong style={{ fontFamily: "var(--fonte-titulo)", color: "var(--cor-primaria-escura)" }}>
+                              {a.titulo}
+                            </strong>
+                            <p style={{ margin: "4px 0 0", fontSize: 13.5 }}>{a.conteudo}</p>
+                            <p style={{ margin: "6px 0 0", fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
+                              {a.validade
+                                ? `${expirado ? "expirou em" : "válido até"} ${new Date(`${a.validade}T00:00:00`).toLocaleDateString("pt-BR")}`
+                                : "sem validade"}
+                            </p>
+                          </div>
+                          <form action={removerAviso.bind(null, a.id)}>
+                            <button type="submit" style={botaoTexto}>remover</button>
+                          </form>
                         </div>
-                        <form action={removerAviso.bind(null, a.id)}>
-                          <button type="submit" style={botaoTexto}>remover</button>
-                        </form>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ),
@@ -419,4 +525,15 @@ const cartao: React.CSSProperties = {
   borderRadius: 10,
   border: "1px solid var(--cor-borda)",
   background: "var(--cor-superficie)",
+};
+
+const avisoCartaoAdmin: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 12,
+  padding: "12px 16px",
+  borderRadius: "0 12px 12px 0",
+  borderLeft: "3px solid var(--cor-acento)",
+  background: "var(--cor-acento-suave)",
 };

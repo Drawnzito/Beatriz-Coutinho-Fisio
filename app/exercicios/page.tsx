@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { Feedback } from "@/components/Feedback";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { atualizarItemPlano, removerItemPlano, adicionarExercicioAoPlano } from "./actions";
 
@@ -60,7 +61,25 @@ export default async function ExerciciosPage({
 
         {(planos ?? []).map((plano: any) => (
           <div key={plano.id} style={{ marginBottom: 28 }}>
-            <h3 style={{ fontSize: 15, color: "var(--cor-texto)", marginBottom: 10 }}>{plano.titulo}</h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <h3 style={{ fontSize: 15, color: "var(--cor-texto)", margin: 0 }}>{plano.titulo}</h3>
+              {(plano.plano_exercicios ?? []).length > 0 && (
+                <Link
+                  href={`/treino/${plano.id}`}
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: "#fff",
+                    background: "var(--cor-primaria)",
+                    padding: "6px 12px",
+                    borderRadius: 999,
+                    textDecoration: "none",
+                  }}
+                >
+                  ▶ Iniciar treino
+                </Link>
+              )}
+            </div>
 
             <div style={{ display: "grid", gap: 10 }}>
               {(plano.plano_exercicios ?? [])

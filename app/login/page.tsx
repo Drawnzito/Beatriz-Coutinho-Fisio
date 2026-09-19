@@ -150,7 +150,7 @@ function LoginForm() {
               margin: "0 0 10px",
             }}
           >
-            Bem-vinda de volta
+            Que bom ter você de volta
           </p>
 
           <AcentoCadencia

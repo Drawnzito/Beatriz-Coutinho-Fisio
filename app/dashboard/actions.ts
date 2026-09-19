@@ -80,6 +80,7 @@ export async function criarAviso(formData: FormData) {
   await supabase.from("avisos").insert({
     titulo: String(formData.get("titulo") || ""),
     conteudo: String(formData.get("conteudo") || ""),
+    validade: String(formData.get("validade") || "") || null,
     criado_por: user.id,
   });
 
@@ -163,4 +164,45 @@ export async function removerSessao(id: string, formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
   irComSucesso("Sessão removida", "agenda", { paciente: filtroPaciente, dia: filtroDia });
+}
+
+export async function criarConvitePaciente(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const nome = String(formData.get("nome") || "").trim();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const idadeRaw = formData.get("idade");
+  const idade = idadeRaw ? Number(idadeRaw) : null;
+
+  if (!nome || !email) return;
+
+  const { data: perfilExistente } = await supabase
+    .from("perfis")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (perfilExistente) {
+    irComSucesso("Esse e-mail já tem uma conta vinculada", "pacientes");
+  }
+
+  const { data: conviteExistente } = await supabase
+    .from("convites_paciente")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle();
+  if (conviteExistente) {
+    irComSucesso("Já existe um convite pendente pra esse e-mail", "pacientes");
+  }
+
+  await supabase.from("convites_paciente").insert({ nome, email, idade, criado_por: user.id });
+
+  revalidatePath("/dashboard");
+  irComSucesso(`${nome} pré-cadastrado — vincula sozinho no primeiro login com Google`, "pacientes");
+}
+
+export async function removerConvitePaciente(id: string) {
+  const { supabase } = await exigirAdmin();
+  await supabase.from("convites_paciente").delete().eq("id", id);
+  revalidatePath("/dashboard");
+  irComSucesso("Convite removido", "pacientes");
 }
