@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { TiraSemana } from "@/components/TiraSemana";
+import { DestaquesCarrossel } from "@/components/DestaquesCarrossel";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -110,64 +111,10 @@ export default async function InicioPage() {
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
         {/* ---------- Destaques ---------- */}
         {destaques && destaques.length > 0 && (
-          <div
-            style={{
-              display: "flex",
-              gap: 10,
-              overflowX: "auto",
-              scrollSnapType: "x mandatory",
-              margin: "0 0 32px",
-              paddingBottom: 4,
-            }}
-          >
-            {destaques.map((d) => {
-              const conteudo = (
-                <div
-                  style={{
-                    position: "relative",
-                    width: 132,
-                    height: 184,
-                    borderRadius: 14,
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    scrollSnapAlign: "start",
-                    background: "var(--cor-borda)",
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={d.imagem_url}
-                    alt=""
-                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background: "linear-gradient(to top, rgba(22,63,60,.85), rgba(22,63,60,.05) 55%)",
-                    }}
-                  />
-                  <div style={{ position: "absolute", left: 10, right: 10, bottom: 10 }}>
-                    <p style={{ margin: 0, color: "#fff", fontWeight: 700, fontSize: 13, lineHeight: 1.25 }}>
-                      {d.titulo}
-                    </p>
-                    {d.subtitulo && (
-                      <p style={{ margin: "3px 0 0", color: "rgba(255,255,255,.85)", fontSize: 11 }}>
-                        {d.subtitulo}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-              return d.link_url ? (
-                <a key={d.id} href={d.link_url} target="_blank" rel="noopener noreferrer">
-                  {conteudo}
-                </a>
-              ) : (
-                <div key={d.id}>{conteudo}</div>
-              );
-            })}
-          </div>
+          <>
+            <h2 style={{ ...tituloSecao, marginBottom: 14 }}>Novidades</h2>
+            <DestaquesCarrossel destaques={destaques} />
+          </>
         )}
 
         {/* ---------- Mural de avisos ---------- */}
