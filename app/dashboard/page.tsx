@@ -75,7 +75,7 @@ export default async function DashboardPage({
 
   let listaSessoes = supabase
     .from("sessoes")
-    .select("id, data, hora, status, tipo, observacoes, paciente_id, perfis(nome, email), planos(titulo)")
+    .select("id, data, hora, status, tipo, observacoes, paciente_id, perfis!paciente_id(nome, email), planos(titulo)")
     .eq("data", diaFiltro)
     .order("hora", { ascending: true });
   if (pacienteFiltro) listaSessoes = listaSessoes.eq("paciente_id", pacienteFiltro);
@@ -102,7 +102,7 @@ export default async function DashboardPage({
     supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
     supabase
       .from("planos")
-      .select("id, titulo, ativo, paciente_id, perfis(nome, email)")
+      .select("id, titulo, ativo, paciente_id, perfis!paciente_id(nome, email)")
       .order("criado_em", { ascending: false }),
     listaSessoes,
     contagemSemana,
@@ -444,32 +444,6 @@ export default async function DashboardPage({
               rotulo: "Agenda",
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
-                  {/* DEBUG TEMPORARIO — remover depois de achar o bug */}
-                  <pre
-                    style={{
-                      fontSize: 10,
-                      background: "#111",
-                      color: "#0f0",
-                      padding: 10,
-                      borderRadius: 8,
-                      overflowX: "auto",
-                      marginBottom: 14,
-                    }}
-                  >
-                    {JSON.stringify(
-                      {
-                        hojeIso,
-                        diaFiltro,
-                        pacienteFiltro: pacienteFiltro ?? null,
-                        dias: dias.map((d) => ({ iso: d.iso, hoje: d.hoje })),
-                        sessoesDoDia: (sessoes ?? []).map((s: any) => ({ id: s.id, data: s.data, paciente_id: s.paciente_id })),
-                        sessoesSemanaDatas: (sessoesSemana ?? []).map((s: any) => s.data),
-                      },
-                      null,
-                      2
-                    )}
-                  </pre>
-
                   <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
                     <SeletorPaciente
                       pacientes={opcoesAtribuicao}

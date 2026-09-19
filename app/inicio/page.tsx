@@ -48,7 +48,7 @@ export default async function InicioPage({
   let consultaSemana = supabase
     .from("sessoes")
     .select(
-      "id, data, hora, status, tipo, observacoes, perfis(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
+      "id, data, hora, status, tipo, observacoes, perfis!paciente_id(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
     )
     .gte("data", inicioSemana)
     .lte("data", fimSemana)
@@ -58,7 +58,7 @@ export default async function InicioPage({
 
   let consultaOutras = supabase
     .from("sessoes")
-    .select("id, data, hora, tipo, perfis(nome, email), planos(titulo)")
+    .select("id, data, hora, tipo, perfis!paciente_id(nome, email), planos(titulo)")
     .or(`data.lt.${inicioSemana},data.gt.${fimSemana}`)
     .order("data", { ascending: false })
     .limit(8);
@@ -124,34 +124,6 @@ export default async function InicioPage({
             </div>
           ))}
         </div>
-
-        {/* DEBUG TEMPORARIO — remover depois de achar o bug */}
-        <pre
-          style={{
-            fontSize: 10,
-            background: "#111",
-            color: "#0f0",
-            padding: 10,
-            borderRadius: 8,
-            overflowX: "auto",
-            marginBottom: 14,
-          }}
-        >
-          {JSON.stringify(
-            {
-              hojeIso,
-              diaSelecionado,
-              ehAdmin,
-              vendoComoPaciente,
-              userId: user.id,
-              dias: dias.map((d) => ({ iso: d.iso, hoje: d.hoje })),
-              itensDoDia: itensDoDia.map((s: any) => ({ id: s.id, data: s.data })),
-              sessoesSemanaBruta: (sessoesSemana ?? []).map((s: any) => ({ id: s.id, data: s.data })),
-            },
-            null,
-            2
-          )}
-        </pre>
 
         {/* ---------- Sua semana ---------- */}
         <h2 style={{ ...tituloSecao, marginTop: 36 }}>{ehAdmin ? "Pacientes desta semana" : "Sua semana"}</h2>
