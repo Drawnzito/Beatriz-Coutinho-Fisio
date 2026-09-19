@@ -41,11 +41,15 @@ function tocarSomConclusao() {
 
 export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; itens: Item[] }) {
   const [indice, setIndice] = useState(0);
+  const [serie, setSerie] = useState(1);
   const [fase, setFase] = useState<"exercicio" | "descanso" | "concluido">("exercicio");
   const [tempoRestante, setTempoRestante] = useState(DESCANSO_PADRAO);
   const [duracaoDescanso, setDuracaoDescanso] = useState(DESCANSO_PADRAO);
 
-  const ultimo = indice >= itens.length - 1;
+  const item = itens[indice];
+  const totalSeries = item?.series && item.series > 0 ? item.series : 1;
+  const ultimoExercicio = indice >= itens.length - 1;
+  const ultimaAcao = serie >= totalSeries && ultimoExercicio;
 
   useEffect(() => {
     if (fase !== "concluido") return;
@@ -53,19 +57,32 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
     tocarSomConclusao();
   }, [fase]);
 
+  function avancar() {
+    if (serie < totalSeries) {
+      setSerie((s) => s + 1);
+      setFase("exercicio");
+    } else if (!ultimoExercicio) {
+      setIndice((i) => i + 1);
+      setSerie(1);
+      setFase("exercicio");
+    } else {
+      setFase("concluido");
+    }
+  }
+
   useEffect(() => {
     if (fase !== "descanso") return;
     if (tempoRestante <= 0) {
-      setIndice((i) => i + 1);
-      setFase("exercicio");
+      avancar();
       return;
     }
     const t = setTimeout(() => setTempoRestante((s) => s - 1), 1000);
     return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fase, tempoRestante]);
 
-  function concluirExercicio() {
-    if (ultimo) {
+  function concluirSerie() {
+    if (ultimaAcao) {
       setFase("concluido");
     } else {
       setTempoRestante(duracaoDescanso);
@@ -76,11 +93,6 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
   function ajustarDescanso(delta: number) {
     setDuracaoDescanso((d) => Math.max(15, d + delta));
     setTempoRestante((t) => Math.max(0, t + delta));
-  }
-
-  function pularDescanso() {
-    setIndice((i) => i + 1);
-    setFase("exercicio");
   }
 
   if (itens.length === 0) {
@@ -108,6 +120,7 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
   }
 
   if (fase === "descanso") {
+    const proximaSerieMesmoExercicio = serie < totalSeries;
     return (
       <main style={{ ...pagina, alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: "100vh" }}>
         <p style={{ fontSize: 13, letterSpacing: 2, color: "var(--cor-acento)", fontWeight: 700, margin: "0 0 8px" }}>
@@ -117,18 +130,18 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
           {tempoRestante}s
         </div>
         <p style={{ color: "var(--cor-texto-suave)", fontSize: 14, margin: "8px 0 28px" }}>
-          Próximo: {itens[indice + 1]?.titulo}
+          {proximaSerieMesmoExercicio
+            ? `Próxima série (${serie + 1} de ${totalSeries}) de ${item.titulo}`
+            : `Próximo: ${itens[indice + 1]?.titulo}`}
         </p>
         <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
           <button onClick={() => ajustarDescanso(-15)} style={botaoChip}>-15s</button>
           <button onClick={() => ajustarDescanso(15)} style={botaoChip}>+15s</button>
         </div>
-        <button onClick={pularDescanso} style={botaoTexto}>pular descanso</button>
+        <button onClick={avancar} style={botaoTexto}>pular descanso</button>
       </main>
     );
   }
-
-  const item = itens[indice];
 
   return (
     <main style={pagina}>
@@ -147,6 +160,7 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
       </div>
       <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 20px" }}>
         Exercício {indice + 1} de {itens.length}
+        {totalSeries > 1 ? ` · Série ${serie} de ${totalSeries}` : ""}
       </p>
 
       <h1 style={{ fontFamily: "var(--fonte-titulo)", fontSize: 22, color: "var(--cor-primaria-escura)", margin: "0 0 6px" }}>
@@ -166,8 +180,8 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
         <p style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 28 }}>{item.descricao}</p>
       )}
 
-      <button onClick={concluirExercicio} style={botaoPrimario}>
-        {ultimo ? "Concluir treino" : "Concluir exercício"}
+      <button onClick={concluirSerie} style={botaoPrimario}>
+        {ultimaAcao ? "Concluir treino" : totalSeries > 1 && serie < totalSeries ? "Concluir série" : "Concluir exercício"}
       </button>
     </main>
   );

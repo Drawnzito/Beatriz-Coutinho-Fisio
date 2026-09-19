@@ -1,3 +1,5 @@
+import { agoraBrasil, paraIsoBrasil } from "./dataBrasil";
+
 const DIAS_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export type DiaSemana = {
@@ -7,25 +9,19 @@ export type DiaSemana = {
   hoje: boolean;
 };
 
-function paraIso(data: Date): string {
-  const ano = data.getFullYear();
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-  const dia = String(data.getDate()).padStart(2, "0");
-  return `${ano}-${mes}-${dia}`;
-}
-
-export function semanaAtual(referencia: Date = new Date()): DiaSemana[] {
-  const hojeIso = paraIso(referencia);
-  const domingo = new Date(referencia);
-  domingo.setDate(referencia.getDate() - referencia.getDay());
+export function semanaAtual(referenciaBrasil: Date = agoraBrasil()): DiaSemana[] {
+  const hojeIso = paraIsoBrasil(referenciaBrasil);
+  const diaSemana = referenciaBrasil.getUTCDay();
+  const domingo = new Date(referenciaBrasil);
+  domingo.setUTCDate(referenciaBrasil.getUTCDate() - diaSemana);
 
   return Array.from({ length: 7 }, (_, i) => {
     const data = new Date(domingo);
-    data.setDate(domingo.getDate() + i);
-    const iso = paraIso(data);
+    data.setUTCDate(domingo.getUTCDate() + i);
+    const iso = paraIsoBrasil(data);
     return {
       iso,
-      numero: data.getDate(),
+      numero: data.getUTCDate(),
       abreviacao: DIAS_ABREV[i],
       hoje: iso === hojeIso,
     };

@@ -7,25 +7,23 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
+import { hojeIsoBrasil } from "@/lib/dataBrasil";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
 
 export const dynamic = "force-dynamic";
 
-function rotuloData(data: Date): string {
-  const hoje = new Date();
-  const ontem = new Date();
-  ontem.setDate(hoje.getDate() - 1);
-  const amanha = new Date();
-  amanha.setDate(hoje.getDate() + 1);
+function rotuloData(iso: string, hojeIso: string): string {
+  const [ano, mes, dia] = iso.split("-").map(Number);
+  const dataUtc = Date.UTC(ano, mes - 1, dia);
+  const [anoH, mesH, diaH] = hojeIso.split("-").map(Number);
+  const hojeUtc = Date.UTC(anoH, mesH - 1, diaH);
+  const diffDias = Math.round((dataUtc - hojeUtc) / 86400000);
 
-  const mesmoDia = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (diffDias === 0) return "Hoje";
+  if (diffDias === -1) return "Ontem";
+  if (diffDias === 1) return "Amanhã";
 
-  if (mesmoDia(data, hoje)) return "Hoje";
-  if (mesmoDia(data, ontem)) return "Ontem";
-  if (mesmoDia(data, amanha)) return "Amanhã";
-
-  return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" });
+  return new Date(dataUtc).toLocaleDateString("pt-BR", { day: "2-digit", month: "long", timeZone: "UTC" });
 }
 
 export default async function InicioPage() {
@@ -50,7 +48,7 @@ export default async function InicioPage() {
   const dias = semanaAtual();
   const inicioSemana = dias[0].iso;
   const fimSemana = dias[6].iso;
-  const hojeIso = new Date().toISOString().slice(0, 10);
+  const hojeIso = hojeIsoBrasil();
 
   let consultaSemana = supabase
     .from("sessoes")
@@ -87,9 +85,9 @@ export default async function InicioPage() {
     contagens[s.data] = (contagens[s.data] ?? 0) + 1;
   }
 
-  const gruposSemana = new Map<string, { data: Date; itens: any[] }>();
+  const gruposSemana = new Map<string, { itens: any[] }>();
   for (const s of (sessoesSemana ?? []) as any[]) {
-    if (!gruposSemana.has(s.data)) gruposSemana.set(s.data, { data: new Date(`${s.data}T00:00:00`), itens: [] });
+    if (!gruposSemana.has(s.data)) gruposSemana.set(s.data, { itens: [] });
     gruposSemana.get(s.data)!.itens.push(s);
   }
   const gruposSemanaOrdenados = [...gruposSemana.entries()].sort((a, b) => a[0].localeCompare(b[0]));
@@ -143,7 +141,7 @@ export default async function InicioPage() {
         <TiraSemana dias={dias} hrefs={hrefsSemana} contagens={contagens} />
 
         <div style={{ display: "grid", gap: 20, marginTop: 20 }}>
-          {gruposSemanaOrdenados.map(([iso, { data, itens }]) => (
+          {gruposSemanaOrdenados.map(([iso, { itens }]) => (
             <div key={iso} id={`dia-${iso}`} style={{ scrollMarginTop: 90 }}>
               <p
                 style={{
@@ -155,7 +153,7 @@ export default async function InicioPage() {
                   letterSpacing: 1,
                 }}
               >
-                {rotuloData(data)}
+                {rotuloData(iso, hojeIso)}
               </p>
 
               <div style={{ display: "grid", gap: 10 }}>

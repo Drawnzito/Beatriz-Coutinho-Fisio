@@ -10,6 +10,7 @@ import { TiraSemana } from "@/components/TiraSemana";
 import { CampoValidade } from "@/components/CampoValidade";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
+import { hojeIsoBrasil } from "@/lib/dataBrasil";
 import { TIPOS_SESSAO, rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
 import {
   criarExercicio,
@@ -123,7 +124,7 @@ export default async function DashboardPage({
   }
   if (ordem === "desc") exerciciosFiltrados = [...exerciciosFiltrados].reverse();
 
-  const hojeIso = new Date().toISOString().slice(0, 10);
+  const hojeIso = hojeIsoBrasil();
   const editandoId = searchParams.editar || undefined;
 
   function hrefBiblioteca(overrides: { categoria?: string; editar?: string; busca?: string; ordem?: string }) {
@@ -541,7 +542,9 @@ export default async function DashboardPage({
                     ))}
                     {(!sessoes || sessoes.length === 0) && (
                       <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                        Nenhuma sessão encontrada com esse filtro.
+                        {pacienteFiltro || diaFiltro
+                          ? "Nenhuma sessão encontrada com esse filtro."
+                          : "Nenhuma sessão agendada ainda."}
                       </p>
                     )}
                   </div>
