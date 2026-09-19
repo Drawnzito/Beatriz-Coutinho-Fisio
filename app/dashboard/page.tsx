@@ -7,6 +7,7 @@ import { Abas } from "@/components/Abas";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { SeletorOpcao } from "@/components/SeletorOpcao";
 import { TiraSemana } from "@/components/TiraSemana";
+import { NavegacaoSemana } from "@/components/NavegacaoSemana";
 import { DiaEmDestaque } from "@/components/DiaEmDestaque";
 import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { CampoValidade } from "@/components/CampoValidade";
@@ -45,6 +46,7 @@ export default async function DashboardPage({
     busca?: string;
     ordem?: string;
     editarDestaque?: string;
+    semana?: string;
   };
 }) {
   const supabase = createClient();
@@ -69,8 +71,13 @@ export default async function DashboardPage({
 
   const hojeIso = hojeIsoBrasil();
   const pacienteFiltro = searchParams.paciente || undefined;
-  const dias = semanaAtual();
-  const diaFiltro = dias.some((d) => d.iso === searchParams.dia) ? searchParams.dia! : hojeIso;
+  const semanaOffset = parseInt(searchParams.semana ?? "0", 10) || 0;
+  const dias = semanaAtual(semanaOffset);
+  const diaFiltro = dias.some((d) => d.iso === searchParams.dia)
+    ? searchParams.dia!
+    : semanaOffset === 0
+    ? hojeIso
+    : dias[0].iso;
   const diaInfo = dias.find((d) => d.iso === diaFiltro)!;
 
   let listaSessoes = supabase
@@ -151,12 +158,14 @@ export default async function DashboardPage({
     return `/dashboard?${params.toString()}`;
   }
 
-  function hrefAgenda(overrides: { paciente?: string; dia?: string }) {
+  function hrefAgenda(overrides: { paciente?: string; dia?: string; semana?: string }) {
     const params = new URLSearchParams({ aba: "agenda" });
     const paciente = "paciente" in overrides ? overrides.paciente : pacienteFiltro;
     const dia = "dia" in overrides ? overrides.dia : diaFiltro;
+    const semana = "semana" in overrides ? overrides.semana : semanaOffset ? String(semanaOffset) : undefined;
     if (paciente) params.set("paciente", paciente);
     if (dia) params.set("dia", dia);
+    if (semana && semana !== "0") params.set("semana", semana);
     return `/dashboard?${params.toString()}`;
   }
 
@@ -449,8 +458,17 @@ export default async function DashboardPage({
                       pacientes={opcoesAtribuicao}
                       selecionado={pacienteFiltro}
                       baseHref="/dashboard"
-                      manterParams={{ aba: "agenda", dia: diaFiltro }}
+                      manterParams={{ aba: "agenda", dia: diaFiltro, semana: semanaOffset ? String(semanaOffset) : undefined }}
                       placeholder="Todos os pacientes"
+                    />
+
+                    <NavegacaoSemana
+                      inicioIso={dias[0].iso}
+                      fimIso={dias[6].iso}
+                      hrefAnterior={hrefAgenda({ semana: String(semanaOffset - 1), dia: "" })}
+                      hrefProxima={hrefAgenda({ semana: String(semanaOffset + 1), dia: "" })}
+                      hrefHoje={hrefAgenda({ semana: "0", dia: "" })}
+                      emSemanaAtual={semanaOffset === 0}
                     />
 
                     <DiaEmDestaque
@@ -461,9 +479,9 @@ export default async function DashboardPage({
 
                     <TiraSemana dias={dias} hrefs={hrefsSemana} selecionado={diaFiltro} contagens={contagens} />
 
-                    {diaFiltro !== hojeIso && (
+                    {semanaOffset === 0 && diaFiltro !== hojeIso && (
                       <a
-                        href={hrefAgenda({ dia: hojeIso })}
+                        href={hrefAgenda({ dia: hojeIso, semana: "0" })}
                         style={{ fontSize: 12.5, color: "var(--cor-acento)", justifySelf: "start" }}
                       >
                         voltar pra hoje

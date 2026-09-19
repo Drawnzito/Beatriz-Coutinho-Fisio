@@ -19,11 +19,13 @@ export type DiaSemana = {
   hoje: boolean;
 };
 
-export function semanaAtual(referenciaBrasil: Date = agoraBrasil()): DiaSemana[] {
-  const hojeIso = paraIsoBrasil(referenciaBrasil);
-  const diaSemana = referenciaBrasil.getUTCDay();
-  const domingo = new Date(referenciaBrasil);
-  domingo.setUTCDate(referenciaBrasil.getUTCDate() - diaSemana);
+export function semanaAtual(offsetSemanas: number = 0): DiaSemana[] {
+  const agora = agoraBrasil();
+  const hojeIso = paraIsoBrasil(agora);
+  const referencia = new Date(agora.getTime() + offsetSemanas * 7 * 24 * 60 * 60 * 1000);
+  const diaSemana = referencia.getUTCDay();
+  const domingo = new Date(referencia);
+  domingo.setUTCDate(referencia.getUTCDate() - diaSemana);
 
   return Array.from({ length: 7 }, (_, i) => {
     const data = new Date(domingo);

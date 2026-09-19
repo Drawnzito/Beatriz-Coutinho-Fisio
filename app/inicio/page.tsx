@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { TiraSemana } from "@/components/TiraSemana";
+import { NavegacaoSemana } from "@/components/NavegacaoSemana";
 import { DiaEmDestaque } from "@/components/DiaEmDestaque";
 import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { DestaquesCarrossel } from "@/components/DestaquesCarrossel";
@@ -18,7 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function InicioPage({
   searchParams,
 }: {
-  searchParams: { dia?: string };
+  searchParams: { dia?: string; semana?: string };
 }) {
   const supabase = createClient();
   const {
@@ -38,11 +39,16 @@ export default async function InicioPage({
   const vendoComoPaciente = perfil?.papel === "admin" && cookies().get("ver_como_paciente")?.value === "1";
   const ehAdmin = perfil?.papel === "admin" && !vendoComoPaciente;
 
-  const dias = semanaAtual();
+  const semanaOffset = parseInt(searchParams.semana ?? "0", 10) || 0;
+  const dias = semanaAtual(semanaOffset);
   const inicioSemana = dias[0].iso;
   const fimSemana = dias[6].iso;
   const hojeIso = hojeIsoBrasil();
-  const diaSelecionado = dias.some((d) => d.iso === searchParams.dia) ? searchParams.dia! : hojeIso;
+  const diaSelecionado = dias.some((d) => d.iso === searchParams.dia)
+    ? searchParams.dia!
+    : semanaOffset === 0
+    ? hojeIso
+    : dias[0].iso;
   const diaInfo = dias.find((d) => d.iso === diaSelecionado)!;
 
   let consultaSemana = supabase
@@ -83,7 +89,18 @@ export default async function InicioPage({
     (porDia[s.data] ??= []).push(s);
   }
 
-  const hrefsSemana = Object.fromEntries(dias.map((d) => [d.iso, `/inicio?dia=${d.iso}`]));
+  function hrefDia(iso: string, overrides: { semana?: number } = {}) {
+    const semana = overrides.semana ?? semanaOffset;
+    const params = new URLSearchParams({ dia: iso });
+    if (semana) params.set("semana", String(semana));
+    return `/inicio?${params.toString()}`;
+  }
+
+  function hrefSemana(semana: number) {
+    return semana ? `/inicio?semana=${semana}` : "/inicio";
+  }
+
+  const hrefsSemana = Object.fromEntries(dias.map((d) => [d.iso, hrefDia(d.iso)]));
 
   const totalSemana = sessoesSemana?.length ?? 0;
   const itensDoDia = porDia[diaSelecionado] ?? [];
@@ -135,6 +152,15 @@ export default async function InicioPage({
             ? `${totalSemana} sessão${totalSemana > 1 ? "ões" : ""} de pacientes essa semana.`
             : `Você tem ${totalSemana} sessão${totalSemana > 1 ? "ões" : ""} agendada${totalSemana > 1 ? "s" : ""} essa semana.`}
         </p>
+
+        <NavegacaoSemana
+          inicioIso={dias[0].iso}
+          fimIso={dias[6].iso}
+          hrefAnterior={hrefSemana(semanaOffset - 1)}
+          hrefProxima={hrefSemana(semanaOffset + 1)}
+          hrefHoje={hrefSemana(0)}
+          emSemanaAtual={semanaOffset === 0}
+        />
 
         <DiaEmDestaque
           numero={diaInfo.numero}
