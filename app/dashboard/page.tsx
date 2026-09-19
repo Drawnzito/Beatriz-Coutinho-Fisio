@@ -7,6 +7,8 @@ import { Abas } from "@/components/Abas";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { SeletorOpcao } from "@/components/SeletorOpcao";
 import { TiraSemana } from "@/components/TiraSemana";
+import { DiaEmDestaque } from "@/components/DiaEmDestaque";
+import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { CampoValidade } from "@/components/CampoValidade";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -65,17 +67,18 @@ export default async function DashboardPage({
     redirect("/inicio");
   }
 
+  const hojeIso = hojeIsoBrasil();
   const pacienteFiltro = searchParams.paciente || undefined;
-  const diaFiltro = searchParams.dia || undefined;
   const dias = semanaAtual();
+  const diaFiltro = dias.some((d) => d.iso === searchParams.dia) ? searchParams.dia! : hojeIso;
+  const diaInfo = dias.find((d) => d.iso === diaFiltro)!;
 
   let listaSessoes = supabase
     .from("sessoes")
     .select("id, data, hora, status, tipo, observacoes, paciente_id, perfis(nome, email), planos(titulo)")
-    .order("data", { ascending: true })
+    .eq("data", diaFiltro)
     .order("hora", { ascending: true });
   if (pacienteFiltro) listaSessoes = listaSessoes.eq("paciente_id", pacienteFiltro);
-  if (diaFiltro) listaSessoes = listaSessoes.eq("data", diaFiltro);
 
   let contagemSemana = supabase
     .from("sessoes")
@@ -130,7 +133,6 @@ export default async function DashboardPage({
   }
   if (ordem === "desc") exerciciosFiltrados = [...exerciciosFiltrados].reverse();
 
-  const hojeIso = hojeIsoBrasil();
   const editandoId = searchParams.editar || undefined;
   const editandoDestaqueId = searchParams.editarDestaque || undefined;
   const hrefDestaques = (editar?: string) =>
@@ -158,9 +160,7 @@ export default async function DashboardPage({
     return `/dashboard?${params.toString()}`;
   }
 
-  const hrefsSemana = Object.fromEntries(
-    dias.map((d) => [d.iso, hrefAgenda({ dia: diaFiltro === d.iso ? "" : d.iso })])
-  );
+  const hrefsSemana = Object.fromEntries(dias.map((d) => [d.iso, hrefAgenda({ dia: d.iso })]));
 
   return (
     <>
@@ -453,14 +453,20 @@ export default async function DashboardPage({
                       placeholder="Todos os pacientes"
                     />
 
+                    <DiaEmDestaque
+                      numero={diaInfo.numero}
+                      rotulo={`${diaInfo.nomeCompleto}${diaInfo.hoje ? " · Hoje" : ""}`}
+                      contagem={(sessoes ?? []).length}
+                    />
+
                     <TiraSemana dias={dias} hrefs={hrefsSemana} selecionado={diaFiltro} contagens={contagens} />
 
-                    {diaFiltro && (
+                    {diaFiltro !== hojeIso && (
                       <a
-                        href={hrefAgenda({ dia: "" })}
+                        href={hrefAgenda({ dia: hojeIso })}
                         style={{ fontSize: 12.5, color: "var(--cor-acento)", justifySelf: "start" }}
                       >
-                        limpar filtro de dia
+                        voltar pra hoje
                       </a>
                     )}
                   </div>
@@ -550,11 +556,14 @@ export default async function DashboardPage({
                       </div>
                     ))}
                     {(!sessoes || sessoes.length === 0) && (
-                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                        {pacienteFiltro || diaFiltro
-                          ? "Nenhuma sessão encontrada com esse filtro."
-                          : "Nenhuma sessão agendada ainda."}
-                      </p>
+                      <EstadoVazioAgenda
+                        titulo="Nada marcado por aqui"
+                        texto={
+                          pacienteFiltro
+                            ? "Esse paciente não tem sessão nesse dia."
+                            : "Nenhum paciente tem sessão nesse dia."
+                        }
+                      />
                     )}
                   </div>
                 </div>
