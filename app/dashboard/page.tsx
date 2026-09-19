@@ -444,6 +444,32 @@ export default async function DashboardPage({
               rotulo: "Agenda",
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
+                  {/* DEBUG TEMPORARIO — remover depois de achar o bug */}
+                  <pre
+                    style={{
+                      fontSize: 10,
+                      background: "#111",
+                      color: "#0f0",
+                      padding: 10,
+                      borderRadius: 8,
+                      overflowX: "auto",
+                      marginBottom: 14,
+                    }}
+                  >
+                    {JSON.stringify(
+                      {
+                        hojeIso,
+                        diaFiltro,
+                        pacienteFiltro: pacienteFiltro ?? null,
+                        dias: dias.map((d) => ({ iso: d.iso, hoje: d.hoje })),
+                        sessoesDoDia: (sessoes ?? []).map((s: any) => ({ id: s.id, data: s.data, paciente_id: s.paciente_id })),
+                        sessoesSemanaDatas: (sessoesSemana ?? []).map((s: any) => s.data),
+                      },
+                      null,
+                      2
+                    )}
+                  </pre>
+
                   <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
                     <SeletorPaciente
                       pacientes={opcoesAtribuicao}
