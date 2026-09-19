@@ -1,0 +1,12 @@
+{
+  "name": "Beatriz Coutinho Fisioterapia",
+  "short_name": "BC Fisio",
+  "description": "Acompanhamento de exercícios e sessões",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf8f5",
+  "theme_color": "#1f5c57",
+  "icons": [
+    { "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

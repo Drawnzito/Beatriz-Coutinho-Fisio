@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/BottomNav";
 import { AcentoArabesque } from "@/components/Acentos";
+import { AtivarNotificacoes } from "@/components/AtivarNotificacoes";
 import { redirect } from "next/navigation";
 import { SairBotao } from "./SairBotao";
 
@@ -92,7 +93,11 @@ export default async function PerfilPage() {
           {papel === "admin" ? "FISIOTERAPEUTA" : "PACIENTE"}
         </p>
 
-        <div style={{ marginTop: 40, display: "grid", gap: 12 }}>
+        <div style={{ marginTop: 40, display: "grid", gap: 12, justifyItems: "center" }}>
+          <AtivarNotificacoes chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
+          <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "var(--cor-texto-suave)", maxWidth: 300 }}>
+            Manda um lembrete uma vez por dia, de manhã, se você tiver sessão marcada pra hoje.
+          </p>
           <SairBotao />
         </div>
       </main>

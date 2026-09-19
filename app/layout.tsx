@@ -19,6 +19,11 @@ const fonteCorpo = Montserrat({
 export const metadata: Metadata = {
   title: "Beatriz Coutinho Fisioterapia",
   description: "Acompanhamento de exercícios e sessões",
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#1f5c57",
 };
 
 export default function RootLayout({
