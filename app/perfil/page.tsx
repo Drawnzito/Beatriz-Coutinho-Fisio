@@ -2,8 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { BottomNav } from "@/components/BottomNav";
 import { AcentoArabesque } from "@/components/Acentos";
 import { AtivarNotificacoes } from "@/components/AtivarNotificacoes";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SairBotao } from "./SairBotao";
+import { ativarVisaoPaciente, desativarVisaoPaciente } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +27,7 @@ export default async function PerfilPage() {
 
   const papel = perfil?.papel === "admin" ? "admin" : "paciente";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+  const vendoComoPaciente = cookies().get("ver_como_paciente")?.value === "1";
 
   return (
     <>
@@ -98,11 +101,38 @@ export default async function PerfilPage() {
           <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "var(--cor-texto-suave)", maxWidth: 300 }}>
             Manda um lembrete uma vez por dia, de manhã, se você tiver sessão marcada pra hoje.
           </p>
+
+          {papel === "admin" && (
+            <>
+              <form action={vendoComoPaciente ? desativarVisaoPaciente : ativarVisaoPaciente}>
+                <button type="submit" style={botaoTeste}>
+                  {vendoComoPaciente ? "Voltar pra visão de fisioterapeuta" : "Ver como paciente (teste)"}
+                </button>
+              </form>
+              <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "var(--cor-texto-suave)", maxWidth: 300 }}>
+                {vendoComoPaciente
+                  ? "Você está vendo o app como se fosse um paciente — Início e Exercícios mostram os seus próprios (se você tiver algum plano atribuído em Montar plano)."
+                  : "Liga um modo de teste pra você ver Início e Exercícios como um paciente veria."}
+              </p>
+            </>
+          )}
+
           <SairBotao />
         </div>
       </main>
 
-      <BottomNav papel={papel} />
+      <BottomNav papel={vendoComoPaciente ? "paciente" : papel} />
     </>
   );
 }
+
+const botaoTeste: React.CSSProperties = {
+  padding: "10px 18px",
+  borderRadius: 999,
+  border: "1px solid var(--cor-borda)",
+  background: "var(--cor-superficie)",
+  color: "var(--cor-primaria-escura)",
+  fontWeight: 600,
+  fontSize: 13.5,
+  cursor: "pointer",
+};

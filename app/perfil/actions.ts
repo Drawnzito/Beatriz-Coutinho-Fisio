@@ -1,6 +1,18 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+export async function ativarVisaoPaciente() {
+  cookies().set("ver_como_paciente", "1", { path: "/", maxAge: 60 * 60 * 24 * 30 });
+  redirect("/inicio");
+}
+
+export async function desativarVisaoPaciente() {
+  cookies().set("ver_como_paciente", "", { path: "/", maxAge: 0 });
+  redirect("/dashboard");
+}
 
 export async function salvarInscricaoPush(inscricao: { endpoint: string; p256dh: string; auth: string }) {
   const supabase = createClient();

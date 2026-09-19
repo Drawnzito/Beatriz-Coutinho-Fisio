@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { TiraSemana } from "@/components/TiraSemana";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
@@ -43,7 +44,8 @@ export default async function InicioPage() {
     .eq("id", user.id)
     .single();
 
-  const ehAdmin = perfil?.papel === "admin";
+  const vendoComoPaciente = perfil?.papel === "admin" && cookies().get("ver_como_paciente")?.value === "1";
+  const ehAdmin = perfil?.papel === "admin" && !vendoComoPaciente;
 
   const dias = semanaAtual();
   const inicioSemana = dias[0].iso;
@@ -253,7 +255,7 @@ export default async function InicioPage() {
         )}
       </main>
 
-      <BottomNav papel={perfil?.papel === "admin" ? "admin" : "paciente"} />
+      <BottomNav papel={ehAdmin ? "admin" : "paciente"} />
     </>
   );
 }

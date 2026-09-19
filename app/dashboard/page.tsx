@@ -52,7 +52,7 @@ export default async function DashboardPage({
 
   const { data: perfilAtual } = await supabase
     .from("perfis")
-    .select("papel")
+    .select("papel, nome, email")
     .eq("id", user.id)
     .single();
 
@@ -99,6 +99,11 @@ export default async function DashboardPage({
     contagemSemana,
     supabase.from("convites_paciente").select("*").order("criado_em", { ascending: false }),
   ]);
+
+  const opcoesAtribuicao = [
+    ...(pacientes ?? []),
+    { id: user.id, nome: `${perfilAtual?.nome || "Você"} (teste)`, email: perfilAtual?.email ?? "", idade: null },
+  ];
 
   const contagens: Record<string, number> = {};
   for (const s of sessoesSemana ?? []) {
@@ -377,7 +382,7 @@ export default async function DashboardPage({
               rotulo: "Montar plano",
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
-                  {(pacientes ?? []).length === 0 ? (
+                  {opcoesAtribuicao.length === 0 ? (
                     <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
                       Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
                     </p>
@@ -385,7 +390,7 @@ export default async function DashboardPage({
                     <form action={criarPlano} style={{ display: "grid", gap: 10 }}>
                       <select name="paciente_id" required style={campo}>
                         <option value="">Selecione o paciente</option>
-                        {(pacientes ?? []).map((p) => (
+                        {opcoesAtribuicao.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.nome || p.email}
                           </option>
@@ -431,7 +436,7 @@ export default async function DashboardPage({
                 <div style={{ padding: "24px 20px 0" }}>
                   <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
                     <SeletorPaciente
-                      pacientes={pacientes ?? []}
+                      pacientes={opcoesAtribuicao}
                       selecionado={pacienteFiltro}
                       baseHref="/dashboard"
                       manterParams={{ aba: "agenda", dia: diaFiltro }}
@@ -454,7 +459,7 @@ export default async function DashboardPage({
                     Agendar sessão
                   </p>
 
-                  {(pacientes ?? []).length === 0 ? (
+                  {opcoesAtribuicao.length === 0 ? (
                     <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
                       Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
                     </p>
@@ -465,7 +470,7 @@ export default async function DashboardPage({
 
                       <select name="paciente_id" required defaultValue={pacienteFiltro ?? ""} style={campo}>
                         <option value="">Selecione o paciente</option>
-                        {(pacientes ?? []).map((p) => (
+                        {opcoesAtribuicao.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.nome || p.email}
                           </option>

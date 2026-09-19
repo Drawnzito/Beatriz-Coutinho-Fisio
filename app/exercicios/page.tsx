@@ -5,6 +5,7 @@ import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { Feedback } from "@/components/Feedback";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { atualizarItemPlano, removerItemPlano, adicionarExercicioAoPlano } from "./actions";
 
@@ -30,7 +31,8 @@ export default async function ExerciciosPage({
     .eq("id", user.id)
     .single();
 
-  const ehAdmin = perfil?.papel === "admin";
+  const vendoComoPaciente = perfil?.papel === "admin" && cookies().get("ver_como_paciente")?.value === "1";
+  const ehAdmin = perfil?.papel === "admin" && !vendoComoPaciente;
 
   if (ehAdmin) {
     return (
