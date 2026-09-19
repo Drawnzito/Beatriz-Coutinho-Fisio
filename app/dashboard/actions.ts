@@ -12,6 +12,14 @@ function irComSucesso(mensagem: string, aba: string, extraParams: Record<string,
   redirect(`/dashboard?${params.toString()}`);
 }
 
+function irComErro(mensagem: string, aba: string, extraParams: Record<string, string | undefined> = {}) {
+  const params = new URLSearchParams({ sucesso: `Erro: ${mensagem}`, aba });
+  for (const [chave, valor] of Object.entries(extraParams)) {
+    if (valor) params.set(chave, valor);
+  }
+  redirect(`/dashboard?${params.toString()}`);
+}
+
 async function exigirAdmin() {
   const supabase = createClient();
   const {
@@ -52,7 +60,7 @@ export async function criarExercicio(formData: FormData) {
     }
   }
 
-  await supabase.from("exercicios").insert({
+  const { error } = await supabase.from("exercicios").insert({
     titulo: String(formData.get("titulo") || ""),
     categoria: String(formData.get("categoria") || "geral"),
     descricao: String(formData.get("descricao") || ""),
@@ -61,6 +69,7 @@ export async function criarExercicio(formData: FormData) {
     repeticoes_padrao: Number(formData.get("repeticoes_padrao")) || null,
     criado_por: user.id,
   });
+  if (error) irComErro(error.message, "biblioteca");
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
@@ -69,7 +78,8 @@ export async function criarExercicio(formData: FormData) {
 
 export async function removerExercicio(id: string) {
   const { supabase } = await exigirAdmin();
-  await supabase.from("exercicios").delete().eq("id", id);
+  const { error } = await supabase.from("exercicios").delete().eq("id", id);
+  if (error) irComErro(error.message, "biblioteca");
   revalidatePath("/dashboard");
   irComSucesso("Exercício removido", "biblioteca");
 }
@@ -104,7 +114,8 @@ export async function atualizarExercicio(id: string, formData: FormData) {
     atualizacao.video_url = videoUrlDigitada;
   }
 
-  await supabase.from("exercicios").update(atualizacao).eq("id", id);
+  const { error } = await supabase.from("exercicios").update(atualizacao).eq("id", id);
+  if (error) irComErro(error.message, "biblioteca");
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
@@ -115,12 +126,13 @@ export async function atualizarExercicio(id: string, formData: FormData) {
 export async function criarAviso(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 
-  await supabase.from("avisos").insert({
+  const { error } = await supabase.from("avisos").insert({
     titulo: String(formData.get("titulo") || ""),
     conteudo: String(formData.get("conteudo") || ""),
     validade: String(formData.get("validade") || "") || null,
     criado_por: user.id,
   });
+  if (error) irComErro(error.message, "avisos");
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
@@ -129,7 +141,8 @@ export async function criarAviso(formData: FormData) {
 
 export async function removerAviso(id: string) {
   const { supabase } = await exigirAdmin();
-  await supabase.from("avisos").delete().eq("id", id);
+  const { error } = await supabase.from("avisos").delete().eq("id", id);
+  if (error) irComErro(error.message, "avisos");
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
   irComSucesso("Aviso removido", "avisos");
@@ -150,7 +163,10 @@ export async function criarPlano(formData: FormData) {
     .select()
     .single();
 
-  if (error || !plano) return;
+  if (error || !plano) {
+    irComErro(error?.message ?? "não foi possível criar o plano", "plano");
+    return;
+  }
 
   const itens = exercicioIds.map((exercicio_id, i) => ({
     plano_id: plano.id,
@@ -158,7 +174,8 @@ export async function criarPlano(formData: FormData) {
     ordem: i,
   }));
 
-  await supabase.from("plano_exercicios").insert(itens);
+  const { error: erroItens } = await supabase.from("plano_exercicios").insert(itens);
+  if (erroItens) irComErro(erroItens.message, "plano");
 
   revalidatePath("/dashboard");
   irComSucesso("Plano criado com sucesso", "plano");
@@ -176,9 +193,12 @@ export async function criarSessao(formData: FormData) {
   const filtroPaciente = String(formData.get("_filtro_paciente") || "") || undefined;
   const filtroDia = String(formData.get("_filtro_dia") || "") || undefined;
 
-  if (!paciente_id || !data) return;
+  if (!paciente_id || !data) {
+    irComErro("selecione o paciente e a data", "agenda", { paciente: filtroPaciente, dia: filtroDia });
+    return;
+  }
 
-  await supabase.from("sessoes").insert({
+  const { error } = await supabase.from("sessoes").insert({
     paciente_id,
     data,
     hora,
@@ -187,6 +207,11 @@ export async function criarSessao(formData: FormData) {
     observacoes,
     criado_por: user.id,
   });
+
+  if (error) {
+    irComErro(error.message, "agenda", { paciente: filtroPaciente, dia: filtroDia });
+    return;
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
@@ -198,7 +223,11 @@ export async function removerSessao(id: string, formData: FormData) {
   const filtroPaciente = String(formData.get("_filtro_paciente") || "") || undefined;
   const filtroDia = String(formData.get("_filtro_dia") || "") || undefined;
 
-  await supabase.from("sessoes").delete().eq("id", id);
+  const { error } = await supabase.from("sessoes").delete().eq("id", id);
+  if (error) {
+    irComErro(error.message, "agenda", { paciente: filtroPaciente, dia: filtroDia });
+    return;
+  }
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
   irComSucesso("Sessão removida", "agenda", { paciente: filtroPaciente, dia: filtroDia });
@@ -232,7 +261,8 @@ export async function criarConvitePaciente(formData: FormData) {
     irComSucesso("Já existe um convite pendente pra esse e-mail", "pacientes");
   }
 
-  await supabase.from("convites_paciente").insert({ nome, email, idade, criado_por: user.id });
+  const { error } = await supabase.from("convites_paciente").insert({ nome, email, idade, criado_por: user.id });
+  if (error) irComErro(error.message, "pacientes");
 
   revalidatePath("/dashboard");
   irComSucesso(`${nome} pré-cadastrado — vincula sozinho no primeiro login com Google`, "pacientes");
@@ -240,7 +270,8 @@ export async function criarConvitePaciente(formData: FormData) {
 
 export async function removerConvitePaciente(id: string) {
   const { supabase } = await exigirAdmin();
-  await supabase.from("convites_paciente").delete().eq("id", id);
+  const { error } = await supabase.from("convites_paciente").delete().eq("id", id);
+  if (error) irComErro(error.message, "pacientes");
   revalidatePath("/dashboard");
   irComSucesso("Convite removido", "pacientes");
 }
@@ -268,7 +299,10 @@ export async function criarDestaque(formData: FormData) {
     }
   }
 
-  if (!titulo || !imagemUrl) return;
+  if (!titulo || !imagemUrl) {
+    irComErro("título e imagem são obrigatórios", "destaques");
+    return;
+  }
 
   const { data: existentes } = await supabase
     .from("destaques")
@@ -277,7 +311,7 @@ export async function criarDestaque(formData: FormData) {
     .limit(1);
   const proximaOrdem = (existentes?.[0]?.ordem ?? -1) + 1;
 
-  await supabase.from("destaques").insert({
+  const { error } = await supabase.from("destaques").insert({
     titulo,
     subtitulo,
     imagem_url: imagemUrl,
@@ -285,6 +319,7 @@ export async function criarDestaque(formData: FormData) {
     ordem: proximaOrdem,
     criado_por: user.id,
   });
+  if (error) irComErro(error.message, "destaques");
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
@@ -319,7 +354,8 @@ export async function atualizarDestaque(id: string, formData: FormData) {
     atualizacao.imagem_url = imagemUrlDigitada;
   }
 
-  await supabase.from("destaques").update(atualizacao).eq("id", id);
+  const { error } = await supabase.from("destaques").update(atualizacao).eq("id", id);
+  if (error) irComErro(error.message, "destaques");
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
@@ -328,7 +364,8 @@ export async function atualizarDestaque(id: string, formData: FormData) {
 
 export async function removerDestaque(id: string) {
   const { supabase } = await exigirAdmin();
-  await supabase.from("destaques").delete().eq("id", id);
+  const { error } = await supabase.from("destaques").delete().eq("id", id);
+  if (error) irComErro(error.message, "destaques");
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
   irComSucesso("Destaque removido", "destaques");

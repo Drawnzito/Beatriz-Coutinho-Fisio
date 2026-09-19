@@ -26,6 +26,10 @@ function irComSucesso(pacienteId: string, mensagem: string) {
   redirect(`/exercicios?paciente=${pacienteId}&sucesso=${encodeURIComponent(mensagem)}`);
 }
 
+function irComErro(pacienteId: string, mensagem: string) {
+  redirect(`/exercicios?paciente=${pacienteId}&sucesso=${encodeURIComponent(`Erro: ${mensagem}`)}`);
+}
+
 export async function atualizarItemPlano(itemId: string, formData: FormData) {
   const { supabase } = await exigirAdmin();
   const pacienteId = String(formData.get("_paciente") || "");
@@ -33,13 +37,15 @@ export async function atualizarItemPlano(itemId: string, formData: FormData) {
   const seriesRaw = formData.get("series");
   const repeticoesRaw = formData.get("repeticoes");
 
-  await supabase
+  const { error } = await supabase
     .from("plano_exercicios")
     .update({
       series: seriesRaw ? Number(seriesRaw) : null,
       repeticoes: repeticoesRaw ? Number(repeticoesRaw) : null,
     })
     .eq("id", itemId);
+
+  if (error) irComErro(pacienteId, error.message);
 
   revalidatePath("/exercicios");
   irComSucesso(pacienteId, "Exercício atualizado");
@@ -49,7 +55,8 @@ export async function removerItemPlano(itemId: string, formData: FormData) {
   const { supabase } = await exigirAdmin();
   const pacienteId = String(formData.get("_paciente") || "");
 
-  await supabase.from("plano_exercicios").delete().eq("id", itemId);
+  const { error } = await supabase.from("plano_exercicios").delete().eq("id", itemId);
+  if (error) irComErro(pacienteId, error.message);
 
   revalidatePath("/exercicios");
   irComSucesso(pacienteId, "Exercício removido do plano");
@@ -73,11 +80,12 @@ export async function adicionarExercicioAoPlano(planoId: string, formData: FormD
 
   const proximaOrdem = (existentes?.[0]?.ordem ?? -1) + 1;
 
-  await supabase.from("plano_exercicios").insert({
+  const { error } = await supabase.from("plano_exercicios").insert({
     plano_id: planoId,
     exercicio_id: exercicioId,
     ordem: proximaOrdem,
   });
+  if (error) irComErro(pacienteId, error.message);
 
   revalidatePath("/exercicios");
   irComSucesso(pacienteId, "Exercício adicionado ao plano");
