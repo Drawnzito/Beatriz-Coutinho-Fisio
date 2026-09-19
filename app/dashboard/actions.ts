@@ -74,6 +74,44 @@ export async function removerExercicio(id: string) {
   irComSucesso("Exercício removido", "biblioteca");
 }
 
+export async function atualizarExercicio(id: string, formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const atualizacao: Record<string, unknown> = {
+    titulo: String(formData.get("titulo") || ""),
+    categoria: String(formData.get("categoria") || "geral"),
+    descricao: String(formData.get("descricao") || ""),
+    series_padrao: Number(formData.get("series_padrao")) || null,
+    repeticoes_padrao: Number(formData.get("repeticoes_padrao")) || null,
+  };
+
+  const videoUrlDigitada = String(formData.get("video_url") || "").trim();
+  const arquivo = formData.get("video_arquivo") as File | null;
+
+  if (arquivo && arquivo.size > 0) {
+    const extensao = arquivo.name.split(".").pop() || "bin";
+    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
+
+    const { error: erroUpload } = await supabase.storage
+      .from("exercicios")
+      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
+
+    if (!erroUpload) {
+      const { data: publicUrlData } = supabase.storage.from("exercicios").getPublicUrl(caminho);
+      atualizacao.video_url = publicUrlData.publicUrl;
+    }
+  } else if (videoUrlDigitada) {
+    atualizacao.video_url = videoUrlDigitada;
+  }
+
+  await supabase.from("exercicios").update(atualizacao).eq("id", id);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  revalidatePath("/exercicios");
+  irComSucesso("Exercício atualizado", "biblioteca");
+}
+
 export async function criarAviso(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 

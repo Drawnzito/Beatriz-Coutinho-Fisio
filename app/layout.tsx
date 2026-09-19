@@ -20,6 +20,13 @@ export const metadata: Metadata = {
   title: "Beatriz Coutinho Fisioterapia",
   description: "Acompanhamento de exercícios e sessões",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icone.svg", type: "image/svg+xml" },
+      { url: "/icone-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport = {

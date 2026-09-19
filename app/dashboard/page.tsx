@@ -14,6 +14,7 @@ import { TIPOS_SESSAO, rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao
 import {
   criarExercicio,
   removerExercicio,
+  atualizarExercicio,
   criarAviso,
   removerAviso,
   criarPlano,
@@ -28,7 +29,14 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { sucesso?: string; aba?: string; paciente?: string; dia?: string; categoria?: string };
+  searchParams: {
+    sucesso?: string;
+    aba?: string;
+    paciente?: string;
+    dia?: string;
+    categoria?: string;
+    editar?: string;
+  };
 }) {
   const supabase = createClient();
 
@@ -102,6 +110,16 @@ export default async function DashboardPage({
     : exercicios ?? [];
 
   const hojeIso = new Date().toISOString().slice(0, 10);
+  const editandoId = searchParams.editar || undefined;
+
+  function hrefBiblioteca(overrides: { categoria?: string; editar?: string }) {
+    const params = new URLSearchParams({ aba: "biblioteca" });
+    const categoria = "categoria" in overrides ? overrides.categoria : categoriaFiltro;
+    const editar = "editar" in overrides ? overrides.editar : editandoId;
+    if (categoria) params.set("categoria", categoria);
+    if (editar) params.set("editar", editar);
+    return `/dashboard?${params.toString()}`;
+  }
 
   function hrefAgenda(overrides: { paciente?: string; dia?: string }) {
     const params = new URLSearchParams({ aba: "agenda" });
@@ -175,25 +193,74 @@ export default async function DashboardPage({
                   </p>
 
                   <div style={{ display: "grid", gap: 10 }}>
-                    {exerciciosFiltrados.map((ex) => (
-                      <div key={ex.id} style={cartao}>
-                        <div style={{ flex: 1 }}>
-                          <strong>{ex.titulo}</strong>{" "}
-                          <span style={{ fontSize: 12, color: "var(--cor-acento)" }}>{ex.categoria}</span>
-                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                            {ex.series_padrao ?? "-"}x{ex.repeticoes_padrao ?? "-"} rep
-                          </p>
-                          {ex.video_url && (
-                            <div style={{ marginTop: 8, maxWidth: 220 }}>
-                              <MidiaExercicio url={ex.video_url} />
+                    {exerciciosFiltrados.map((ex) =>
+                      ex.id === editandoId ? (
+                        <div key={ex.id} style={{ ...cartao, display: "block" }}>
+                          <form action={atualizarExercicio.bind(null, ex.id)} style={{ display: "grid", gap: 10 }}>
+                            <input name="titulo" defaultValue={ex.titulo} required style={campo} />
+                            <input name="categoria" defaultValue={ex.categoria} style={campo} />
+                            <textarea name="descricao" defaultValue={ex.descricao ?? ""} rows={3} style={campo} />
+                            <div style={{ display: "grid", gap: 4 }}>
+                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                Trocar vídeo/gif — envie um novo arquivo:
+                              </label>
+                              <input name="video_arquivo" type="file" accept="video/*,image/gif" style={campo} />
                             </div>
-                          )}
+                            <div style={{ display: "grid", gap: 4 }}>
+                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                ...ou cole um novo link (deixe em branco pra manter o atual):
+                              </label>
+                              <input name="video_url" placeholder="https://..." style={campo} />
+                            </div>
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <input
+                                name="series_padrao"
+                                type="number"
+                                placeholder="Séries padrão"
+                                defaultValue={ex.series_padrao ?? ""}
+                                style={campo}
+                              />
+                              <input
+                                name="repeticoes_padrao"
+                                type="number"
+                                placeholder="Repetições padrão"
+                                defaultValue={ex.repeticoes_padrao ?? ""}
+                                style={campo}
+                              />
+                            </div>
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <button type="submit" style={botaoPrimario}>Salvar alterações</button>
+                              <a href={hrefBiblioteca({ editar: "" })} style={{ ...botaoTexto, alignSelf: "center" }}>
+                                cancelar
+                              </a>
+                            </div>
+                          </form>
                         </div>
-                        <form action={removerExercicio.bind(null, ex.id)}>
-                          <button type="submit" style={botaoTexto}>remover</button>
-                        </form>
-                      </div>
-                    ))}
+                      ) : (
+                        <div key={ex.id} style={cartao}>
+                          <div style={{ flex: 1 }}>
+                            <strong>{ex.titulo}</strong>{" "}
+                            <span style={{ fontSize: 12, color: "var(--cor-acento)" }}>{ex.categoria}</span>
+                            <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                              {ex.series_padrao ?? "-"}x{ex.repeticoes_padrao ?? "-"} rep
+                            </p>
+                            {ex.video_url && (
+                              <div style={{ marginTop: 8, maxWidth: 220 }}>
+                                <MidiaExercicio url={ex.video_url} />
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
+                            <a href={hrefBiblioteca({ editar: ex.id })} style={botaoTexto}>
+                              editar
+                            </a>
+                            <form action={removerExercicio.bind(null, ex.id)}>
+                              <button type="submit" style={botaoTexto}>remover</button>
+                            </form>
+                          </div>
+                        </div>
+                      )
+                    )}
                     {exerciciosFiltrados.length === 0 && (
                       <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
                         Nenhum exercício {categoriaFiltro ? "nessa categoria" : "cadastrado ainda"}.

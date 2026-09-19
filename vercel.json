@@ -1,4 +1,5 @@
 {
+  "regions": ["gru1"],
   "crons": [
     { "path": "/api/cron/lembrete-diario", "schedule": "0 11 * * *" }
   ]
