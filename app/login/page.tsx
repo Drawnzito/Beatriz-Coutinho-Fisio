@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Marca } from "@/components/Marca";
-import { AcentoArabesque } from "@/components/Acentos";
+import { AcentoArabesque, AcentoCadencia } from "@/components/Acentos";
 import styles from "./login.module.css";
 
 const MENSAGENS_ERRO: Record<string, string> = {
@@ -120,6 +120,7 @@ function LoginForm() {
           className={styles.cartao}
           style={{
             position: "relative",
+            overflow: "hidden",
             width: "100%",
             maxWidth: 380,
             background: "rgba(255,255,255,0.95)",
@@ -130,6 +131,12 @@ function LoginForm() {
             backdropFilter: "blur(6px)",
           }}
         >
+          <AcentoArabesque
+            tamanho={150}
+            opacidade={0.07}
+            style={{ position: "absolute", right: -24, bottom: -14, zIndex: -1, pointerEvents: "none" }}
+          />
+
           <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
             <Marca tamanho={44} />
           </div>
@@ -140,13 +147,19 @@ function LoginForm() {
               fontSize: 19,
               fontWeight: 700,
               color: "var(--cor-primaria-escura)",
-              margin: "0 0 6px",
+              margin: "0 0 10px",
             }}
           >
             Bem-vinda de volta
           </p>
 
-          <p style={{ color: "var(--cor-texto-suave)", fontSize: 14, margin: "0 0 24px" }}>
+          <AcentoCadencia
+            largura={110}
+            opacidade={0.5}
+            style={{ display: "block", margin: "0 auto 18px" }}
+          />
+
+          <p style={{ position: "relative", color: "var(--cor-texto-suave)", fontSize: 14, margin: "0 0 24px" }}>
             Entre com sua conta Google para ver seus exercícios e sessões.
           </p>
 
