@@ -3,7 +3,12 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { Feedback } from "@/components/Feedback";
+import { Abas } from "@/components/Abas";
+import { SeletorPaciente } from "@/components/SeletorPaciente";
+import { TiraSemana } from "@/components/TiraSemana";
 import { redirect } from "next/navigation";
+import { semanaAtual } from "@/lib/semana";
+import { TIPOS_SESSAO, rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
 import {
   criarExercicio,
   removerExercicio,
@@ -19,7 +24,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { sucesso?: string };
+  searchParams: { sucesso?: string; aba?: string; paciente?: string; dia?: string };
 }) {
   const supabase = createClient();
 
@@ -41,20 +46,61 @@ export default async function DashboardPage({
     redirect("/inicio");
   }
 
-  const [{ data: exercicios }, { data: pacientes }, { data: avisos }, { data: planos }, { data: sessoes }] =
-    await Promise.all([
-      supabase.from("exercicios").select("*").order("criado_em", { ascending: false }),
-      supabase.from("perfis").select("id, nome, email").eq("papel", "paciente"),
-      supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
-      supabase
-        .from("planos")
-        .select("id, titulo, ativo, paciente_id, perfis(nome, email)")
-        .order("criado_em", { ascending: false }),
-      supabase
-        .from("sessoes")
-        .select("id, data, hora, status, observacoes, paciente_id, perfis(nome, email), planos(titulo)")
-        .order("data", { ascending: false }),
-    ]);
+  const pacienteFiltro = searchParams.paciente || undefined;
+  const diaFiltro = searchParams.dia || undefined;
+  const dias = semanaAtual();
+
+  let listaSessoes = supabase
+    .from("sessoes")
+    .select("id, data, hora, status, tipo, observacoes, paciente_id, perfis(nome, email), planos(titulo)")
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true });
+  if (pacienteFiltro) listaSessoes = listaSessoes.eq("paciente_id", pacienteFiltro);
+  if (diaFiltro) listaSessoes = listaSessoes.eq("data", diaFiltro);
+
+  let contagemSemana = supabase
+    .from("sessoes")
+    .select("data")
+    .gte("data", dias[0].iso)
+    .lte("data", dias[6].iso);
+  if (pacienteFiltro) contagemSemana = contagemSemana.eq("paciente_id", pacienteFiltro);
+
+  const [
+    { data: exercicios },
+    { data: pacientes },
+    { data: avisos },
+    { data: planos },
+    { data: sessoes },
+    { data: sessoesSemana },
+  ] = await Promise.all([
+    supabase.from("exercicios").select("*").order("criado_em", { ascending: false }),
+    supabase.from("perfis").select("id, nome, email").eq("papel", "paciente").order("nome"),
+    supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
+    supabase
+      .from("planos")
+      .select("id, titulo, ativo, paciente_id, perfis(nome, email)")
+      .order("criado_em", { ascending: false }),
+    listaSessoes,
+    contagemSemana,
+  ]);
+
+  const contagens: Record<string, number> = {};
+  for (const s of sessoesSemana ?? []) {
+    contagens[s.data] = (contagens[s.data] ?? 0) + 1;
+  }
+
+  function hrefAgenda(overrides: { paciente?: string; dia?: string }) {
+    const params = new URLSearchParams({ aba: "agenda" });
+    const paciente = "paciente" in overrides ? overrides.paciente : pacienteFiltro;
+    const dia = "dia" in overrides ? overrides.dia : diaFiltro;
+    if (paciente) params.set("paciente", paciente);
+    if (dia) params.set("dia", dia);
+    return `/dashboard?${params.toString()}`;
+  }
+
+  const hrefsSemana = Object.fromEntries(
+    dias.map((d) => [d.iso, hrefAgenda({ dia: diaFiltro === d.iso ? "" : d.iso })])
+  );
 
   return (
     <>
@@ -65,222 +111,273 @@ export default async function DashboardPage({
         avatarUrl={user.user_metadata?.avatar_url}
       />
 
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "32px 20px 100px" }}>
-        {/* ---------- Biblioteca de exercícios ---------- */}
-        <Secao titulo="Biblioteca de exercícios">
-          <form action={criarExercicio} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
-            <input name="titulo" placeholder="Nome do exercício" required style={campo} />
-            <input name="categoria" placeholder="Categoria (ex: mobilidade, fortalecimento)" style={campo} />
-            <textarea name="descricao" placeholder="Descrição / como executar" rows={3} style={campo} />
-            <div style={{ display: "grid", gap: 4 }}>
-              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                Vídeo/gif demonstrativo — envie um arquivo:
-              </label>
-              <input name="video_arquivo" type="file" accept="video/*,image/gif" style={campo} />
-            </div>
-            <div style={{ display: "grid", gap: 4 }}>
-              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                ...ou cole um link (Youtube, Instagram, Drive):
-              </label>
-              <input name="video_url" placeholder="https://..." style={campo} />
-            </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input name="series_padrao" type="number" placeholder="Séries padrão" style={campo} />
-              <input name="repeticoes_padrao" type="number" placeholder="Repetições padrão" style={campo} />
-            </div>
-            <button type="submit" style={botaoPrimario}>Adicionar à biblioteca</button>
-          </form>
-
-          <div style={{ display: "grid", gap: 10 }}>
-            {(exercicios ?? []).map((ex) => (
-              <div key={ex.id} style={cartao}>
-                <div style={{ flex: 1 }}>
-                  <strong>{ex.titulo}</strong>{" "}
-                  <span style={{ fontSize: 12, color: "var(--cor-acento)" }}>{ex.categoria}</span>
-                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                    {ex.series_padrao ?? "-"}x{ex.repeticoes_padrao ?? "-"} rep
-                  </p>
-                  {ex.video_url && (
-                    <div style={{ marginTop: 8, maxWidth: 220 }}>
-                      <MidiaExercicio url={ex.video_url} />
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 0 100px" }}>
+        <Abas
+          inicial={searchParams.aba}
+          abas={[
+            {
+              id: "biblioteca",
+              rotulo: "Biblioteca",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  <form action={criarExercicio} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                    <input name="titulo" placeholder="Nome do exercício" required style={campo} />
+                    <input name="categoria" placeholder="Categoria (ex: mobilidade, fortalecimento)" style={campo} />
+                    <textarea name="descricao" placeholder="Descrição / como executar" rows={3} style={campo} />
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                        Vídeo/gif demonstrativo — envie um arquivo:
+                      </label>
+                      <input name="video_arquivo" type="file" accept="video/*,image/gif" style={campo} />
                     </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                        ...ou cole um link (Youtube, Instagram, Drive):
+                      </label>
+                      <input name="video_url" placeholder="https://..." style={campo} />
+                    </div>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <input name="series_padrao" type="number" placeholder="Séries padrão" style={campo} />
+                      <input name="repeticoes_padrao" type="number" placeholder="Repetições padrão" style={campo} />
+                    </div>
+                    <button type="submit" style={botaoPrimario}>Adicionar à biblioteca</button>
+                  </form>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(exercicios ?? []).map((ex) => (
+                      <div key={ex.id} style={cartao}>
+                        <div style={{ flex: 1 }}>
+                          <strong>{ex.titulo}</strong>{" "}
+                          <span style={{ fontSize: 12, color: "var(--cor-acento)" }}>{ex.categoria}</span>
+                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                            {ex.series_padrao ?? "-"}x{ex.repeticoes_padrao ?? "-"} rep
+                          </p>
+                          {ex.video_url && (
+                            <div style={{ marginTop: 8, maxWidth: 220 }}>
+                              <MidiaExercicio url={ex.video_url} />
+                            </div>
+                          )}
+                        </div>
+                        <form action={removerExercicio.bind(null, ex.id)}>
+                          <button type="submit" style={botaoTexto}>remover</button>
+                        </form>
+                      </div>
+                    ))}
+                    {(!exercicios || exercicios.length === 0) && (
+                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                        Nenhum exercício cadastrado ainda.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "plano",
+              rotulo: "Montar plano",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  {(pacientes ?? []).length === 0 ? (
+                    <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                      Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
+                    </p>
+                  ) : (
+                    <form action={criarPlano} style={{ display: "grid", gap: 10 }}>
+                      <select name="paciente_id" required style={campo}>
+                        <option value="">Selecione o paciente</option>
+                        {(pacientes ?? []).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nome || p.email}
+                          </option>
+                        ))}
+                      </select>
+                      <input name="titulo" placeholder="Título do plano (ex: Treino A)" required style={campo} />
+
+                      <div style={{ display: "grid", gap: 6 }}>
+                        <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
+                          Selecione os exercícios deste plano:
+                        </p>
+                        {(exercicios ?? []).map((ex) => (
+                          <label key={ex.id} style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center" }}>
+                            <input type="checkbox" name="exercicio_id" value={ex.id} />
+                            {ex.titulo}
+                          </label>
+                        ))}
+                      </div>
+
+                      <button type="submit" style={botaoPrimario}>Criar plano</button>
+                    </form>
                   )}
+
+                  <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
+                    {(planos ?? []).map((pl: any) => (
+                      <div key={pl.id} style={cartao}>
+                        <div>
+                          <strong>{pl.titulo}</strong>
+                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                            {pl.perfis?.nome || pl.perfis?.email} {pl.ativo ? "· ativo" : "· inativo"}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <form action={removerExercicio.bind(null, ex.id)}>
-                  <button type="submit" style={botaoTexto}>remover</button>
-                </form>
-              </div>
-            ))}
-            {(!exercicios || exercicios.length === 0) && (
-              <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                Nenhum exercício cadastrado ainda.
-              </p>
-            )}
-          </div>
-        </Secao>
+              ),
+            },
+            {
+              id: "agenda",
+              rotulo: "Agenda",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+                    <SeletorPaciente
+                      pacientes={pacientes ?? []}
+                      selecionado={pacienteFiltro}
+                      baseHref="/dashboard"
+                      manterParams={{ aba: "agenda", dia: diaFiltro }}
+                      placeholder="Todos os pacientes"
+                    />
 
-        {/* ---------- Montar plano para um paciente ---------- */}
-        <Secao titulo="Montar plano para um paciente">
-          {(pacientes ?? []).length === 0 ? (
-            <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-              Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
-            </p>
-          ) : (
-            <form action={criarPlano} style={{ display: "grid", gap: 10 }}>
-              <select name="paciente_id" required style={campo}>
-                <option value="">Selecione o paciente</option>
-                {(pacientes ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome || p.email}
-                  </option>
-                ))}
-              </select>
-              <input name="titulo" placeholder="Título do plano (ex: Treino A)" required style={campo} />
+                    <TiraSemana dias={dias} hrefs={hrefsSemana} selecionado={diaFiltro} contagens={contagens} />
 
-              <div style={{ display: "grid", gap: 6 }}>
-                <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
-                  Selecione os exercícios deste plano:
-                </p>
-                {(exercicios ?? []).map((ex) => (
-                  <label key={ex.id} style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center" }}>
-                    <input type="checkbox" name="exercicio_id" value={ex.id} />
-                    {ex.titulo}
-                  </label>
-                ))}
-              </div>
+                    {diaFiltro && (
+                      <a
+                        href={hrefAgenda({ dia: "" })}
+                        style={{ fontSize: 12.5, color: "var(--cor-acento)", justifySelf: "start" }}
+                      >
+                        limpar filtro de dia
+                      </a>
+                    )}
+                  </div>
 
-              <button type="submit" style={botaoPrimario}>Criar plano</button>
-            </form>
-          )}
-
-          <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
-            {(planos ?? []).map((pl: any) => (
-              <div key={pl.id} style={cartao}>
-                <div>
-                  <strong>{pl.titulo}</strong>
-                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                    {pl.perfis?.nome || pl.perfis?.email} {pl.ativo ? "· ativo" : "· inativo"}
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                    Agendar sessão
                   </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Secao>
 
-        {/* ---------- Agenda de sessões ---------- */}
-        <Secao titulo="Agendar sessão">
-          {(pacientes ?? []).length === 0 ? (
-            <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-              Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
-            </p>
-          ) : (
-            <form action={criarSessao} style={{ display: "grid", gap: 10 }}>
-              <select name="paciente_id" required style={campo}>
-                <option value="">Selecione o paciente</option>
-                {(pacientes ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome || p.email}
-                  </option>
-                ))}
-              </select>
+                  {(pacientes ?? []).length === 0 ? (
+                    <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                      Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
+                    </p>
+                  ) : (
+                    <form action={criarSessao} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                      <input type="hidden" name="_filtro_paciente" value={pacienteFiltro ?? ""} />
+                      <input type="hidden" name="_filtro_dia" value={diaFiltro ?? ""} />
 
-              <div style={{ display: "flex", gap: 10 }}>
-                <input name="data" type="date" required style={campo} />
-                <input name="hora" type="time" style={campo} />
-              </div>
+                      <select name="paciente_id" required defaultValue={pacienteFiltro ?? ""} style={campo}>
+                        <option value="">Selecione o paciente</option>
+                        {(pacientes ?? []).map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nome || p.email}
+                          </option>
+                        ))}
+                      </select>
 
-              <select name="plano_id" style={campo}>
-                <option value="">Sem plano vinculado (opcional)</option>
-                {(planos ?? []).map((pl: any) => (
-                  <option key={pl.id} value={pl.id}>
-                    {pl.titulo} — {pl.perfis?.nome || pl.perfis?.email}
-                  </option>
-                ))}
-              </select>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <input name="data" type="date" required defaultValue={diaFiltro ?? ""} style={campo} />
+                        <input name="hora" type="time" style={campo} />
+                      </div>
 
-              <textarea name="observacoes" placeholder="Observações (opcional)" rows={2} style={campo} />
+                      <select name="tipo" defaultValue="tratamento" style={campo}>
+                        {TIPOS_SESSAO.map((t) => (
+                          <option key={t.valor} value={t.valor}>
+                            {t.rotulo}
+                          </option>
+                        ))}
+                      </select>
 
-              <button type="submit" style={botaoPrimario}>Agendar sessão</button>
-            </form>
-          )}
+                      <select name="plano_id" style={campo}>
+                        <option value="">Sem plano vinculado (opcional)</option>
+                        {(planos ?? []).map((pl: any) => (
+                          <option key={pl.id} value={pl.id}>
+                            {pl.titulo} — {pl.perfis?.nome || pl.perfis?.email}
+                          </option>
+                        ))}
+                      </select>
 
-          <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
-            {(sessoes ?? []).map((s: any) => (
-              <div key={s.id} style={cartao}>
-                <div>
-                  <strong>
-                    {new Date(s.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                    {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""}
-                  </strong>
-                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                    {s.perfis?.nome || s.perfis?.email}
-                    {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
-                  </p>
-                  {s.observacoes && (
-                    <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>
+                      <textarea name="observacoes" placeholder="Observações (opcional)" rows={2} style={campo} />
+
+                      <button type="submit" style={botaoPrimario}>Agendar sessão</button>
+                    </form>
                   )}
-                </div>
-                <form action={removerSessao.bind(null, s.id)}>
-                  <button type="submit" style={botaoTexto}>remover</button>
-                </form>
-              </div>
-            ))}
-            {(!sessoes || sessoes.length === 0) && (
-              <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                Nenhuma sessão agendada ainda.
-              </p>
-            )}
-          </div>
-        </Secao>
 
-        {/* ---------- Avisos ---------- */}
-        <Secao titulo="Mural de avisos">
-          <form action={criarAviso} style={{ display: "grid", gap: 10, marginBottom: 20 }}>
-            <input name="titulo" placeholder="Título do aviso" required style={campo} />
-            <textarea name="conteudo" placeholder="Mensagem" rows={2} required style={campo} />
-            <button type="submit" style={botaoPrimario}>Publicar aviso</button>
-          </form>
-
-          <div style={{ display: "grid", gap: 10 }}>
-            {(avisos ?? []).map((a) => (
-              <div key={a.id} style={cartao}>
-                <div>
-                  <strong>{a.titulo}</strong>
-                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                    {a.conteudo}
-                  </p>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(sessoes ?? []).map((s: any) => (
+                      <div key={s.id} style={cartao}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span
+                              style={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: "50%",
+                                background: corTipoSessao(s.tipo),
+                                flexShrink: 0,
+                              }}
+                            />
+                            <strong>
+                              {new Date(s.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                              {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""}
+                            </strong>
+                          </div>
+                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                            {s.perfis?.nome || s.perfis?.email} · {rotuloTipoSessao(s.tipo)}
+                            {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
+                          </p>
+                          {s.observacoes && (
+                            <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>
+                          )}
+                        </div>
+                        <form action={removerSessao.bind(null, s.id)}>
+                          <input type="hidden" name="_filtro_paciente" value={pacienteFiltro ?? ""} />
+                          <input type="hidden" name="_filtro_dia" value={diaFiltro ?? ""} />
+                          <button type="submit" style={botaoTexto}>remover</button>
+                        </form>
+                      </div>
+                    ))}
+                    {(!sessoes || sessoes.length === 0) && (
+                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                        Nenhuma sessão encontrada com esse filtro.
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <form action={removerAviso.bind(null, a.id)}>
-                  <button type="submit" style={botaoTexto}>remover</button>
-                </form>
-              </div>
-            ))}
-          </div>
-        </Secao>
+              ),
+            },
+            {
+              id: "avisos",
+              rotulo: "Avisos",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  <form action={criarAviso} style={{ display: "grid", gap: 10, marginBottom: 20 }}>
+                    <input name="titulo" placeholder="Título do aviso" required style={campo} />
+                    <textarea name="conteudo" placeholder="Mensagem" rows={2} required style={campo} />
+                    <button type="submit" style={botaoPrimario}>Publicar aviso</button>
+                  </form>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(avisos ?? []).map((a) => (
+                      <div key={a.id} style={cartao}>
+                        <div>
+                          <strong>{a.titulo}</strong>
+                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                            {a.conteudo}
+                          </p>
+                        </div>
+                        <form action={removerAviso.bind(null, a.id)}>
+                          <button type="submit" style={botaoTexto}>remover</button>
+                        </form>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ),
+            },
+          ]}
+        />
       </main>
 
       <BottomNav papel="admin" />
     </>
-  );
-}
-
-function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <section style={{ marginTop: 32 }}>
-      <h2
-        style={{
-          fontFamily: "var(--fonte-titulo)",
-          fontSize: 18,
-          color: "var(--cor-primaria)",
-          borderBottom: "1px solid var(--cor-borda)",
-          paddingBottom: 8,
-          marginBottom: 16,
-        }}
-      >
-        {titulo}
-      </h2>
-      {children}
-    </section>
   );
 }
 

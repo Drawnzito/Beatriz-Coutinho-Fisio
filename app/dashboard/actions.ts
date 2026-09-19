@@ -4,8 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-function irComSucesso(mensagem: string) {
-  redirect(`/dashboard?sucesso=${encodeURIComponent(mensagem)}`);
+function irComSucesso(mensagem: string, aba: string, extraParams: Record<string, string | undefined> = {}) {
+  const params = new URLSearchParams({ sucesso: mensagem, aba });
+  for (const [chave, valor] of Object.entries(extraParams)) {
+    if (valor) params.set(chave, valor);
+  }
+  redirect(`/dashboard?${params.toString()}`);
 }
 
 async function exigirAdmin() {
@@ -60,14 +64,14 @@ export async function criarExercicio(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
-  irComSucesso("Exercício adicionado à biblioteca");
+  irComSucesso("Exercício adicionado à biblioteca", "biblioteca");
 }
 
 export async function removerExercicio(id: string) {
   const { supabase } = await exigirAdmin();
   await supabase.from("exercicios").delete().eq("id", id);
   revalidatePath("/dashboard");
-  irComSucesso("Exercício removido");
+  irComSucesso("Exercício removido", "biblioteca");
 }
 
 export async function criarAviso(formData: FormData) {
@@ -81,7 +85,7 @@ export async function criarAviso(formData: FormData) {
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
-  irComSucesso("Aviso publicado");
+  irComSucesso("Aviso publicado", "avisos");
 }
 
 export async function removerAviso(id: string) {
@@ -89,7 +93,7 @@ export async function removerAviso(id: string) {
   await supabase.from("avisos").delete().eq("id", id);
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
-  irComSucesso("Aviso removido");
+  irComSucesso("Aviso removido", "avisos");
 }
 
 export async function criarPlano(formData: FormData) {
@@ -118,7 +122,7 @@ export async function criarPlano(formData: FormData) {
   await supabase.from("plano_exercicios").insert(itens);
 
   revalidatePath("/dashboard");
-  irComSucesso("Plano criado com sucesso");
+  irComSucesso("Plano criado com sucesso", "plano");
 }
 
 export async function criarSessao(formData: FormData) {
@@ -128,7 +132,10 @@ export async function criarSessao(formData: FormData) {
   const data = String(formData.get("data") || "");
   const hora = String(formData.get("hora") || "") || null;
   const plano_id = String(formData.get("plano_id") || "") || null;
+  const tipo = String(formData.get("tipo") || "tratamento");
   const observacoes = String(formData.get("observacoes") || "") || null;
+  const filtroPaciente = String(formData.get("_filtro_paciente") || "") || undefined;
+  const filtroDia = String(formData.get("_filtro_dia") || "") || undefined;
 
   if (!paciente_id || !data) return;
 
@@ -137,19 +144,23 @@ export async function criarSessao(formData: FormData) {
     data,
     hora,
     plano_id,
+    tipo,
     observacoes,
     criado_por: user.id,
   });
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
-  irComSucesso("Sessão agendada com sucesso");
+  irComSucesso("Sessão agendada com sucesso", "agenda", { paciente: filtroPaciente, dia: filtroDia });
 }
 
-export async function removerSessao(id: string) {
+export async function removerSessao(id: string, formData: FormData) {
   const { supabase } = await exigirAdmin();
+  const filtroPaciente = String(formData.get("_filtro_paciente") || "") || undefined;
+  const filtroDia = String(formData.get("_filtro_dia") || "") || undefined;
+
   await supabase.from("sessoes").delete().eq("id", id);
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
-  irComSucesso("Sessão removida");
+  irComSucesso("Sessão removida", "agenda", { paciente: filtroPaciente, dia: filtroDia });
 }
