@@ -244,3 +244,92 @@ export async function removerConvitePaciente(id: string) {
   revalidatePath("/dashboard");
   irComSucesso("Convite removido", "pacientes");
 }
+
+export async function criarDestaque(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const titulo = String(formData.get("titulo") || "").trim();
+  const subtitulo = String(formData.get("subtitulo") || "").trim() || null;
+  const linkUrl = String(formData.get("link_url") || "").trim() || null;
+  let imagemUrl = String(formData.get("imagem_url") || "").trim() || null;
+
+  const arquivo = formData.get("imagem_arquivo") as File | null;
+  if (arquivo && arquivo.size > 0) {
+    const extensao = arquivo.name.split(".").pop() || "jpg";
+    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
+
+    const { error: erroUpload } = await supabase.storage
+      .from("destaques")
+      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
+
+    if (!erroUpload) {
+      const { data: publicUrlData } = supabase.storage.from("destaques").getPublicUrl(caminho);
+      imagemUrl = publicUrlData.publicUrl;
+    }
+  }
+
+  if (!titulo || !imagemUrl) return;
+
+  const { data: existentes } = await supabase
+    .from("destaques")
+    .select("ordem")
+    .order("ordem", { ascending: false })
+    .limit(1);
+  const proximaOrdem = (existentes?.[0]?.ordem ?? -1) + 1;
+
+  await supabase.from("destaques").insert({
+    titulo,
+    subtitulo,
+    imagem_url: imagemUrl,
+    link_url: linkUrl,
+    ordem: proximaOrdem,
+    criado_por: user.id,
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Destaque publicado", "destaques");
+}
+
+export async function atualizarDestaque(id: string, formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const atualizacao: Record<string, unknown> = {
+    titulo: String(formData.get("titulo") || "").trim(),
+    subtitulo: String(formData.get("subtitulo") || "").trim() || null,
+    link_url: String(formData.get("link_url") || "").trim() || null,
+  };
+
+  const imagemUrlDigitada = String(formData.get("imagem_url") || "").trim();
+  const arquivo = formData.get("imagem_arquivo") as File | null;
+
+  if (arquivo && arquivo.size > 0) {
+    const extensao = arquivo.name.split(".").pop() || "jpg";
+    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
+
+    const { error: erroUpload } = await supabase.storage
+      .from("destaques")
+      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
+
+    if (!erroUpload) {
+      const { data: publicUrlData } = supabase.storage.from("destaques").getPublicUrl(caminho);
+      atualizacao.imagem_url = publicUrlData.publicUrl;
+    }
+  } else if (imagemUrlDigitada) {
+    atualizacao.imagem_url = imagemUrlDigitada;
+  }
+
+  await supabase.from("destaques").update(atualizacao).eq("id", id);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Destaque atualizado", "destaques");
+}
+
+export async function removerDestaque(id: string) {
+  const { supabase } = await exigirAdmin();
+  await supabase.from("destaques").delete().eq("id", id);
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Destaque removido", "destaques");
+}

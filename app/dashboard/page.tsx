@@ -23,6 +23,9 @@ import {
   removerSessao,
   criarConvitePaciente,
   removerConvitePaciente,
+  criarDestaque,
+  atualizarDestaque,
+  removerDestaque,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +42,7 @@ export default async function DashboardPage({
     editar?: string;
     busca?: string;
     ordem?: string;
+    editarDestaque?: string;
   };
 }) {
   const supabase = createClient();
@@ -88,6 +92,7 @@ export default async function DashboardPage({
     { data: sessoes },
     { data: sessoesSemana },
     { data: convites },
+    { data: destaques },
   ] = await Promise.all([
     supabase.from("exercicios").select("*").order("titulo", { ascending: true }),
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").order("nome"),
@@ -99,6 +104,7 @@ export default async function DashboardPage({
     listaSessoes,
     contagemSemana,
     supabase.from("convites_paciente").select("*").order("criado_em", { ascending: false }),
+    supabase.from("destaques").select("*").order("ordem", { ascending: true }),
   ]);
 
   const opcoesAtribuicao = [
@@ -126,6 +132,9 @@ export default async function DashboardPage({
 
   const hojeIso = hojeIsoBrasil();
   const editandoId = searchParams.editar || undefined;
+  const editandoDestaqueId = searchParams.editarDestaque || undefined;
+  const hrefDestaques = (editar?: string) =>
+    editar ? `/dashboard?aba=destaques&editarDestaque=${editar}` : "/dashboard?aba=destaques";
 
   function hrefBiblioteca(overrides: { categoria?: string; editar?: string; busca?: string; ordem?: string }) {
     const params = new URLSearchParams({ aba: "biblioteca" });
@@ -585,6 +594,101 @@ export default async function DashboardPage({
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "destaques",
+              rotulo: "Destaques",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 14px" }}>
+                    Cards com foto que aparecem em carrossel no topo do Início dos pacientes — divulgação,
+                    novidades, cursos, o que você quiser mostrar.
+                  </p>
+
+                  <form action={criarDestaque} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                    <input name="titulo" placeholder="Título (ex: Curso Cuidados com o bebê)" required style={campo} />
+                    <textarea name="subtitulo" placeholder="Texto menor, embaixo do título (opcional)" rows={2} style={campo} />
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>Foto — envie um arquivo:</label>
+                      <input name="imagem_arquivo" type="file" accept="image/*" style={campo} />
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                        ...ou cole o link de uma imagem:
+                      </label>
+                      <input name="imagem_url" placeholder="https://..." style={campo} />
+                    </div>
+                    <input name="link_url" placeholder="Link ao tocar no card (opcional)" style={campo} />
+                    <button type="submit" style={botaoPrimario}>Publicar destaque</button>
+                  </form>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(destaques ?? []).map((d) =>
+                      d.id === editandoDestaqueId ? (
+                        <div key={d.id} style={{ ...cartao, display: "block" }}>
+                          <form action={atualizarDestaque.bind(null, d.id)} style={{ display: "grid", gap: 10 }}>
+                            <input name="titulo" defaultValue={d.titulo} required style={campo} />
+                            <textarea name="subtitulo" defaultValue={d.subtitulo ?? ""} rows={2} style={campo} />
+                            <div style={{ display: "grid", gap: 4 }}>
+                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                Trocar foto — envie um novo arquivo:
+                              </label>
+                              <input name="imagem_arquivo" type="file" accept="image/*" style={campo} />
+                            </div>
+                            <div style={{ display: "grid", gap: 4 }}>
+                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                ...ou cole um novo link (deixe em branco pra manter a atual):
+                              </label>
+                              <input name="imagem_url" placeholder="https://..." style={campo} />
+                            </div>
+                            <input name="link_url" defaultValue={d.link_url ?? ""} placeholder="Link ao tocar (opcional)" style={campo} />
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <button type="submit" style={botaoPrimario}>Salvar alterações</button>
+                              <a href={hrefDestaques()} style={{ ...botaoTexto, alignSelf: "center" }}>
+                                cancelar
+                              </a>
+                            </div>
+                          </form>
+                        </div>
+                      ) : (
+                        <div key={d.id} style={cartao}>
+                          <div style={{ display: "flex", gap: 12, flex: 1 }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={d.imagem_url}
+                              alt=""
+                              width={56}
+                              height={56}
+                              style={{ borderRadius: 8, objectFit: "cover", flexShrink: 0 }}
+                            />
+                            <div>
+                              <strong>{d.titulo}</strong>
+                              {d.subtitulo && (
+                                <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                  {d.subtitulo}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
+                            <a href={hrefDestaques(d.id)} style={botaoTexto}>
+                              editar
+                            </a>
+                            <form action={removerDestaque.bind(null, d.id)}>
+                              <button type="submit" style={botaoTexto}>remover</button>
+                            </form>
+                          </div>
+                        </div>
+                      )
+                    )}
+                    {(!destaques || destaques.length === 0) && (
+                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                        Nenhum destaque publicado ainda.
+                      </p>
+                    )}
                   </div>
                 </div>
               ),
