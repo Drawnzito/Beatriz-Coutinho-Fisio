@@ -31,6 +31,7 @@ export default async function TreinoPage({ params }: { params: { planoId: string
       titulo: item.exercicios.titulo as string,
       descricao: item.exercicios.descricao as string | null,
       video_url: item.exercicios.video_url as string | null,
+      pdf_url: item.exercicios.pdf_url as string | null,
       series: (item.series ?? item.exercicios.series_padrao) as number | null,
       repeticoes: (item.repeticoes ?? item.exercicios.repeticoes_padrao) as number | null,
     }));

@@ -46,7 +46,7 @@ export default async function ExerciciosPage({
   const { data: planos } = await supabase
     .from("planos")
     .select(
-      "id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(id, titulo, descricao, video_url, series_padrao, repeticoes_padrao))"
+      "id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(id, titulo, descricao, video_url, pdf_url, series_padrao, repeticoes_padrao))"
     )
     .eq("paciente_id", user.id)
     .eq("ativo", true)
@@ -91,20 +91,34 @@ export default async function ExerciciosPage({
                 .map((item: any) => {
                   const ex = item.exercicios;
                   return (
-                    <div key={item.id} style={exercicioCartao}>
-                      <strong>{ex.titulo}</strong>
-                      <p style={{ margin: "4px 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                        {item.series ?? ex.series_padrao ?? "-"} séries ×{" "}
-                        {item.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
-                      </p>
-                      {ex.descricao && (
-                        <p style={{ margin: "4px 0", fontSize: 13 }}>{ex.descricao}</p>
-                      )}
+                    <div key={item.id} style={{ ...exercicioCartao, display: "flex", gap: 12 }}>
                       {ex.video_url && (
-                        <div style={{ marginTop: 8 }}>
-                          <MidiaExercicio url={ex.video_url} />
+                        <div style={{ flexShrink: 0 }}>
+                          <MidiaExercicio url={ex.video_url} previa pdfUrl={ex.pdf_url} />
                         </div>
                       )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <strong>{ex.titulo}</strong>
+                        <p style={{ margin: "4px 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                          {item.series ?? ex.series_padrao ?? "-"} séries ×{" "}
+                          {item.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
+                        </p>
+                        {ex.descricao && (
+                          <p style={{ margin: "4px 0", fontSize: 13 }}>{ex.descricao}</p>
+                        )}
+                        {!ex.video_url && ex.pdf_url && (
+                          <div style={{ marginTop: 6 }}>
+                            <a
+                              href={ex.pdf_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ fontSize: 12, fontWeight: 600, color: "var(--cor-acento)", textDecoration: "none" }}
+                            >
+                              📄 PDF passo a passo
+                            </a>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

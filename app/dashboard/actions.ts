@@ -61,11 +61,30 @@ export async function criarExercicio(formData: FormData) {
     }
   }
 
+  let pdfUrl = String(formData.get("pdf_url") || "") || null;
+
+  const arquivoPdf = formData.get("pdf_arquivo") as File | null;
+  if (arquivoPdf && arquivoPdf.size > 0) {
+    const caminho = `${user.id}/${crypto.randomUUID()}.pdf`;
+
+    const { error: erroUploadPdf } = await supabase.storage
+      .from("exercicios")
+      .upload(caminho, arquivoPdf, { contentType: "application/pdf" });
+
+    if (!erroUploadPdf) {
+      const { data: publicUrlData } = supabase.storage
+        .from("exercicios")
+        .getPublicUrl(caminho);
+      pdfUrl = publicUrlData.publicUrl;
+    }
+  }
+
   const { error } = await supabase.from("exercicios").insert({
     titulo: String(formData.get("titulo") || ""),
     categoria: String(formData.get("categoria") || "geral"),
     descricao: String(formData.get("descricao") || ""),
     video_url: videoUrl,
+    pdf_url: pdfUrl,
     series_padrao: Number(formData.get("series_padrao")) || null,
     repeticoes_padrao: Number(formData.get("repeticoes_padrao")) || null,
     criado_por: user.id,
@@ -113,6 +132,24 @@ export async function atualizarExercicio(id: string, formData: FormData) {
     }
   } else if (videoUrlDigitada) {
     atualizacao.video_url = videoUrlDigitada;
+  }
+
+  const pdfUrlDigitada = String(formData.get("pdf_url") || "").trim();
+  const arquivoPdf = formData.get("pdf_arquivo") as File | null;
+
+  if (arquivoPdf && arquivoPdf.size > 0) {
+    const caminho = `${user.id}/${crypto.randomUUID()}.pdf`;
+
+    const { error: erroUploadPdf } = await supabase.storage
+      .from("exercicios")
+      .upload(caminho, arquivoPdf, { contentType: "application/pdf" });
+
+    if (!erroUploadPdf) {
+      const { data: publicUrlData } = supabase.storage.from("exercicios").getPublicUrl(caminho);
+      atualizacao.pdf_url = publicUrlData.publicUrl;
+    }
+  } else if (pdfUrlDigitada) {
+    atualizacao.pdf_url = pdfUrlDigitada;
   }
 
   const { error } = await supabase.from("exercicios").update(atualizacao).eq("id", id);

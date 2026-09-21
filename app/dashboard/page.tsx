@@ -270,6 +270,18 @@ export default async function DashboardPage({
                       </label>
                       <input name="video_url" placeholder="https://..." style={campo} />
                     </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                        PDF passo a passo (opcional) — envie um arquivo:
+                      </label>
+                      <input name="pdf_arquivo" type="file" accept="application/pdf" style={campo} />
+                    </div>
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                        ...ou cole um link do PDF:
+                      </label>
+                      <input name="pdf_url" placeholder="https://..." style={campo} />
+                    </div>
                     <div style={{ display: "flex", gap: 10 }}>
                       <input name="series_padrao" type="number" placeholder="Séries padrão" style={campo} />
                       <input name="repeticoes_padrao" type="number" placeholder="Repetições padrão" style={campo} />
@@ -336,6 +348,18 @@ export default async function DashboardPage({
                                 ...ou cole um novo link (deixe em branco pra manter o atual):
                               </label>
                               <input name="video_url" placeholder="https://..." style={campo} />
+                            </div>
+                            <div style={{ display: "grid", gap: 4 }}>
+                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                Trocar PDF — envie um novo arquivo:
+                              </label>
+                              <input name="pdf_arquivo" type="file" accept="application/pdf" style={campo} />
+                            </div>
+                            <div style={{ display: "grid", gap: 4 }}>
+                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                ...ou cole um novo link do PDF (deixe em branco pra manter o atual):
+                              </label>
+                              <input name="pdf_url" placeholder="https://..." style={campo} />
                             </div>
                             <div style={{ display: "flex", gap: 10 }}>
                               <input
