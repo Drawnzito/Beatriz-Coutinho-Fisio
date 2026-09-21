@@ -176,6 +176,31 @@ export default async function DashboardPage({
       )
     : listaPacientesBase;
 
+  function textoEvolucaoExpandivel(texto: string) {
+    const LIMITE = 180;
+    const estiloTexto: React.CSSProperties = { margin: "4px 0 0", fontSize: 13.5, whiteSpace: "pre-wrap" };
+
+    if (texto.length <= LIMITE) {
+      return <div style={estiloTexto}>{texto}</div>;
+    }
+
+    let corte = texto.slice(0, LIMITE);
+    const ultimoEspaco = corte.lastIndexOf(" ");
+    if (ultimoEspaco > 40) corte = corte.slice(0, ultimoEspaco);
+
+    return (
+      <div style={estiloTexto}>
+        <details>
+          <summary style={{ cursor: "pointer" }}>
+            {corte}…{" "}
+            <span style={{ color: "var(--cor-acento)", fontWeight: 600, fontSize: 12.5 }}>ver mais</span>
+          </summary>
+          <div style={{ marginTop: 6 }}>{texto}</div>
+        </details>
+      </div>
+    );
+  }
+
   function hrefPacientes(overrides: { verPaciente?: string; buscaPaciente?: string; arquivados?: string } = {}) {
     const params = new URLSearchParams({ aba: "pacientes" });
     const verPaciente = "verPaciente" in overrides ? overrides.verPaciente : verPacienteId;
@@ -502,7 +527,7 @@ export default async function DashboardPage({
                               <strong style={{ fontSize: 13 }}>
                                 {new Date(`${e.data}T00:00:00`).toLocaleDateString("pt-BR")}
                               </strong>
-                              <p style={{ margin: "4px 0 0", fontSize: 13.5, whiteSpace: "pre-wrap" }}>{e.texto}</p>
+                              {textoEvolucaoExpandivel(e.texto)}
                             </div>
                             <form action={removerEvolucao.bind(null, e.id)}>
                               <input type="hidden" name="_paciente_id" value={pacienteDetalhe.id} />
