@@ -314,12 +314,49 @@ export async function removerPaciente(id: string) {
   }
   await admin.from("planos").delete().eq("paciente_id", id);
   await admin.from("sessoes").delete().eq("paciente_id", id);
+  await admin.from("evolucoes").delete().eq("paciente_id", id);
   await admin.from("perfis").delete().eq("id", id);
   await admin.auth.admin.deleteUser(id);
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
   irComSucesso("Paciente removido", "pacientes");
+}
+
+export async function criarEvolucao(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const paciente_id = String(formData.get("paciente_id") || "");
+  const data = String(formData.get("data") || "") || new Date().toISOString().slice(0, 10);
+  const texto = String(formData.get("texto") || "").trim();
+
+  if (!paciente_id || !texto) {
+    irComErro("escreva o texto da evolução", "pacientes", { verPaciente: paciente_id });
+    return;
+  }
+
+  const { error } = await supabase.from("evolucoes").insert({ paciente_id, data, texto, criado_por: user.id });
+  if (error) {
+    irComErro(error.message, "pacientes", { verPaciente: paciente_id });
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  irComSucesso("Evolução registrada", "pacientes", { verPaciente: paciente_id });
+}
+
+export async function removerEvolucao(id: string, formData: FormData) {
+  const { supabase } = await exigirAdmin();
+  const pacienteId = String(formData.get("_paciente_id") || "");
+
+  const { error } = await supabase.from("evolucoes").delete().eq("id", id);
+  if (error) {
+    irComErro(error.message, "pacientes", { verPaciente: pacienteId });
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  irComSucesso("Evolução removida", "pacientes", { verPaciente: pacienteId });
 }
 
 export async function criarDestaque(formData: FormData) {

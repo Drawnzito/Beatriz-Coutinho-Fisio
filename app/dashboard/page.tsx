@@ -13,6 +13,7 @@ import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { CampoValidade } from "@/components/CampoValidade";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import { BotaoPerigo } from "@/components/BotaoPerigo";
+import { BotoesPdfEvolucao } from "@/components/BotoesPdfEvolucao";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
@@ -34,6 +35,8 @@ import {
   arquivarPaciente,
   desarquivarPaciente,
   removerPaciente,
+  criarEvolucao,
+  removerEvolucao,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -146,8 +149,9 @@ export default async function DashboardPage({
   let pacienteDetalhe: any = null;
   let sessoesDetalhe: any[] = [];
   let planosDetalhe: any[] = [];
+  let evolucoesDetalhe: any[] = [];
   if (verPacienteId) {
-    const [{ data: pd }, { data: sd }, { data: pld }] = await Promise.all([
+    const [{ data: pd }, { data: sd }, { data: pld }, { data: ed }] = await Promise.all([
       supabase.from("perfis").select("id, nome, email, idade, arquivado_em").eq("id", verPacienteId).maybeSingle(),
       supabase
         .from("sessoes")
@@ -155,10 +159,12 @@ export default async function DashboardPage({
         .eq("paciente_id", verPacienteId)
         .order("data", { ascending: false }),
       supabase.from("planos").select("id, titulo, ativo, validade").eq("paciente_id", verPacienteId).order("criado_em", { ascending: false }),
+      supabase.from("evolucoes").select("id, data, texto").eq("paciente_id", verPacienteId).order("data", { ascending: false }),
     ]);
     pacienteDetalhe = pd;
     sessoesDetalhe = sd ?? [];
     planosDetalhe = pld ?? [];
+    evolucoesDetalhe = ed ?? [];
   }
 
   const listaPacientesBase = verArquivados ? pacientesArquivados ?? [] : pacientes ?? [];
@@ -439,6 +445,50 @@ export default async function DashboardPage({
                             Remover paciente
                           </BotaoPerigo>
                         </form>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 10 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: 0 }}>
+                          Evolução ({evolucoesDetalhe.length})
+                        </p>
+                        {evolucoesDetalhe.length > 0 && (
+                          <BotoesPdfEvolucao pacienteId={pacienteDetalhe.id} nomePaciente={pacienteDetalhe.nome || pacienteDetalhe.email} />
+                        )}
+                      </div>
+
+                      <form action={criarEvolucao} style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+                        <input type="hidden" name="paciente_id" value={pacienteDetalhe.id} />
+                        <input name="data" type="date" defaultValue={hojeIso} style={campo} />
+                        <textarea
+                          name="texto"
+                          placeholder="Como foi a sessão? Houve melhora? Observações relevantes..."
+                          rows={3}
+                          required
+                          style={campo}
+                        />
+                        <button type="submit" style={{ ...botaoPrimario, justifySelf: "start" }}>
+                          Registrar evolução
+                        </button>
+                      </form>
+
+                      <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
+                        {evolucoesDetalhe.map((e) => (
+                          <div key={e.id} style={{ ...cartao, alignItems: "flex-start" }}>
+                            <div>
+                              <strong style={{ fontSize: 13 }}>
+                                {new Date(`${e.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                              </strong>
+                              <p style={{ margin: "4px 0 0", fontSize: 13.5, whiteSpace: "pre-wrap" }}>{e.texto}</p>
+                            </div>
+                            <form action={removerEvolucao.bind(null, e.id)}>
+                              <input type="hidden" name="_paciente_id" value={pacienteDetalhe.id} />
+                              <button type="submit" style={botaoTexto}>remover</button>
+                            </form>
+                          </div>
+                        ))}
+                        {evolucoesDetalhe.length === 0 && (
+                          <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhuma evolução registrada ainda.</p>
+                        )}
                       </div>
 
                       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>

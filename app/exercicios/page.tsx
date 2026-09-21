@@ -45,14 +45,16 @@ export default async function ExerciciosPage({
 
   const { data: planos } = await supabase
     .from("planos")
-    .select("id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*))")
+    .select(
+      "id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(id, titulo, descricao, video_url, series_padrao, repeticoes_padrao))"
+    )
     .eq("paciente_id", user.id)
     .eq("ativo", true)
     .order("criado_em", { ascending: false });
 
   return (
     <>
-      <Header titulo="Seus exercícios" subtitulo="Beatriz Coutinho Fisioterapia" />
+      <Header titulo="Seus exercícios" subtitulo="Beatriz Coutinho Fisioterapia" variante="boasVindas" />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
         {(!planos || planos.length === 0) && (
@@ -135,7 +137,7 @@ async function VisaoAdmin({
     const { data } = await supabase
       .from("planos")
       .select(
-        "id, titulo, ativo, plano_exercicios(id, series, repeticoes, ordem, exercicio_id, exercicios(*))"
+        "id, titulo, ativo, plano_exercicios(id, series, repeticoes, ordem, exercicio_id, exercicios(id, titulo, descricao, video_url, series_padrao, repeticoes_padrao))"
       )
       .eq("paciente_id", pacienteSelecionado)
       .order("criado_em", { ascending: false });
@@ -145,7 +147,7 @@ async function VisaoAdmin({
   return (
     <>
       <Feedback mensagem={sucesso} />
-      <Header titulo="Exercícios por paciente" subtitulo="Beatriz Coutinho Fisioterapia" />
+      <Header titulo="Exercícios por paciente" subtitulo="Beatriz Coutinho Fisioterapia" variante="boasVindas" />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
         <SeletorPaciente pacientes={pacientes ?? []} selecionado={pacienteSelecionado} />

@@ -14,6 +14,7 @@ export function MidiaExercicio({ url }: { url: string }) {
       <img
         src={url}
         alt="Demonstração do exercício"
+        loading="lazy"
         style={{ width: "100%", borderRadius: 10, display: "block" }}
       />
     );
@@ -39,6 +40,7 @@ export function MidiaExercicio({ url }: { url: string }) {
           title="Vídeo de demonstração"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
+          loading="lazy"
           style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", border: 0 }}
         />
       </div>
