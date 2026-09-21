@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -274,6 +275,51 @@ export async function removerConvitePaciente(id: string) {
   if (error) irComErro(error.message, "pacientes");
   revalidatePath("/dashboard");
   irComSucesso("Convite removido", "pacientes");
+}
+
+export async function arquivarPaciente(id: string) {
+  await exigirAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("perfis")
+    .update({ arquivado_em: new Date().toISOString() })
+    .eq("id", id);
+  if (error) irComErro(error.message, "pacientes", { paciente: id });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Paciente arquivado (alta registrada)", "pacientes", { paciente: id });
+}
+
+export async function desarquivarPaciente(id: string) {
+  await exigirAdmin();
+  const admin = createAdminClient();
+  const { error } = await admin.from("perfis").update({ arquivado_em: null }).eq("id", id);
+  if (error) irComErro(error.message, "pacientes", { paciente: id });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Paciente reativado", "pacientes", { paciente: id });
+}
+
+export async function removerPaciente(id: string) {
+  await exigirAdmin();
+  const admin = createAdminClient();
+
+  const { data: planos } = await admin.from("planos").select("id").eq("paciente_id", id);
+  const planoIds = (planos ?? []).map((p) => p.id);
+
+  if (planoIds.length > 0) {
+    await admin.from("plano_exercicios").delete().in("plano_id", planoIds);
+  }
+  await admin.from("planos").delete().eq("paciente_id", id);
+  await admin.from("sessoes").delete().eq("paciente_id", id);
+  await admin.from("perfis").delete().eq("id", id);
+  await admin.auth.admin.deleteUser(id);
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Paciente removido", "pacientes");
 }
 
 export async function criarDestaque(formData: FormData) {

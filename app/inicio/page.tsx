@@ -7,6 +7,8 @@ import { NavegacaoSemana } from "@/components/NavegacaoSemana";
 import { DiaEmDestaque } from "@/components/DiaEmDestaque";
 import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { DestaquesCarrossel } from "@/components/DestaquesCarrossel";
+import { AcaoConfirmarSessao } from "@/components/AcaoConfirmarSessao";
+import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -54,7 +56,7 @@ export default async function InicioPage({
   let consultaSemana = supabase
     .from("sessoes")
     .select(
-      "id, data, hora, status, tipo, observacoes, perfis!paciente_id(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
+      "id, data, hora, status, motivo_recusa, tipo, observacoes, perfis!paciente_id(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
     )
     .gte("data", inicioSemana)
     .lte("data", fimSemana)
@@ -64,7 +66,7 @@ export default async function InicioPage({
 
   let consultaOutras = supabase
     .from("sessoes")
-    .select("id, data, hora, tipo, perfis!paciente_id(nome, email), planos(titulo)")
+    .select("id, data, hora, status, motivo_recusa, tipo, perfis!paciente_id(nome, email), planos(titulo)")
     .or(`data.lt.${inicioSemana},data.gt.${fimSemana}`)
     .order("data", { ascending: false })
     .limit(8);
@@ -111,6 +113,7 @@ export default async function InicioPage({
         titulo={`Olá, ${perfil?.nome?.split(" ")[0] || "por aqui"}`}
         subtitulo="Beatriz Coutinho Fisioterapia"
         avatarUrl={user.user_metadata?.avatar_url}
+        variante="boasVindas"
       />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
@@ -202,6 +205,14 @@ export default async function InicioPage({
                   </strong>
                 </div>
 
+                <div style={{ marginTop: 8 }}>
+                  {ehAdmin ? (
+                    <BadgeStatusSessao status={item.status} motivoRecusa={item.motivo_recusa} />
+                  ) : (
+                    <AcaoConfirmarSessao sessaoId={item.id} status={item.status} motivoRecusa={item.motivo_recusa} />
+                  )}
+                </div>
+
                 {item.observacoes && (
                   <p style={{ margin: "6px 0 0", fontSize: 14 }}>{item.observacoes}</p>
                 )}
@@ -258,23 +269,47 @@ export default async function InicioPage({
         </div>
 
         {/* ---------- Outras sessões (fora da semana atual) ---------- */}
-        {outrasSessoes && outrasSessoes.length > 0 && (
-          <>
-            <h2 style={{ ...tituloSecao, marginTop: 36 }}>Outras sessões</h2>
-            <div style={{ display: "grid", gap: 8 }}>
-              {outrasSessoes.map((s: any) => (
-                <div key={s.id} style={{ ...sessaoCartao, padding: "10px 14px" }}>
-                  <p style={{ margin: 0, fontSize: 13 }}>
-                    <strong>{new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}</strong>
-                    {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""} · {rotuloTipoSessao(s.tipo)}
-                    {ehAdmin && (s.perfis?.nome || s.perfis?.email) ? ` · ${s.perfis.nome || s.perfis.email}` : ""}
-                    {s.planos?.titulo ? ` · ${s.planos.titulo}` : ""}
-                  </p>
+        {outrasSessoes && outrasSessoes.length > 0 && (() => {
+          const proximas = outrasSessoes.filter((s: any) => s.data > hojeIso).sort((a: any, b: any) => a.data.localeCompare(b.data));
+          const anteriores = outrasSessoes.filter((s: any) => s.data <= hojeIso);
+
+          function cartaoOutraSessao(s: any) {
+            const data = new Date(`${s.data}T00:00:00`);
+            return (
+              <div key={s.id} style={{ ...outraSessaoCartao, borderLeftColor: corTipoSessao(s.tipo) }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <strong style={{ fontSize: 13.5, textTransform: "capitalize" }}>
+                    {data.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}, {data.toLocaleDateString("pt-BR")}
+                    {s.hora ? ` · ${s.hora.slice(0, 5)}` : ""}
+                  </strong>
+                  <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+                <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                  {rotuloTipoSessao(s.tipo)}
+                  {ehAdmin && (s.perfis?.nome || s.perfis?.email) ? ` · ${s.perfis.nome || s.perfis.email}` : ""}
+                  {s.planos?.titulo ? ` · ${s.planos.titulo}` : ""}
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <>
+              {proximas.length > 0 && (
+                <>
+                  <h2 style={{ ...tituloSecao, marginTop: 36 }}>Próximas sessões</h2>
+                  <div style={{ display: "grid", gap: 8 }}>{proximas.map(cartaoOutraSessao)}</div>
+                </>
+              )}
+              {anteriores.length > 0 && (
+                <>
+                  <h2 style={{ ...tituloSecao, marginTop: 28 }}>Sessões anteriores</h2>
+                  <div style={{ display: "grid", gap: 8 }}>{anteriores.map(cartaoOutraSessao)}</div>
+                </>
+              )}
+            </>
+          );
+        })()}
       </main>
 
       <BottomNav papel={ehAdmin ? "admin" : "paciente"} />
@@ -301,6 +336,14 @@ const sessaoCartao: React.CSSProperties = {
   border: "1px solid var(--cor-borda)",
   borderRadius: 10,
   padding: "12px 14px",
+};
+
+const outraSessaoCartao: React.CSSProperties = {
+  background: "var(--cor-superficie)",
+  border: "1px solid var(--cor-borda)",
+  borderLeft: "3px solid var(--cor-primaria)",
+  borderRadius: "0 10px 10px 0",
+  padding: "10px 14px",
 };
 
 const exercicioMiniCartao: React.CSSProperties = {

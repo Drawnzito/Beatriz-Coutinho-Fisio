@@ -11,6 +11,8 @@ import { NavegacaoSemana } from "@/components/NavegacaoSemana";
 import { DiaEmDestaque } from "@/components/DiaEmDestaque";
 import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { CampoValidade } from "@/components/CampoValidade";
+import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
+import { BotaoPerigo } from "@/components/BotaoPerigo";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
@@ -29,6 +31,9 @@ import {
   criarDestaque,
   atualizarDestaque,
   removerDestaque,
+  arquivarPaciente,
+  desarquivarPaciente,
+  removerPaciente,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +52,9 @@ export default async function DashboardPage({
     ordem?: string;
     editarDestaque?: string;
     semana?: string;
+    verPaciente?: string;
+    buscaPaciente?: string;
+    arquivados?: string;
   };
 }) {
   const supabase = createClient();
@@ -82,7 +90,9 @@ export default async function DashboardPage({
 
   let listaSessoes = supabase
     .from("sessoes")
-    .select("id, data, hora, status, tipo, observacoes, paciente_id, perfis!paciente_id(nome, email), planos(titulo)")
+    .select(
+      "id, data, hora, status, motivo_recusa, tipo, observacoes, paciente_id, perfis!paciente_id(nome, email), planos(titulo)"
+    )
     .eq("data", diaFiltro)
     .order("hora", { ascending: true });
   if (pacienteFiltro) listaSessoes = listaSessoes.eq("paciente_id", pacienteFiltro);
@@ -97,6 +107,7 @@ export default async function DashboardPage({
   const [
     { data: exercicios },
     { data: pacientes },
+    { data: pacientesArquivados },
     { data: avisos },
     { data: planos },
     { data: sessoes },
@@ -105,7 +116,13 @@ export default async function DashboardPage({
     { data: destaques },
   ] = await Promise.all([
     supabase.from("exercicios").select("*").order("titulo", { ascending: true }),
-    supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").order("nome"),
+    supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
+    supabase
+      .from("perfis")
+      .select("id, nome, email, idade, arquivado_em")
+      .eq("papel", "paciente")
+      .not("arquivado_em", "is", null)
+      .order("arquivado_em", { ascending: false }),
     supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
     supabase
       .from("planos")
@@ -121,6 +138,48 @@ export default async function DashboardPage({
     ...(pacientes ?? []),
     { id: user.id, nome: `${perfilAtual?.nome || "Você"} (teste)`, email: perfilAtual?.email ?? "", idade: null },
   ];
+
+  const verPacienteId = searchParams.verPaciente || undefined;
+  const verArquivados = searchParams.arquivados === "1";
+  const buscaPacienteFiltro = (searchParams.buscaPaciente || "").trim().toLowerCase();
+
+  let pacienteDetalhe: any = null;
+  let sessoesDetalhe: any[] = [];
+  let planosDetalhe: any[] = [];
+  if (verPacienteId) {
+    const [{ data: pd }, { data: sd }, { data: pld }] = await Promise.all([
+      supabase.from("perfis").select("id, nome, email, idade, arquivado_em").eq("id", verPacienteId).maybeSingle(),
+      supabase
+        .from("sessoes")
+        .select("id, data, hora, status, motivo_recusa, tipo, observacoes, planos(titulo)")
+        .eq("paciente_id", verPacienteId)
+        .order("data", { ascending: false }),
+      supabase.from("planos").select("id, titulo, ativo, validade").eq("paciente_id", verPacienteId).order("criado_em", { ascending: false }),
+    ]);
+    pacienteDetalhe = pd;
+    sessoesDetalhe = sd ?? [];
+    planosDetalhe = pld ?? [];
+  }
+
+  const listaPacientesBase = verArquivados ? pacientesArquivados ?? [] : pacientes ?? [];
+  const listaPacientesFiltrada = buscaPacienteFiltro
+    ? listaPacientesBase.filter(
+        (p: any) =>
+          (p.nome || "").toLowerCase().includes(buscaPacienteFiltro) ||
+          (p.email || "").toLowerCase().includes(buscaPacienteFiltro)
+      )
+    : listaPacientesBase;
+
+  function hrefPacientes(overrides: { verPaciente?: string; buscaPaciente?: string; arquivados?: string } = {}) {
+    const params = new URLSearchParams({ aba: "pacientes" });
+    const verPaciente = "verPaciente" in overrides ? overrides.verPaciente : verPacienteId;
+    const busca = "buscaPaciente" in overrides ? overrides.buscaPaciente : searchParams.buscaPaciente;
+    const arquivadosParam = "arquivados" in overrides ? overrides.arquivados : verArquivados ? "1" : undefined;
+    if (verPaciente) params.set("verPaciente", verPaciente);
+    if (busca) params.set("buscaPaciente", busca);
+    if (arquivadosParam) params.set("arquivados", arquivadosParam);
+    return `/dashboard?${params.toString()}`;
+  }
 
   const contagens: Record<string, number> = {};
   for (const s of sessoesSemana ?? []) {
@@ -335,64 +394,184 @@ export default async function DashboardPage({
               rotulo: "Pacientes",
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
-                  <form action={criarConvitePaciente} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
-                    <input name="nome" placeholder="Nome do paciente" required style={campo} />
-                    <div style={{ display: "flex", gap: 10 }}>
-                      <input name="idade" type="number" placeholder="Idade (opcional)" style={campo} />
-                      <input name="email" type="email" placeholder="E-mail do Google" required style={campo} />
-                    </div>
-                    <button type="submit" style={botaoPrimario}>Pré-cadastrar paciente</button>
-                    <p style={{ margin: 0, fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                      Ele entra pra lista assim que fizer login com esse mesmo e-mail no Google — não precisa
-                      convite por link nem senha.
-                    </p>
-                  </form>
+                  {pacienteDetalhe ? (
+                    <div>
+                      <a href={hrefPacientes({ verPaciente: "" })} style={{ ...botaoTexto, display: "inline-block", marginBottom: 16 }}>
+                        ← voltar à lista
+                      </a>
 
-                  {(convites ?? []).length > 0 && (
-                    <>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                        Aguardando primeiro login
-                      </p>
-                      <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
-                        {(convites ?? []).map((c) => (
-                          <div key={c.id} style={cartao}>
-                            <div>
-                              <strong>{c.nome}</strong>
-                              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                {c.email}
-                                {c.idade ? ` · ${c.idade} anos` : ""} · pendente
-                              </p>
-                            </div>
-                            <form action={removerConvitePaciente.bind(null, c.id)}>
-                              <button type="submit" style={botaoTexto}>remover</button>
-                            </form>
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                    Pacientes ativos
-                  </p>
-                  <div style={{ display: "grid", gap: 10 }}>
-                    {(pacientes ?? []).map((p) => (
-                      <div key={p.id} style={cartao}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 20 }}>
                         <div>
-                          <strong>{p.nome || p.email}</strong>
-                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                            {p.email}
-                            {p.idade ? ` · ${p.idade} anos` : ""}
+                          <strong style={{ fontFamily: "var(--fonte-titulo)", fontSize: 20, color: "var(--cor-primaria)" }}>
+                            {pacienteDetalhe.nome || pacienteDetalhe.email}
+                          </strong>
+                          <p style={{ margin: "4px 0 0", fontSize: 13.5, color: "var(--cor-texto-suave)" }}>
+                            {pacienteDetalhe.email}
+                            {pacienteDetalhe.idade ? ` · ${pacienteDetalhe.idade} anos` : ""}
+                          </p>
+                          <p style={{ margin: "6px 0 0", fontSize: 12.5 }}>
+                            {pacienteDetalhe.arquivado_em ? (
+                              <span style={{ color: "#a2334a", fontWeight: 700 }}>
+                                Arquivado (alta) em {new Date(pacienteDetalhe.arquivado_em).toLocaleDateString("pt-BR")}
+                              </span>
+                            ) : (
+                              <span style={{ color: "#2f7a4f", fontWeight: 700 }}>Ativo</span>
+                            )}
                           </p>
                         </div>
                       </div>
-                    ))}
-                    {(!pacientes || pacientes.length === 0) && (
-                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                        Nenhum paciente logou ainda.
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
+                        {pacienteDetalhe.arquivado_em ? (
+                          <form action={desarquivarPaciente.bind(null, pacienteDetalhe.id)}>
+                            <button type="submit" style={botaoPrimario}>Reativar paciente</button>
+                          </form>
+                        ) : (
+                          <form action={arquivarPaciente.bind(null, pacienteDetalhe.id)}>
+                            <button type="submit" style={botaoSecundario}>Dar alta (arquivar)</button>
+                          </form>
+                        )}
+                        <form action={removerPaciente.bind(null, pacienteDetalhe.id)}>
+                          <BotaoPerigo
+                            style={botaoPerigo}
+                            mensagemConfirmacao={`Remover ${pacienteDetalhe.nome || pacienteDetalhe.email} definitivamente? Isso apaga o login, os planos e todo o histórico de sessões dele(a). Não tem como desfazer.`}
+                          >
+                            Remover paciente
+                          </BotaoPerigo>
+                        </form>
+                      </div>
+
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                        Planos ({planosDetalhe.length})
                       </p>
-                    )}
-                  </div>
+                      <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
+                        {planosDetalhe.map((pl) => (
+                          <div key={pl.id} style={cartao}>
+                            <div>
+                              <strong>{pl.titulo}</strong>
+                              <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                                {pl.ativo ? "ativo" : "inativo"}
+                                {pl.validade ? ` · válido até ${new Date(`${pl.validade}T00:00:00`).toLocaleDateString("pt-BR")}` : ""}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {planosDetalhe.length === 0 && (
+                          <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhum plano criado ainda.</p>
+                        )}
+                      </div>
+
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                        Histórico de sessões ({sessoesDetalhe.length})
+                      </p>
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {sessoesDetalhe.map((s) => (
+                          <div key={s.id} style={{ ...cartao, borderLeft: `3px solid ${corTipoSessao(s.tipo)}`, borderRadius: "0 10px 10px 0" }}>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                <strong style={{ fontSize: 13 }}>
+                                  {new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                                  {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""}
+                                </strong>
+                                <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
+                              </div>
+                              <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                                {rotuloTipoSessao(s.tipo)}
+                                {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
+                              </p>
+                              {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
+                            </div>
+                          </div>
+                        ))}
+                        {sessoesDetalhe.length === 0 && (
+                          <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhuma sessão registrada ainda.</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <form action={criarConvitePaciente} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                        <input name="nome" placeholder="Nome do paciente" required style={campo} />
+                        <div style={{ display: "flex", gap: 10 }}>
+                          <input name="idade" type="number" placeholder="Idade (opcional)" style={campo} />
+                          <input name="email" type="email" placeholder="E-mail do Google" required style={campo} />
+                        </div>
+                        <button type="submit" style={botaoPrimario}>Pré-cadastrar paciente</button>
+                        <p style={{ margin: 0, fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                          Ele entra pra lista assim que fizer login com esse mesmo e-mail no Google — não precisa
+                          convite por link nem senha.
+                        </p>
+                      </form>
+
+                      {!verArquivados && (convites ?? []).length > 0 && (
+                        <>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                            Aguardando primeiro login
+                          </p>
+                          <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                            {(convites ?? []).map((c) => (
+                              <div key={c.id} style={cartao}>
+                                <div>
+                                  <strong>{c.nome}</strong>
+                                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                    {c.email}
+                                    {c.idade ? ` · ${c.idade} anos` : ""} · pendente
+                                  </p>
+                                </div>
+                                <form action={removerConvitePaciente.bind(null, c.id)}>
+                                  <button type="submit" style={botaoTexto}>remover</button>
+                                </form>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                        <input type="hidden" name="aba" value="pacientes" />
+                        {verArquivados && <input type="hidden" name="arquivados" value="1" />}
+                        <input
+                          name="buscaPaciente"
+                          defaultValue={searchParams.buscaPaciente ?? ""}
+                          placeholder="Buscar por nome ou e-mail…"
+                          style={campo}
+                        />
+                        <button type="submit" style={botaoTextoPrimario}>buscar</button>
+                        {buscaPacienteFiltro && (
+                          <a href={hrefPacientes({ buscaPaciente: "" })} style={botaoTexto}>limpar</a>
+                        )}
+                      </form>
+
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: 0 }}>
+                          {verArquivados ? `Pacientes arquivados (${listaPacientesFiltrada.length})` : `Pacientes ativos (${listaPacientesFiltrada.length})`}
+                        </p>
+                        <a href={hrefPacientes({ arquivados: verArquivados ? "" : "1" })} style={botaoTexto}>
+                          {verArquivados ? "ver ativos" : "ver arquivados"}
+                        </a>
+                      </div>
+
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {listaPacientesFiltrada.map((p: any) => (
+                          <a key={p.id} href={hrefPacientes({ verPaciente: p.id })} style={{ ...cartao, textDecoration: "none", color: "inherit" }}>
+                            <div>
+                              <strong>{p.nome || p.email}</strong>
+                              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                {p.email}
+                                {p.idade ? ` · ${p.idade} anos` : ""}
+                              </p>
+                            </div>
+                            <span style={{ color: "var(--cor-acento)", fontSize: 13 }}>ver ficha →</span>
+                          </a>
+                        ))}
+                        {listaPacientesFiltrada.length === 0 && (
+                          <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                            {verArquivados ? "Nenhum paciente arquivado." : "Nenhum paciente logou ainda."}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               ),
             },
@@ -557,6 +736,7 @@ export default async function DashboardPage({
                               {new Date(s.data + "T00:00:00").toLocaleDateString("pt-BR")}
                               {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""}
                             </strong>
+                            <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                           </div>
                           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
                             {s.perfis?.nome || s.perfis?.email} · {rotuloTipoSessao(s.tipo)}
@@ -748,6 +928,28 @@ const botaoPrimario: React.CSSProperties = {
   fontSize: 14,
   cursor: "pointer",
   justifySelf: "start",
+};
+
+const botaoSecundario: React.CSSProperties = {
+  padding: "10px 16px",
+  borderRadius: 8,
+  border: "1px solid var(--cor-borda)",
+  background: "var(--cor-superficie)",
+  color: "var(--cor-primaria-escura)",
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
+};
+
+const botaoPerigo: React.CSSProperties = {
+  padding: "10px 16px",
+  borderRadius: 8,
+  border: "1px solid #a2334a",
+  background: "none",
+  color: "#a2334a",
+  fontWeight: 600,
+  fontSize: 14,
+  cursor: "pointer",
 };
 
 const botaoTexto: React.CSSProperties = {
