@@ -268,6 +268,7 @@ export default async function DashboardPage({
         titulo="Beatriz Coutinho"
         subtitulo="Painel da fisioterapeuta"
         avatarUrl={user.user_metadata?.avatar_url}
+        variante="boasVindas"
       />
 
       <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 0 100px" }}>
