@@ -1,23 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 export function Feedback({ mensagem }: { mensagem?: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [visivel, setVisivel] = useState(false);
 
   useEffect(() => {
     if (!mensagem) return;
     setVisivel(true);
     const escondeTimer = setTimeout(() => setVisivel(false), 2600);
-    const limpaTimer = setTimeout(() => router.replace(pathname, { scroll: false }), 3000);
+    const limpaTimer = setTimeout(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("sucesso");
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    }, 3000);
     return () => {
       clearTimeout(escondeTimer);
       clearTimeout(limpaTimer);
     };
-  }, [mensagem, pathname, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mensagem]);
 
   if (!mensagem) return null;
 
