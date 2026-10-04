@@ -30,7 +30,13 @@ export const dynamic = "force-dynamic";
 export default async function InicioPage({
   searchParams,
 }: {
-  searchParams: { dia?: string; semana?: string; paginaProximas?: string; paginaAnteriores?: string };
+  searchParams: {
+    dia?: string;
+    semana?: string;
+    paginaProximas?: string;
+    paginaAnteriores?: string;
+    conflito?: string;
+  };
 }) {
   const supabase = createClient();
   const {
@@ -219,6 +225,21 @@ export default async function InicioPage({
 
         {!ehAdmin && (
           <div data-tour="solicitar" style={{ marginBottom: 18 }}>
+            {searchParams.conflito && (
+              <p
+                style={{
+                  margin: "0 0 10px",
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  background: "#f4dde1",
+                  color: "#a2334a",
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {searchParams.conflito} — escolha outro horário.
+              </p>
+            )}
             <SolicitarSessaoForm />
           </div>
         )}

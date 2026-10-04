@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { enviarEmail } from "@/lib/email";
 import { rotuloTipoSessao } from "@/lib/tiposSessao";
 import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
+import { verificarConflito } from "@/lib/disponibilidade";
 
 export async function responderSessao(formData: FormData) {
   const supabase = createClient();
@@ -45,6 +46,13 @@ export async function solicitarSessao(formData: FormData) {
   const observacoes = String(formData.get("observacoes") || "").trim() || null;
 
   if (!data || !especialidade) return;
+
+  if (hora) {
+    const conflito = await verificarConflito(supabase, { data, hora });
+    if (conflito) {
+      redirect(`/inicio?conflito=${encodeURIComponent(conflito)}`);
+    }
+  }
 
   const { error } = await supabase.rpc("solicitar_sessao", {
     data_sessao: data,

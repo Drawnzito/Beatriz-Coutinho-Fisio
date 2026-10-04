@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { enviarEmail } from "@/lib/email";
 import { rotuloTipoSessao } from "@/lib/tiposSessao";
+import { verificarConflito } from "@/lib/disponibilidade";
 
 const TIPOS_POR_EXTENSAO: Record<string, string> = {
   gif: "image/gif",
@@ -357,6 +358,14 @@ export async function criarSessao(formData: FormData) {
     return;
   }
 
+  if (hora) {
+    const conflito = await verificarConflito(supabase, { data, hora });
+    if (conflito) {
+      irComErro(conflito, "agenda", { paciente: filtroPaciente, dia: filtroDia });
+      return;
+    }
+  }
+
   const { error } = await supabase.from("sessoes").insert({
     paciente_id,
     data,
@@ -448,6 +457,17 @@ export async function aprovarSolicitacaoSessao(id: string, formData: FormData) {
   const { supabase } = await exigirAdmin();
 
   const horaAjustada = String(formData.get("hora") || "").trim() || null;
+
+  const { data: sessaoAtual } = await supabase.from("sessoes").select("data, hora").eq("id", id).single();
+  const horaFinal = horaAjustada || sessaoAtual?.hora || null;
+
+  if (sessaoAtual && horaFinal) {
+    const conflito = await verificarConflito(supabase, { data: sessaoAtual.data, hora: horaFinal, excluirSessaoId: id });
+    if (conflito) {
+      irComErro(conflito, "agenda");
+      return;
+    }
+  }
 
   const atualizacao: Record<string, unknown> = { status: "agendada" };
   if (horaAjustada) atualizacao.hora = horaAjustada;
