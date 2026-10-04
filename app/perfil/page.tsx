@@ -154,6 +154,7 @@ export default async function PerfilPage() {
                   : "Liga um modo de teste pra você ver Início e Exercícios como um paciente veria."}
               </p>
 
+              {!vendoComoPaciente && (
               <form action={atualizarWhatsappContato} style={{ display: "grid", gap: 6, width: "100%", maxWidth: 300, textAlign: "left" }}>
                 <label style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", fontWeight: 600 }}>
                   WhatsApp Business (botão que os pacientes veem)
@@ -168,6 +169,7 @@ export default async function PerfilPage() {
                   <button type="submit" style={botaoTeste}>Salvar</button>
                 </div>
               </form>
+              )}
             </>
           )}
 

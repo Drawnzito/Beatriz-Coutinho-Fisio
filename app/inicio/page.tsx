@@ -122,11 +122,6 @@ export default async function InicioPage({
       />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
-        {/* ---------- Local de atendimento ---------- */}
-        <div style={{ marginBottom: 28 }}>
-          <InfoContatoClinica whatsapp={configClinica?.whatsapp_contato} mostrarBotaoWhatsapp={!ehAdmin} />
-        </div>
-
         {/* ---------- Destaques ---------- */}
         {destaques && destaques.length > 0 && (
           <>
@@ -282,6 +277,11 @@ export default async function InicioPage({
               </div>
             ))}
           </div>
+        </div>
+
+        {/* ---------- Local de atendimento ---------- */}
+        <div style={{ margin: "28px 0" }}>
+          <InfoContatoClinica whatsapp={configClinica?.whatsapp_contato} mostrarBotaoWhatsapp={!ehAdmin} />
         </div>
 
         {/* ---------- Outras sessões (fora da semana atual) ---------- */}
