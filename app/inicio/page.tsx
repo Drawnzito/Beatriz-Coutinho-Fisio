@@ -19,6 +19,7 @@ import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
+import { buscarNumerosSessao } from "@/lib/numeroSessao";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,7 @@ export default async function InicioPage({
     { data: anterioresSessoes, count: totalAnteriores },
     { data: destaques },
     { data: configClinica },
+    { data: fisio },
   ] = await Promise.all([
     supabase
       .from("avisos")
@@ -107,7 +109,17 @@ export default async function InicioPage({
     consultaAnteriores,
     supabase.from("destaques").select("*").eq("ativo", true).order("ordem", { ascending: true }),
     supabase.from("configuracoes_clinica").select("whatsapp_contato").eq("id", "global").maybeSingle(),
+    ehAdmin ? Promise.resolve({ data: null }) : supabase.from("perfis").select("nome").eq("papel", "admin").limit(1).maybeSingle(),
   ]);
+
+  const nomeProfissional = ehAdmin ? perfil?.nome : (fisio as any)?.nome;
+
+  const idsSessoesDoDia = [
+    ...((sessoesSemana ?? []) as any[]).map((s) => s.id),
+    ...((proximasSessoes ?? []) as any[]).map((s) => s.id),
+    ...((anterioresSessoes ?? []) as any[]).map((s) => s.id),
+  ];
+  const numerosSessao = await buscarNumerosSessao(supabase, idsSessoesDoDia);
 
   const contagens: Record<string, number> = {};
   const porDia: Record<string, any[]> = {};
@@ -157,7 +169,7 @@ export default async function InicioPage({
         {/* ---------- Destaques ---------- */}
         {destaques && destaques.length > 0 && (
           <>
-            <h2 style={{ ...tituloSecao, marginBottom: 14 }}>Novidades</h2>
+            <h2 style={{ ...tituloSecao, marginBottom: 14 }}>Destaques</h2>
             <DestaquesCarrossel destaques={destaques} />
           </>
         )}
@@ -243,7 +255,9 @@ export default async function InicioPage({
                   />
                   <strong style={{ color: "var(--cor-primaria)", fontSize: 13 }}>
                     {ehAdmin && (item.perfis?.nome || item.perfis?.email) ? `${item.perfis.nome || item.perfis.email} · ` : ""}
+                    {numerosSessao.has(item.id) ? `Sessão nº ${numerosSessao.get(item.id)} · ` : ""}
                     {rotuloTipoSessao(item.tipo)}
+                    {nomeProfissional ? ` · ${nomeProfissional}` : ""}
                     {item.hora ? ` · ${item.hora.slice(0, 5)}` : ""}
                   </strong>
                 </div>
@@ -330,7 +344,14 @@ export default async function InicioPage({
                   <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                 </div>
                 <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                  {rotuloTipoSessao(s.tipo)}
+                  {numerosSessao.has(s.id) ? `Sessão nº ${numerosSessao.get(s.id)} · ` : ""}
+                  <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong>
+                  {nomeProfissional ? (
+                    <>
+                      {" · "}
+                      <strong style={{ color: "var(--cor-primaria)" }}>{nomeProfissional}</strong>
+                    </>
+                  ) : null}
                   {ehAdmin && (s.perfis?.nome || s.perfis?.email) ? ` · ${s.perfis.nome || s.perfis.email}` : ""}
                   {s.planos?.titulo ? ` · ${s.planos.titulo}` : ""}
                 </p>

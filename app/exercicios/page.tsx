@@ -44,14 +44,16 @@ export default async function ExerciciosPage({
     );
   }
 
-  const { data: planos } = await supabase
+  const { data: todosOsPlanos } = await supabase
     .from("planos")
     .select(
-      "id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(id, titulo, descricao, video_url, pdf_url, series_padrao, repeticoes_padrao))"
+      "id, titulo, ativo, plano_exercicios(id, series, repeticoes, ordem, exercicios(id, titulo, descricao, video_url, pdf_url, series_padrao, repeticoes_padrao))"
     )
     .eq("paciente_id", user.id)
-    .eq("ativo", true)
     .order("criado_em", { ascending: false });
+
+  const planos = (todosOsPlanos ?? []).filter((p) => p.ativo);
+  const planosAnteriores = (todosOsPlanos ?? []).filter((p) => !p.ativo);
 
   return (
     <>
@@ -59,13 +61,13 @@ export default async function ExerciciosPage({
       <Header titulo="Seus exercícios" subtitulo="Beatriz Coutinho Fisioterapia" variante="boasVindas" />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
-        {(!planos || planos.length === 0) && (
+        {planos.length === 0 && planosAnteriores.length === 0 && (
           <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
             Nenhum plano atribuído ainda. Assim que a Beatriz montar o seu, ele aparece aqui.
           </p>
         )}
 
-        {(planos ?? []).map((plano: any, indice: number) => (
+        {planos.map((plano: any, indice: number) => (
           <details key={plano.id} style={{ marginBottom: 14 }} open={indice === 0}>
             <summary
               style={{
@@ -141,6 +143,53 @@ export default async function ExerciciosPage({
             </div>
           </details>
         ))}
+
+        {planosAnteriores.length > 0 && (
+          <details style={{ marginTop: 20 }}>
+            <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+              <h3 style={{ display: "inline", fontSize: 14, color: "var(--cor-texto-suave)", margin: 0 }}>
+                Treinos anteriores ({planosAnteriores.length})
+              </h3>
+            </summary>
+
+            {planosAnteriores.map((plano: any) => (
+              <details key={plano.id} style={{ marginBottom: 14 }}>
+                <summary style={{ marginBottom: 10, cursor: "pointer", listStyle: "none" }}>
+                  <h3 style={{ fontSize: 15, color: "var(--cor-texto-suave)", margin: 0, display: "inline" }}>
+                    {plano.titulo}
+                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400 }}>
+                      {(plano.plano_exercicios ?? []).length} exercício{(plano.plano_exercicios ?? []).length === 1 ? "" : "s"} · encerrado
+                    </span>
+                  </h3>
+                </summary>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  {(plano.plano_exercicios ?? [])
+                    .sort((a: any, b: any) => a.ordem - b.ordem)
+                    .map((item: any) => {
+                      const ex = item.exercicios;
+                      return (
+                        <div key={item.id} style={{ ...exercicioCartao, display: "flex", gap: 12 }}>
+                          {ex.video_url && (
+                            <div style={{ flexShrink: 0 }}>
+                              <MidiaExercicio url={ex.video_url} previa pdfUrl={ex.pdf_url} />
+                            </div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <strong>{ex.titulo}</strong>
+                            <p style={{ margin: "4px 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                              {item.series ?? ex.series_padrao ?? "-"} séries ×{" "}
+                              {item.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </details>
+            ))}
+          </details>
+        )}
       </main>
 
       <BottomNav papel={ehAdmin ? "admin" : "paciente"} />

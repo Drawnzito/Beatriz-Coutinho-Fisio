@@ -239,6 +239,64 @@ export async function criarPlano(formData: FormData) {
   irComSucesso("Plano criado com sucesso", "plano");
 }
 
+export async function alternarAtivoPlano(id: string, formData: FormData) {
+  const { supabase } = await exigirAdmin();
+  const ativoAtual = String(formData.get("ativo_atual") || "") === "true";
+
+  const { error } = await supabase.from("planos").update({ ativo: !ativoAtual }).eq("id", id);
+  if (error) {
+    irComErro(error.message, "plano");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  revalidatePath("/exercicios");
+  irComSucesso(ativoAtual ? "Plano desativado" : "Plano reativado", "plano");
+}
+
+export async function duplicarPlano(id: string) {
+  const { supabase, user } = await exigirAdmin();
+
+  const { data: planoOriginal, error: erroOriginal } = await supabase
+    .from("planos")
+    .select("titulo, paciente_id, plano_exercicios(exercicio_id, series, repeticoes, ordem)")
+    .eq("id", id)
+    .single();
+
+  if (erroOriginal || !planoOriginal) {
+    irComErro(erroOriginal?.message ?? "plano não encontrado", "plano");
+    return;
+  }
+
+  const { data: novoPlano, error: erroNovo } = await supabase
+    .from("planos")
+    .insert({ paciente_id: planoOriginal.paciente_id, titulo: `${planoOriginal.titulo} (cópia)`, criado_por: user.id })
+    .select()
+    .single();
+
+  if (erroNovo || !novoPlano) {
+    irComErro(erroNovo?.message ?? "não foi possível duplicar o plano", "plano");
+    return;
+  }
+
+  const itens = (planoOriginal.plano_exercicios ?? []).map((item: any) => ({
+    plano_id: novoPlano.id,
+    exercicio_id: item.exercicio_id,
+    series: item.series,
+    repeticoes: item.repeticoes,
+    ordem: item.ordem,
+  }));
+
+  if (itens.length > 0) {
+    const { error: erroItens } = await supabase.from("plano_exercicios").insert(itens);
+    if (erroItens) irComErro(erroItens.message, "plano");
+  }
+
+  revalidatePath("/dashboard");
+  irComSucesso("Plano duplicado", "plano");
+}
+
 export async function criarSessao(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 

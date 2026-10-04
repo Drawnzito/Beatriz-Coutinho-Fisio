@@ -15,6 +15,7 @@ import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import { BotaoPerigo } from "@/components/BotaoPerigo";
 import { BotoesPdfEvolucao } from "@/components/BotoesPdfEvolucao";
 import { Paginacao } from "@/components/Paginacao";
+import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -27,6 +28,8 @@ import {
   criarAviso,
   removerAviso,
   criarPlano,
+  alternarAtivoPlano,
+  duplicarPlano,
   criarSessao,
   removerSessao,
   aprovarSolicitacaoSessao,
@@ -188,6 +191,8 @@ export default async function DashboardPage({
     supabase.from("exercicios").select("categoria"),
   ]);
 
+  const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
+
   const opcoesAtribuicao = [
     ...(pacientesAtivosTodos ?? []),
     { id: user.id, nome: `${perfilAtual?.nome || "Você"} (teste)`, email: perfilAtual?.email ?? "", idade: null },
@@ -341,7 +346,11 @@ export default async function DashboardPage({
               rotulo: "Biblioteca",
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
-                  <form action={criarExercicio} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                  <details style={{ marginBottom: 24 }}>
+                    <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+                      <span style={{ ...botaoPrimario, display: "inline-block" }}>+ Adicionar novo exercício</span>
+                    </summary>
+                  <form action={criarExercicio} style={{ display: "grid", gap: 10, marginTop: 14 }}>
                     <input name="titulo" placeholder="Nome do exercício" required style={campo} />
                     <input name="categoria" placeholder="Categoria (ex: mobilidade, fortalecimento)" style={campo} />
                     <textarea name="descricao" placeholder="Descrição / como executar" rows={3} style={campo} />
@@ -375,6 +384,7 @@ export default async function DashboardPage({
                     </div>
                     <button type="submit" style={botaoPrimario}>Adicionar à biblioteca</button>
                   </form>
+                  </details>
 
                   <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                     <input type="hidden" name="aba" value="biblioteca" />
@@ -679,43 +689,51 @@ export default async function DashboardPage({
                     </div>
                   ) : (
                     <>
-                      <form action={criarConvitePaciente} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
-                        <input name="nome" placeholder="Nome do paciente" required style={campo} />
-                        <div style={{ display: "flex", gap: 10 }}>
-                          <input name="idade" type="number" placeholder="Idade (opcional)" style={campo} />
-                          <input name="email" type="email" placeholder="E-mail do Google" required style={campo} />
-                        </div>
-                        <input name="whatsapp" placeholder="WhatsApp (opcional)" style={campo} />
-                        <button type="submit" style={botaoPrimario}>Pré-cadastrar paciente</button>
-                        <p style={{ margin: 0, fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                          Ele entra pra lista assim que fizer login com esse mesmo e-mail no Google — não precisa
-                          convite por link nem senha.
-                        </p>
-                      </form>
+                      <details style={{ marginBottom: 24 }}>
+                        <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+                          <span style={{ ...botaoTexto, fontWeight: 700 }}>
+                            Cadastro manual{(convites ?? []).length > 0 ? ` (${(convites ?? []).length} pendente${(convites ?? []).length > 1 ? "s" : ""})` : ""}
+                          </span>
+                        </summary>
 
-                      {!verArquivados && (convites ?? []).length > 0 && (
-                        <>
-                          <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                            Aguardando primeiro login
-                          </p>
-                          <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
-                            {(convites ?? []).map((c) => (
-                              <div key={c.id} style={cartao}>
-                                <div>
-                                  <strong>{c.nome}</strong>
-                                  <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                    {c.email}
-                                    {c.idade ? ` · ${c.idade} anos` : ""} · pendente
-                                  </p>
-                                </div>
-                                <form action={removerConvitePaciente.bind(null, c.id)}>
-                                  <button type="submit" style={botaoTexto}>remover</button>
-                                </form>
-                              </div>
-                            ))}
+                        <form action={criarConvitePaciente} style={{ display: "grid", gap: 10, marginTop: 10, marginBottom: 20 }}>
+                          <input name="nome" placeholder="Nome do paciente" required style={campo} />
+                          <div style={{ display: "flex", gap: 10 }}>
+                            <input name="idade" type="number" placeholder="Idade (opcional)" style={campo} />
+                            <input name="email" type="email" placeholder="E-mail do Google" required style={campo} />
                           </div>
-                        </>
-                      )}
+                          <input name="whatsapp" placeholder="WhatsApp (opcional)" style={campo} />
+                          <button type="submit" style={botaoPrimario}>Pré-cadastrar paciente</button>
+                          <p style={{ margin: 0, fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                            Ele entra pra lista assim que fizer login com esse mesmo e-mail no Google — não precisa
+                            convite por link nem senha.
+                          </p>
+                        </form>
+
+                        {!verArquivados && (convites ?? []).length > 0 && (
+                          <>
+                            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                              Aguardando primeiro login
+                            </p>
+                            <div style={{ display: "grid", gap: 10 }}>
+                              {(convites ?? []).map((c) => (
+                                <div key={c.id} style={cartao}>
+                                  <div>
+                                    <strong>{c.nome}</strong>
+                                    <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                      {c.email}
+                                      {c.idade ? ` · ${c.idade} anos` : ""} · pendente
+                                    </p>
+                                  </div>
+                                  <form action={removerConvitePaciente.bind(null, c.id)}>
+                                    <button type="submit" style={botaoTexto}>remover</button>
+                                  </form>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </details>
 
                       <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                         <input type="hidden" name="aba" value="pacientes" />
@@ -811,12 +829,21 @@ export default async function DashboardPage({
 
                   <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
                     {(planos ?? []).map((pl: any) => (
-                      <div key={pl.id} style={cartao}>
+                      <div key={pl.id} style={{ ...cartao, alignItems: "flex-start" }}>
                         <div>
                           <strong>{pl.titulo}</strong>
                           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
                             {pl.perfis?.nome || pl.perfis?.email} {pl.ativo ? "· ativo" : "· inativo"}
                           </p>
+                        </div>
+                        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                          <form action={duplicarPlano.bind(null, pl.id)}>
+                            <button type="submit" style={botaoTexto}>duplicar</button>
+                          </form>
+                          <form action={alternarAtivoPlano.bind(null, pl.id)}>
+                            <input type="hidden" name="ativo_atual" value={String(pl.ativo)} />
+                            <button type="submit" style={botaoTexto}>{pl.ativo ? "desativar" : "reativar"}</button>
+                          </form>
                         </div>
                       </div>
                     ))}
@@ -973,7 +1000,10 @@ export default async function DashboardPage({
                             <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                           </div>
                           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                            {s.perfis?.nome || s.perfis?.email} · {rotuloTipoSessao(s.tipo)}
+                            {s.perfis?.nome || s.perfis?.email}
+                            {numerosSessao.has(s.id) ? ` · Sessão nº ${numerosSessao.get(s.id)}` : ""} ·{" "}
+                            <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong> ·{" "}
+                            <strong style={{ color: "var(--cor-primaria)" }}>{perfilAtual?.nome || "Beatriz Coutinho"}</strong>
                             {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
                           </p>
                           {s.observacoes && (
