@@ -37,6 +37,8 @@ import {
   duplicarPlano,
   criarSessao,
   removerSessao,
+  criarBloqueioAgenda,
+  removerBloqueioAgenda,
   aprovarSolicitacaoSessao,
   recusarSolicitacaoSessao,
   criarConvitePaciente,
@@ -179,6 +181,7 @@ export default async function DashboardPage({
     { data: exerciciosTodos },
     { data: avaliacoesAtendimento },
     { data: avaliacoesApp },
+    { data: bloqueios },
   ] = await Promise.all([
     consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -209,6 +212,12 @@ export default async function DashboardPage({
       .select("nota_1, nota_2, nota_3, comentario, criado_em, perfis!paciente_id(nome, email)")
       .order("criado_em", { ascending: false })
       .limit(50),
+    supabase
+      .from("bloqueios_agenda")
+      .select("*")
+      .gte("data", hojeIso)
+      .order("data", { ascending: true })
+      .order("hora_inicio", { ascending: true }),
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
@@ -949,6 +958,51 @@ export default async function DashboardPage({
                       </a>
                     )}
                   </div>
+
+                  <details style={{ marginBottom: 24 }}>
+                    <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+                      <span style={{ ...botaoTexto, fontWeight: 700 }}>
+                        Bloquear agenda{(bloqueios ?? []).length > 0 ? ` (${bloqueios!.length})` : ""}
+                      </span>
+                    </summary>
+
+                    <form action={criarBloqueioAgenda} style={{ display: "grid", gap: 10, marginTop: 10, marginBottom: 16 }}>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <input name="data" type="date" required defaultValue={diaFiltro ?? ""} style={campo} />
+                      </div>
+                      <div style={{ display: "flex", gap: 10 }}>
+                        <input name="hora_inicio" type="time" required style={campo} />
+                        <input name="hora_fim" type="time" required style={campo} />
+                      </div>
+                      <input name="motivo" placeholder="Motivo (opcional, ex: consulta médica)" style={campo} />
+                      <button type="submit" style={botaoPrimario}>Bloquear horário</button>
+                      <p style={{ margin: 0, fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
+                        Ninguém vai conseguir ver nem solicitar sessão nesse período.
+                      </p>
+                    </form>
+
+                    {(bloqueios ?? []).length > 0 && (
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {bloqueios!.map((b: any) => (
+                          <div key={b.id} style={cartao}>
+                            <div>
+                              <strong>
+                                {new Date(`${b.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                                {" · "}
+                                {b.hora_inicio.slice(0, 5)}–{b.hora_fim.slice(0, 5)}
+                              </strong>
+                              {b.motivo && (
+                                <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>{b.motivo}</p>
+                              )}
+                            </div>
+                            <form action={removerBloqueioAgenda.bind(null, b.id)}>
+                              <button type="submit" style={botaoTexto}>remover</button>
+                            </form>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </details>
 
                   {(solicitacoes ?? []).length > 0 && (
                     <div style={{ marginBottom: 24 }}>

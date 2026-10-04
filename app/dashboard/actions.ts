@@ -394,6 +394,56 @@ export async function removerSessao(id: string, formData: FormData) {
   irComSucesso("Sessão removida", "agenda", { paciente: filtroPaciente, dia: filtroDia });
 }
 
+export async function criarBloqueioAgenda(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const data = String(formData.get("data") || "");
+  const horaInicio = String(formData.get("hora_inicio") || "");
+  const horaFim = String(formData.get("hora_fim") || "");
+  const motivo = String(formData.get("motivo") || "").trim() || null;
+
+  if (!data || !horaInicio || !horaFim) {
+    irComErro("informe data, hora de início e hora de fim", "agenda");
+    return;
+  }
+
+  if (horaFim <= horaInicio) {
+    irComErro("a hora de fim precisa ser depois da hora de início", "agenda");
+    return;
+  }
+
+  const { error } = await supabase.from("bloqueios_agenda").insert({
+    data,
+    hora_inicio: horaInicio,
+    hora_fim: horaFim,
+    motivo,
+    criado_por: user.id,
+  });
+
+  if (error) {
+    irComErro(error.message, "agenda");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Horário bloqueado", "agenda");
+}
+
+export async function removerBloqueioAgenda(id: string) {
+  const { supabase } = await exigirAdmin();
+
+  const { error } = await supabase.from("bloqueios_agenda").delete().eq("id", id);
+  if (error) {
+    irComErro(error.message, "agenda");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Bloqueio removido", "agenda");
+}
+
 export async function aprovarSolicitacaoSessao(id: string, formData: FormData) {
   const { supabase } = await exigirAdmin();
 
