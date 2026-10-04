@@ -152,7 +152,7 @@ export default async function DashboardPage({
   let evolucoesDetalhe: any[] = [];
   if (verPacienteId) {
     const [{ data: pd }, { data: sd }, { data: pld }, { data: ed }] = await Promise.all([
-      supabase.from("perfis").select("id, nome, email, idade, arquivado_em").eq("id", verPacienteId).maybeSingle(),
+      supabase.from("perfis").select("id, nome, email, idade, whatsapp, arquivado_em").eq("id", verPacienteId).maybeSingle(),
       supabase
         .from("sessoes")
         .select("id, data, hora, status, motivo_recusa, tipo, observacoes, planos(titulo)")
@@ -470,6 +470,20 @@ export default async function DashboardPage({
                             {pacienteDetalhe.email}
                             {pacienteDetalhe.idade ? ` · ${pacienteDetalhe.idade} anos` : ""}
                           </p>
+                          <p style={{ margin: "2px 0 0", fontSize: 13.5, color: "var(--cor-texto-suave)" }}>
+                            {pacienteDetalhe.whatsapp ? (
+                              <a
+                                href={`https://wa.me/${pacienteDetalhe.whatsapp.replace(/\D/g, "")}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ color: "#2f7a4f", fontWeight: 600, textDecoration: "none" }}
+                              >
+                                💬 {pacienteDetalhe.whatsapp}
+                              </a>
+                            ) : (
+                              "Sem WhatsApp cadastrado"
+                            )}
+                          </p>
                           <p style={{ margin: "6px 0 0", fontSize: 12.5 }}>
                             {pacienteDetalhe.arquivado_em ? (
                               <span style={{ color: "#a2334a", fontWeight: 700 }}>
@@ -601,6 +615,7 @@ export default async function DashboardPage({
                           <input name="idade" type="number" placeholder="Idade (opcional)" style={campo} />
                           <input name="email" type="email" placeholder="E-mail do Google" required style={campo} />
                         </div>
+                        <input name="whatsapp" placeholder="WhatsApp (opcional)" style={campo} />
                         <button type="submit" style={botaoPrimario}>Pré-cadastrar paciente</button>
                         <p style={{ margin: 0, fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
                           Ele entra pra lista assim que fizer login com esse mesmo e-mail no Google — não precisa

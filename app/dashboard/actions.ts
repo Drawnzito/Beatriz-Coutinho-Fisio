@@ -296,6 +296,7 @@ export async function criarConvitePaciente(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const idadeRaw = formData.get("idade");
   const idade = idadeRaw ? Number(idadeRaw) : null;
+  const whatsapp = String(formData.get("whatsapp") || "").trim() || null;
 
   if (!nome || !email) return;
 
@@ -317,7 +318,7 @@ export async function criarConvitePaciente(formData: FormData) {
     irComSucesso("Já existe um convite pendente pra esse e-mail", "pacientes");
   }
 
-  const { error } = await supabase.from("convites_paciente").insert({ nome, email, idade, criado_por: user.id });
+  const { error } = await supabase.from("convites_paciente").insert({ nome, email, idade, whatsapp, criado_por: user.id });
   if (error) irComErro(error.message, "pacientes");
 
   revalidatePath("/dashboard");

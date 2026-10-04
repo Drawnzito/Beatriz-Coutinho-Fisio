@@ -5,7 +5,13 @@ import { AtivarNotificacoes } from "@/components/AtivarNotificacoes";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SairBotao } from "./SairBotao";
-import { ativarVisaoPaciente, desativarVisaoPaciente } from "./actions";
+import { InfoContatoClinica } from "@/components/InfoContatoClinica";
+import {
+  ativarVisaoPaciente,
+  desativarVisaoPaciente,
+  atualizarMeuWhatsapp,
+  atualizarWhatsappContato,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,9 +27,15 @@ export default async function PerfilPage() {
 
   const { data: perfil } = await supabase
     .from("perfis")
-    .select("nome, email, papel, criado_em")
+    .select("nome, email, papel, criado_em, whatsapp")
     .eq("id", user.id)
     .single();
+
+  const { data: configClinica } = await supabase
+    .from("configuracoes_clinica")
+    .select("whatsapp_contato")
+    .eq("id", "global")
+    .maybeSingle();
 
   const papel = perfil?.papel === "admin" ? "admin" : "paciente";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
@@ -96,7 +108,34 @@ export default async function PerfilPage() {
           {papel === "admin" ? "FISIOTERAPEUTA" : "PACIENTE"}
         </p>
 
-        <div style={{ marginTop: 40, display: "grid", gap: 12, justifyItems: "center" }}>
+        <div style={{ marginTop: 32, textAlign: "left" }}>
+          <InfoContatoClinica
+            whatsapp={configClinica?.whatsapp_contato}
+            mostrarBotaoWhatsapp={papel !== "admin" || vendoComoPaciente}
+          />
+        </div>
+
+        <div style={{ marginTop: 20, textAlign: "left" }}>
+          <form action={atualizarMeuWhatsapp} style={{ display: "grid", gap: 6 }}>
+            <label style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", fontWeight: 600 }}>
+              Seu WhatsApp
+            </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              <input
+                name="whatsapp"
+                placeholder="(81) 9xxxx-xxxx"
+                defaultValue={perfil?.whatsapp || ""}
+                style={campoWhatsapp}
+              />
+              <button type="submit" style={botaoTeste}>Salvar</button>
+            </div>
+            <p style={{ margin: 0, fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
+              Pra Beatriz poder te chamar caso você agende uma sessão e não apareça.
+            </p>
+          </form>
+        </div>
+
+        <div style={{ marginTop: 32, display: "grid", gap: 12, justifyItems: "center" }}>
           <AtivarNotificacoes chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
           <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "var(--cor-texto-suave)", maxWidth: 300 }}>
             Manda um lembrete uma vez por dia, de manhã, se você tiver sessão marcada pra hoje.
@@ -114,6 +153,21 @@ export default async function PerfilPage() {
                   ? "Você está vendo o app como se fosse um paciente — Início e Exercícios mostram os seus próprios (se você tiver algum plano atribuído em Montar plano)."
                   : "Liga um modo de teste pra você ver Início e Exercícios como um paciente veria."}
               </p>
+
+              <form action={atualizarWhatsappContato} style={{ display: "grid", gap: 6, width: "100%", maxWidth: 300, textAlign: "left" }}>
+                <label style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", fontWeight: 600 }}>
+                  WhatsApp Business (botão que os pacientes veem)
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    name="whatsapp_contato"
+                    placeholder="(81) 9xxxx-xxxx"
+                    defaultValue={configClinica?.whatsapp_contato || ""}
+                    style={{ ...campoWhatsapp, flex: 1 }}
+                  />
+                  <button type="submit" style={botaoTeste}>Salvar</button>
+                </div>
+              </form>
             </>
           )}
 
@@ -125,6 +179,15 @@ export default async function PerfilPage() {
     </>
   );
 }
+
+const campoWhatsapp: React.CSSProperties = {
+  flex: 1,
+  padding: "9px 12px",
+  borderRadius: 8,
+  border: "1px solid var(--cor-borda)",
+  background: "var(--cor-superficie)",
+  fontSize: 13.5,
+};
 
 const botaoTeste: React.CSSProperties = {
   padding: "10px 18px",
