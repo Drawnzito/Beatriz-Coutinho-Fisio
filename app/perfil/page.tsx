@@ -12,9 +12,9 @@ import { IndicarAmiga } from "@/components/IndicarAmiga";
 import {
   ativarVisaoPaciente,
   desativarVisaoPaciente,
-  atualizarMeuWhatsapp,
   atualizarWhatsappContato,
 } from "./actions";
+import { CampoWhatsApp } from "@/components/CampoWhatsApp";
 
 export const dynamic = "force-dynamic";
 
@@ -125,23 +125,7 @@ export default async function PerfilPage() {
         )}
 
         <div style={{ marginTop: 20, textAlign: "left" }}>
-          <form action={atualizarMeuWhatsapp} style={{ display: "grid", gap: 6 }}>
-            <label style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", fontWeight: 600 }}>
-              Seu WhatsApp
-            </label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <input
-                name="whatsapp"
-                placeholder="(81) 9xxxx-xxxx"
-                defaultValue={perfil?.whatsapp || ""}
-                style={campoWhatsapp}
-              />
-              <button type="submit" style={botaoTeste}>Salvar</button>
-            </div>
-            <p style={{ margin: 0, fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
-              Pra Beatriz poder te chamar caso você agende uma sessão e não apareça.
-            </p>
-          </form>
+          <CampoWhatsApp valorInicial={perfil?.whatsapp} />
         </div>
 
         {(papel !== "admin" || vendoComoPaciente) && (
