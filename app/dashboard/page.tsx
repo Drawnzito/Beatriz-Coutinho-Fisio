@@ -14,6 +14,8 @@ import { CampoValidade } from "@/components/CampoValidade";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import { BotaoPerigo } from "@/components/BotaoPerigo";
 import { BotoesPdfEvolucao } from "@/components/BotoesPdfEvolucao";
+import { Paginacao } from "@/components/Paginacao";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
@@ -60,6 +62,9 @@ export default async function DashboardPage({
     verPaciente?: string;
     buscaPaciente?: string;
     arquivados?: string;
+    paginaExercicios?: string;
+    paginaPacientes?: string;
+    paginaSessoesPaciente?: string;
   };
 }) {
   const supabase = createClient();
@@ -93,6 +98,47 @@ export default async function DashboardPage({
     : dias[0].iso;
   const diaInfo = dias.find((d) => d.iso === diaFiltro)!;
 
+  const verArquivados = searchParams.arquivados === "1";
+  const buscaPacienteFiltro = (searchParams.buscaPaciente || "").trim();
+  const categoriaFiltro = searchParams.categoria || undefined;
+  const buscaFiltro = searchParams.busca || undefined;
+  const ordem = searchParams.ordem === "desc" ? "desc" : "asc";
+
+  const TAMANHO_PACIENTES = 15;
+  const TAMANHO_EXERCICIOS = 15;
+  const TAMANHO_SESSOES_PACIENTE = 10;
+  const paginaPacientes = Math.max(1, parseInt(searchParams.paginaPacientes ?? "1", 10) || 1);
+  const paginaExercicios = Math.max(1, parseInt(searchParams.paginaExercicios ?? "1", 10) || 1);
+  const paginaSessoesPaciente = Math.max(1, parseInt(searchParams.paginaSessoesPaciente ?? "1", 10) || 1);
+
+  let consultaExercicios = supabase
+    .from("exercicios")
+    .select("*", { count: "exact" })
+    .order("titulo", { ascending: ordem === "asc" });
+  if (categoriaFiltro) consultaExercicios = consultaExercicios.eq("categoria", categoriaFiltro);
+  if (buscaFiltro) consultaExercicios = consultaExercicios.ilike("titulo", `%${buscaFiltro}%`);
+  consultaExercicios = consultaExercicios.range(
+    (paginaExercicios - 1) * TAMANHO_EXERCICIOS,
+    paginaExercicios * TAMANHO_EXERCICIOS - 1
+  );
+
+  let consultaPacientesLista = supabase
+    .from("perfis")
+    .select("id, nome, email, idade, arquivado_em", { count: "exact" })
+    .eq("papel", "paciente");
+  consultaPacientesLista = verArquivados
+    ? consultaPacientesLista.not("arquivado_em", "is", null).order("arquivado_em", { ascending: false })
+    : consultaPacientesLista.is("arquivado_em", null).order("nome");
+  if (buscaPacienteFiltro) {
+    consultaPacientesLista = consultaPacientesLista.or(
+      `nome.ilike.%${buscaPacienteFiltro}%,email.ilike.%${buscaPacienteFiltro}%`
+    );
+  }
+  consultaPacientesLista = consultaPacientesLista.range(
+    (paginaPacientes - 1) * TAMANHO_PACIENTES,
+    paginaPacientes * TAMANHO_PACIENTES - 1
+  );
+
   let listaSessoes = supabase
     .from("sessoes")
     .select(
@@ -110,9 +156,9 @@ export default async function DashboardPage({
   if (pacienteFiltro) contagemSemana = contagemSemana.eq("paciente_id", pacienteFiltro);
 
   const [
-    { data: exercicios },
-    { data: pacientes },
-    { data: pacientesArquivados },
+    { data: exercicios, count: totalExercicios },
+    { data: pacientesAtivosTodos },
+    { data: pacientesLista, count: totalPacientesLista },
     { data: avisos },
     { data: planos },
     { data: sessoes },
@@ -120,15 +166,11 @@ export default async function DashboardPage({
     { data: convites },
     { data: destaques },
     { data: solicitacoes },
+    { data: categoriasTodas },
   ] = await Promise.all([
-    supabase.from("exercicios").select("*").order("titulo", { ascending: true }),
+    consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
-    supabase
-      .from("perfis")
-      .select("id, nome, email, idade, arquivado_em")
-      .eq("papel", "paciente")
-      .not("arquivado_em", "is", null)
-      .order("arquivado_em", { ascending: false }),
+    consultaPacientesLista,
     supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
     supabase
       .from("planos")
@@ -143,46 +185,39 @@ export default async function DashboardPage({
       .select("id, data, hora, tipo, observacoes, perfis!paciente_id(nome, email)")
       .eq("status", "solicitada")
       .order("data", { ascending: true }),
+    supabase.from("exercicios").select("categoria"),
   ]);
 
   const opcoesAtribuicao = [
-    ...(pacientes ?? []),
+    ...(pacientesAtivosTodos ?? []),
     { id: user.id, nome: `${perfilAtual?.nome || "Você"} (teste)`, email: perfilAtual?.email ?? "", idade: null },
   ];
 
   const verPacienteId = searchParams.verPaciente || undefined;
-  const verArquivados = searchParams.arquivados === "1";
-  const buscaPacienteFiltro = (searchParams.buscaPaciente || "").trim().toLowerCase();
 
   let pacienteDetalhe: any = null;
   let sessoesDetalhe: any[] = [];
+  let totalSessoesDetalhe = 0;
   let planosDetalhe: any[] = [];
   let evolucoesDetalhe: any[] = [];
   if (verPacienteId) {
-    const [{ data: pd }, { data: sd }, { data: pld }, { data: ed }] = await Promise.all([
+    const [{ data: pd }, { data: sd, count: totalSd }, { data: pld }, { data: ed }] = await Promise.all([
       supabase.from("perfis").select("id, nome, email, idade, whatsapp, arquivado_em").eq("id", verPacienteId).maybeSingle(),
       supabase
         .from("sessoes")
-        .select("id, data, hora, status, motivo_recusa, tipo, observacoes, planos(titulo)")
+        .select("id, data, hora, status, motivo_recusa, tipo, observacoes, planos(titulo)", { count: "exact" })
         .eq("paciente_id", verPacienteId)
-        .order("data", { ascending: false }),
+        .order("data", { ascending: false })
+        .range((paginaSessoesPaciente - 1) * TAMANHO_SESSOES_PACIENTE, paginaSessoesPaciente * TAMANHO_SESSOES_PACIENTE - 1),
       supabase.from("planos").select("id, titulo, ativo, validade").eq("paciente_id", verPacienteId).order("criado_em", { ascending: false }),
       supabase.from("evolucoes").select("id, data, texto").eq("paciente_id", verPacienteId).order("data", { ascending: false }),
     ]);
     pacienteDetalhe = pd;
     sessoesDetalhe = sd ?? [];
+    totalSessoesDetalhe = totalSd ?? 0;
     planosDetalhe = pld ?? [];
     evolucoesDetalhe = ed ?? [];
   }
-
-  const listaPacientesBase = verArquivados ? pacientesArquivados ?? [] : pacientes ?? [];
-  const listaPacientesFiltrada = buscaPacienteFiltro
-    ? listaPacientesBase.filter(
-        (p: any) =>
-          (p.nome || "").toLowerCase().includes(buscaPacienteFiltro) ||
-          (p.email || "").toLowerCase().includes(buscaPacienteFiltro)
-      )
-    : listaPacientesBase;
 
   function textoEvolucaoExpandivel(texto: string) {
     const LIMITE = 180;
@@ -225,23 +260,27 @@ export default async function DashboardPage({
     return `/dashboard?${params.toString()}`;
   }
 
+  function hrefPacientesPagina(p: number) {
+    const params = new URLSearchParams({ aba: "pacientes" });
+    if (buscaPacienteFiltro) params.set("buscaPaciente", buscaPacienteFiltro);
+    if (verArquivados) params.set("arquivados", "1");
+    if (p > 1) params.set("paginaPacientes", String(p));
+    return `/dashboard?${params.toString()}`;
+  }
+
+  function hrefSessoesPacientePagina(p: number) {
+    const params = new URLSearchParams({ aba: "pacientes", verPaciente: verPacienteId || "" });
+    if (p > 1) params.set("paginaSessoesPaciente", String(p));
+    return `/dashboard?${params.toString()}`;
+  }
+
   const contagens: Record<string, number> = {};
   for (const s of sessoesSemana ?? []) {
     contagens[s.data] = (contagens[s.data] ?? 0) + 1;
   }
 
-  const categoriaFiltro = searchParams.categoria || undefined;
-  const buscaFiltro = searchParams.busca || undefined;
-  const ordem = searchParams.ordem === "desc" ? "desc" : "asc";
-  const categoriasDisponiveis = [...new Set((exercicios ?? []).map((e) => e.categoria))].sort();
-
-  let exerciciosFiltrados = exercicios ?? [];
-  if (categoriaFiltro) exerciciosFiltrados = exerciciosFiltrados.filter((e) => e.categoria === categoriaFiltro);
-  if (buscaFiltro) {
-    const alvo = buscaFiltro.toLowerCase();
-    exerciciosFiltrados = exerciciosFiltrados.filter((e) => e.titulo.toLowerCase().includes(alvo));
-  }
-  if (ordem === "desc") exerciciosFiltrados = [...exerciciosFiltrados].reverse();
+  const categoriasDisponiveis = [...new Set((categoriasTodas ?? []).map((e) => e.categoria))].sort();
+  const exerciciosFiltrados = exercicios ?? [];
 
   const editandoId = searchParams.editar || undefined;
   const editandoDestaqueId = searchParams.editarDestaque || undefined;
@@ -258,6 +297,15 @@ export default async function DashboardPage({
     if (editar) params.set("editar", editar);
     if (busca) params.set("busca", busca);
     if (ordemAtual && ordemAtual !== "asc") params.set("ordem", ordemAtual);
+    return `/dashboard?${params.toString()}`;
+  }
+
+  function hrefBibliotecaPagina(p: number) {
+    const params = new URLSearchParams({ aba: "biblioteca" });
+    if (categoriaFiltro) params.set("categoria", categoriaFiltro);
+    if (buscaFiltro) params.set("busca", buscaFiltro);
+    if (ordem !== "asc") params.set("ordem", ordem);
+    if (p > 1) params.set("paginaExercicios", String(p));
     return `/dashboard?${params.toString()}`;
   }
 
@@ -340,9 +388,9 @@ export default async function DashboardPage({
                     />
                     <button type="submit" style={botaoTextoPrimario}>buscar</button>
                     {buscaFiltro && (
-                      <a href={hrefBiblioteca({ busca: "" })} style={botaoTexto}>
+                      <Link href={hrefBiblioteca({ busca: "" })} style={botaoTexto}>
                         limpar
-                      </a>
+                      </Link>
                     )}
                   </form>
 
@@ -359,13 +407,13 @@ export default async function DashboardPage({
                         />
                       </div>
                     )}
-                    <a href={hrefBiblioteca({ ordem: ordem === "asc" ? "desc" : "asc" })} style={botaoTexto}>
+                    <Link href={hrefBiblioteca({ ordem: ordem === "asc" ? "desc" : "asc" })} style={botaoTexto}>
                       {ordem === "asc" ? "A → Z" : "Z → A"}
-                    </a>
+                    </Link>
                   </div>
 
                   <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                    {exerciciosFiltrados.length} exercício{exerciciosFiltrados.length === 1 ? "" : "s"} · ordem alfabética
+                    {totalExercicios ?? 0} exercício{(totalExercicios ?? 0) === 1 ? "" : "s"} · ordem alfabética
                   </p>
 
                   <div style={{ display: "grid", gap: 10 }}>
@@ -418,9 +466,9 @@ export default async function DashboardPage({
                             </div>
                             <div style={{ display: "flex", gap: 10 }}>
                               <button type="submit" style={botaoPrimario}>Salvar alterações</button>
-                              <a href={hrefBiblioteca({ editar: "" })} style={{ ...botaoTexto, alignSelf: "center" }}>
+                              <Link href={hrefBiblioteca({ editar: "" })} style={{ ...botaoTexto, alignSelf: "center" }}>
                                 cancelar
-                              </a>
+                              </Link>
                             </div>
                           </form>
                         </div>
@@ -439,9 +487,9 @@ export default async function DashboardPage({
                             )}
                           </div>
                           <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
-                            <a href={hrefBiblioteca({ editar: ex.id })} style={botaoTexto}>
+                            <Link href={hrefBiblioteca({ editar: ex.id })} style={botaoTexto}>
                               editar
-                            </a>
+                            </Link>
                             <form action={removerExercicio.bind(null, ex.id)}>
                               <button type="submit" style={botaoTexto}>remover</button>
                             </form>
@@ -455,6 +503,13 @@ export default async function DashboardPage({
                       </p>
                     )}
                   </div>
+
+                  <Paginacao
+                    pagina={paginaExercicios}
+                    total={totalExercicios ?? 0}
+                    tamanhoPagina={TAMANHO_EXERCICIOS}
+                    hrefPagina={hrefBibliotecaPagina}
+                  />
                 </div>
               ),
             },
@@ -465,9 +520,9 @@ export default async function DashboardPage({
                 <div style={{ padding: "24px 20px 0" }}>
                   {pacienteDetalhe ? (
                     <div>
-                      <a href={hrefPacientes({ verPaciente: "" })} style={{ ...botaoTexto, display: "inline-block", marginBottom: 16 }}>
+                      <Link href={hrefPacientes({ verPaciente: "" })} style={{ ...botaoTexto, display: "inline-block", marginBottom: 16 }}>
                         ← voltar à lista
-                      </a>
+                      </Link>
 
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, marginBottom: 20 }}>
                         <div>
@@ -589,7 +644,7 @@ export default async function DashboardPage({
                       </div>
 
                       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                        Histórico de sessões ({sessoesDetalhe.length})
+                        Histórico de sessões ({totalSessoesDetalhe})
                       </p>
                       <div style={{ display: "grid", gap: 8 }}>
                         {sessoesDetalhe.map((s) => (
@@ -614,6 +669,13 @@ export default async function DashboardPage({
                           <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhuma sessão registrada ainda.</p>
                         )}
                       </div>
+
+                      <Paginacao
+                        pagina={paginaSessoesPaciente}
+                        total={totalSessoesDetalhe}
+                        tamanhoPagina={TAMANHO_SESSOES_PACIENTE}
+                        hrefPagina={hrefSessoesPacientePagina}
+                      />
                     </div>
                   ) : (
                     <>
@@ -666,22 +728,22 @@ export default async function DashboardPage({
                         />
                         <button type="submit" style={botaoTextoPrimario}>buscar</button>
                         {buscaPacienteFiltro && (
-                          <a href={hrefPacientes({ buscaPaciente: "" })} style={botaoTexto}>limpar</a>
+                          <Link href={hrefPacientes({ buscaPaciente: "" })} style={botaoTexto}>limpar</Link>
                         )}
                       </form>
 
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: 0 }}>
-                          {verArquivados ? `Pacientes arquivados (${listaPacientesFiltrada.length})` : `Pacientes ativos (${listaPacientesFiltrada.length})`}
+                          {verArquivados ? `Pacientes arquivados (${totalPacientesLista ?? 0})` : `Pacientes ativos (${totalPacientesLista ?? 0})`}
                         </p>
-                        <a href={hrefPacientes({ arquivados: verArquivados ? "" : "1" })} style={botaoTexto}>
+                        <Link href={hrefPacientes({ arquivados: verArquivados ? "" : "1" })} style={botaoTexto}>
                           {verArquivados ? "ver ativos" : "ver arquivados"}
-                        </a>
+                        </Link>
                       </div>
 
                       <div style={{ display: "grid", gap: 10 }}>
-                        {listaPacientesFiltrada.map((p: any) => (
-                          <a key={p.id} href={hrefPacientes({ verPaciente: p.id })} style={{ ...cartao, textDecoration: "none", color: "inherit" }}>
+                        {(pacientesLista ?? []).map((p: any) => (
+                          <Link key={p.id} href={hrefPacientes({ verPaciente: p.id })} style={{ ...cartao, textDecoration: "none", color: "inherit" }}>
                             <div>
                               <strong>{p.nome || p.email}</strong>
                               <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
@@ -690,14 +752,21 @@ export default async function DashboardPage({
                               </p>
                             </div>
                             <span style={{ color: "var(--cor-acento)", fontSize: 13 }}>ver ficha →</span>
-                          </a>
+                          </Link>
                         ))}
-                        {listaPacientesFiltrada.length === 0 && (
+                        {(pacientesLista ?? []).length === 0 && (
                           <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
                             {verArquivados ? "Nenhum paciente arquivado." : "Nenhum paciente logou ainda."}
                           </p>
                         )}
                       </div>
+
+                      <Paginacao
+                        pagina={paginaPacientes}
+                        total={totalPacientesLista ?? 0}
+                        tamanhoPagina={TAMANHO_PACIENTES}
+                        hrefPagina={hrefPacientesPagina}
+                      />
                     </>
                   )}
                 </div>
@@ -1019,9 +1088,9 @@ export default async function DashboardPage({
                             <input name="link_url" defaultValue={d.link_url ?? ""} placeholder="Link ao tocar (opcional)" style={campo} />
                             <div style={{ display: "flex", gap: 10 }}>
                               <button type="submit" style={botaoPrimario}>Salvar alterações</button>
-                              <a href={hrefDestaques()} style={{ ...botaoTexto, alignSelf: "center" }}>
+                              <Link href={hrefDestaques()} style={{ ...botaoTexto, alignSelf: "center" }}>
                                 cancelar
-                              </a>
+                              </Link>
                             </div>
                           </form>
                         </div>
@@ -1046,9 +1115,9 @@ export default async function DashboardPage({
                             </div>
                           </div>
                           <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
-                            <a href={hrefDestaques(d.id)} style={botaoTexto}>
+                            <Link href={hrefDestaques(d.id)} style={botaoTexto}>
                               editar
-                            </a>
+                            </Link>
                             <form action={removerDestaque.bind(null, d.id)}>
                               <button type="submit" style={botaoTexto}>remover</button>
                             </form>

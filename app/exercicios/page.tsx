@@ -65,10 +65,24 @@ export default async function ExerciciosPage({
           </p>
         )}
 
-        {(planos ?? []).map((plano: any) => (
-          <div key={plano.id} style={{ marginBottom: 28 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <h3 style={{ fontSize: 15, color: "var(--cor-texto)", margin: 0 }}>{plano.titulo}</h3>
+        {(planos ?? []).map((plano: any, indice: number) => (
+          <details key={plano.id} style={{ marginBottom: 14 }} open={indice === 0}>
+            <summary
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+                cursor: "pointer",
+                listStyle: "none",
+              }}
+            >
+              <h3 style={{ fontSize: 15, color: "var(--cor-texto)", margin: 0 }}>
+                {plano.titulo}
+                <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: "var(--cor-texto-suave)" }}>
+                  {(plano.plano_exercicios ?? []).length} exercício{(plano.plano_exercicios ?? []).length === 1 ? "" : "s"}
+                </span>
+              </h3>
               {(plano.plano_exercicios ?? []).length > 0 && (
                 <Link
                   href={`/treino/${plano.id}`}
@@ -85,7 +99,7 @@ export default async function ExerciciosPage({
                   ▶ Iniciar treino
                 </Link>
               )}
-            </div>
+            </summary>
 
             <div style={{ display: "grid", gap: 10 }}>
               {(plano.plano_exercicios ?? [])
@@ -125,7 +139,7 @@ export default async function ExerciciosPage({
                   );
                 })}
             </div>
-          </div>
+          </details>
         ))}
       </main>
 
