@@ -9,6 +9,7 @@ import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { DestaquesCarrossel } from "@/components/DestaquesCarrossel";
 import { AvisoModoTeste } from "@/components/AvisoModoTeste";
 import { InfoContatoClinica } from "@/components/InfoContatoClinica";
+import { SolicitarSessaoForm } from "@/components/SolicitarSessaoForm";
 import { AcaoConfirmarSessao } from "@/components/AcaoConfirmarSessao";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import Link from "next/link";
@@ -164,6 +165,12 @@ export default async function InicioPage({
             ? `${totalSemana} ${totalSemana > 1 ? "sessões" : "sessão"} de pacientes essa semana.`
             : `Você tem ${totalSemana} ${totalSemana > 1 ? "sessões" : "sessão"} agendada${totalSemana > 1 ? "s" : ""} essa semana.`}
         </p>
+
+        {!ehAdmin && (
+          <div style={{ marginBottom: 18 }}>
+            <SolicitarSessaoForm />
+          </div>
+        )}
 
         <NavegacaoSemana
           inicioIso={dias[0].iso}

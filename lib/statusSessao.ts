@@ -1,6 +1,8 @@
-export type StatusSessao = "agendada" | "confirmada" | "recusada";
+export type StatusSessao = "solicitada" | "rejeitada" | "agendada" | "confirmada" | "recusada";
 
 export const STATUS_SESSAO: { valor: StatusSessao; rotulo: string; rotuloCurto: string; cor: string; corFundo: string }[] = [
+  { valor: "solicitada", rotulo: "Aguardando aprovação da fisioterapeuta", rotuloCurto: "Solicitada", cor: "#8a6d1f", corFundo: "#f1ece0" },
+  { valor: "rejeitada", rotulo: "Não foi possível agendar", rotuloCurto: "Não aprovada", cor: "#a2334a", corFundo: "#f4dde1" },
   { valor: "agendada", rotulo: "Aguardando confirmação", rotuloCurto: "Pendente", cor: "#8a7a5c", corFundo: "#f1ece0" },
   { valor: "confirmada", rotulo: "Presença confirmada", rotuloCurto: "Confirmada", cor: "#2f7a4f", corFundo: "#dcefe1" },
   { valor: "recusada", rotulo: "Não vai comparecer", rotuloCurto: "Recusada", cor: "#a2334a", corFundo: "#f4dde1" },

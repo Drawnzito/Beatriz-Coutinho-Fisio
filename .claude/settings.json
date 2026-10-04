@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit",
+      "Write",
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell(Test-Path *)",
+      "PowerShell(Get-ChildItem *)"
+    ]
+  }
+}

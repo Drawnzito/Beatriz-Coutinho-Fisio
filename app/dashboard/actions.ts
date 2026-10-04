@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { enviarEmail } from "@/lib/email";
+import { rotuloTipoSessao } from "@/lib/tiposSessao";
 
 const TIPOS_POR_EXTENSAO: Record<string, string> = {
   gif: "image/gif",
@@ -287,6 +289,87 @@ export async function removerSessao(id: string, formData: FormData) {
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
   irComSucesso("Sessão removida", "agenda", { paciente: filtroPaciente, dia: filtroDia });
+}
+
+export async function aprovarSolicitacaoSessao(id: string, formData: FormData) {
+  const { supabase } = await exigirAdmin();
+
+  const horaAjustada = String(formData.get("hora") || "").trim() || null;
+
+  const atualizacao: Record<string, unknown> = { status: "agendada" };
+  if (horaAjustada) atualizacao.hora = horaAjustada;
+
+  const { data: sessao, error } = await supabase
+    .from("sessoes")
+    .update(atualizacao)
+    .eq("id", id)
+    .eq("status", "solicitada")
+    .select("data, hora, tipo, perfis!paciente_id(nome, email)")
+    .single();
+
+  if (error) {
+    irComErro(error.message, "agenda");
+    return;
+  }
+
+  const paciente = (sessao as any)?.perfis;
+  if (paciente?.email) {
+    const dataFormatada = new Date(`${sessao.data}T00:00:00`).toLocaleDateString("pt-BR");
+    await enviarEmail({
+      destinatario: paciente.email,
+      assunto: "Sua sessão foi confirmada",
+      html: `
+        <p>Olá, ${paciente.nome || ""}!</p>
+        <p>Sua sessão de <strong>${rotuloTipoSessao(sessao.tipo)}</strong> foi agendada pra
+        <strong>${dataFormatada}${sessao.hora ? ` às ${sessao.hora.slice(0, 5)}` : ""}</strong>.</p>
+        <p>Entre no app pra confirmar sua presença.</p>
+      `,
+    });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Sessão aprovada", "agenda");
+}
+
+export async function recusarSolicitacaoSessao(id: string, formData: FormData) {
+  const { supabase } = await exigirAdmin();
+
+  const motivo = String(formData.get("motivo") || "").trim() || null;
+
+  const { data: sessao, error } = await supabase
+    .from("sessoes")
+    .update({ status: "rejeitada", motivo_recusa: motivo })
+    .eq("id", id)
+    .eq("status", "solicitada")
+    .select("data, hora, tipo, perfis!paciente_id(nome, email)")
+    .single();
+
+  if (error) {
+    irComErro(error.message, "agenda");
+    return;
+  }
+
+  const paciente = (sessao as any)?.perfis;
+  if (paciente?.email) {
+    const dataFormatada = new Date(`${sessao.data}T00:00:00`).toLocaleDateString("pt-BR");
+    await enviarEmail({
+      destinatario: paciente.email,
+      assunto: "Não foi possível agendar sua sessão",
+      html: `
+        <p>Olá, ${paciente.nome || ""}!</p>
+        <p>Infelizmente não foi possível agendar sua sessão pra ${dataFormatada}${
+        sessao.hora ? ` às ${sessao.hora.slice(0, 5)}` : ""
+      }.</p>
+        ${motivo ? `<p>Motivo: ${motivo}</p>` : ""}
+        <p>Tente solicitar outro horário no app.</p>
+      `,
+    });
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Solicitação recusada", "agenda");
 }
 
 export async function criarConvitePaciente(formData: FormData) {

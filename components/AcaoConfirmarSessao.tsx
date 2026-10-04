@@ -17,7 +17,7 @@ export function AcaoConfirmarSessao({
   const [recusando, setRecusando] = useState(false);
   const [motivo, setMotivo] = useState("");
 
-  if (status === "confirmada" || status === "recusada") {
+  if (status !== "agendada") {
     return <BadgeStatusSessao status={status} motivoRecusa={motivoRecusa} />;
   }
 

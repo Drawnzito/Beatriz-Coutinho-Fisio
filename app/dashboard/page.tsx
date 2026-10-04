@@ -27,6 +27,8 @@ import {
   criarPlano,
   criarSessao,
   removerSessao,
+  aprovarSolicitacaoSessao,
+  recusarSolicitacaoSessao,
   criarConvitePaciente,
   removerConvitePaciente,
   criarDestaque,
@@ -117,6 +119,7 @@ export default async function DashboardPage({
     { data: sessoesSemana },
     { data: convites },
     { data: destaques },
+    { data: solicitacoes },
   ] = await Promise.all([
     supabase.from("exercicios").select("*").order("titulo", { ascending: true }),
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -135,6 +138,11 @@ export default async function DashboardPage({
     contagemSemana,
     supabase.from("convites_paciente").select("*").order("criado_em", { ascending: false }),
     supabase.from("destaques").select("*").order("ordem", { ascending: true }),
+    supabase
+      .from("sessoes")
+      .select("id, data, hora, tipo, observacoes, perfis!paciente_id(nome, email)")
+      .eq("status", "solicitada")
+      .order("data", { ascending: true }),
   ]);
 
   const opcoesAtribuicao = [
@@ -787,6 +795,43 @@ export default async function DashboardPage({
                       </a>
                     )}
                   </div>
+
+                  {(solicitacoes ?? []).length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                        Solicitações pendentes ({solicitacoes!.length})
+                      </p>
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {solicitacoes!.map((s: any) => (
+                          <div key={s.id} style={{ ...cartao, alignItems: "flex-start", borderColor: "#d8c276" }}>
+                            <div>
+                              <strong>
+                                {new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                                {s.hora ? ` às ${s.hora.slice(0, 5)}` : " · sem horário definido"}
+                              </strong>
+                              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                                {s.perfis?.nome || s.perfis?.email} · {rotuloTipoSessao(s.tipo)}
+                              </p>
+                              {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
+
+                              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                                <form action={aprovarSolicitacaoSessao.bind(null, s.id)} style={{ display: "flex", gap: 6 }}>
+                                  {!s.hora && <input name="hora" type="time" style={{ ...campo, padding: "6px 8px", fontSize: 12.5 }} />}
+                                  <button type="submit" style={{ ...botaoPrimario, padding: "7px 12px", fontSize: 12.5 }}>
+                                    Aprovar
+                                  </button>
+                                </form>
+                                <form action={recusarSolicitacaoSessao.bind(null, s.id)} style={{ display: "flex", gap: 6 }}>
+                                  <input name="motivo" placeholder="Motivo (opcional)" style={{ ...campo, padding: "6px 8px", fontSize: 12.5, width: 160 }} />
+                                  <button type="submit" style={botaoTexto}>Recusar</button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
                     Agendar sessão
