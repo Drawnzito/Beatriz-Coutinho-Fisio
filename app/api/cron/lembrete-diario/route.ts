@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     for (const admin of admins ?? []) {
       destinatarios.set(admin.id, {
         titulo: "Agenda de hoje",
-        corpo: `Você tem ${totalSessoesHoje} sessão${totalSessoesHoje > 1 ? "ões" : ""} hoje.`,
+        corpo: `Você tem ${totalSessoesHoje} ${totalSessoesHoje > 1 ? "sessões" : "sessão"} hoje.`,
         url: "/dashboard?aba=agenda",
       });
     }

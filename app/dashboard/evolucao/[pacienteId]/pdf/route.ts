@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { DocumentoEvolucao } from "@/components/pdf/DocumentoEvolucao";
 
+export const runtime = "nodejs";
+
 export async function GET(request: Request, { params }: { params: { pacienteId: string } }) {
   const supabase = createClient();
 
@@ -28,9 +30,16 @@ export async function GET(request: Request, { params }: { params: { pacienteId: 
     .order("data", { ascending: true });
 
   const nomePaciente = paciente.nome || paciente.email;
-  const buffer = await renderToBuffer(
-    createElement(DocumentoEvolucao, { nomePaciente, evolucoes: evolucoes ?? [] }) as any
-  );
+
+  let buffer: Buffer;
+  try {
+    buffer = await renderToBuffer(
+      createElement(DocumentoEvolucao, { nomePaciente, evolucoes: evolucoes ?? [] }) as any
+    );
+  } catch (erro) {
+    console.error("Falha ao gerar PDF de evolução:", erro);
+    return new Response("Não foi possível gerar o PDF. Tente novamente em alguns instantes.", { status: 500 });
+  }
 
   const nomeArquivo = `evolucao-${nomePaciente}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
@@ -38,6 +47,7 @@ export async function GET(request: Request, { params }: { params: { pacienteId: 
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${nomeArquivo}.pdf"`,
+      "Content-Length": String(buffer.length),
     },
   });
 }

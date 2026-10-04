@@ -4,6 +4,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { Feedback } from "@/components/Feedback";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
+import { AvisoModoTeste } from "@/components/AvisoModoTeste";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -54,6 +55,7 @@ export default async function ExerciciosPage({
 
   return (
     <>
+      {vendoComoPaciente && <AvisoModoTeste />}
       <Header titulo="Seus exercícios" subtitulo="Beatriz Coutinho Fisioterapia" variante="boasVindas" />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>

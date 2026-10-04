@@ -5,6 +5,24 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+const TIPOS_POR_EXTENSAO: Record<string, string> = {
+  gif: "image/gif",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  ogg: "video/ogg",
+};
+
+function inferirContentType(nomeArquivo: string, tipoDetectado: string): string | undefined {
+  if (tipoDetectado) return tipoDetectado;
+  const extensao = nomeArquivo.split(".").pop()?.toLowerCase() || "";
+  return TIPOS_POR_EXTENSAO[extensao];
+}
+
 function irComSucesso(mensagem: string, aba: string, extraParams: Record<string, string | undefined> = {}) {
   const params = new URLSearchParams({ sucesso: mensagem, aba });
   for (const [chave, valor] of Object.entries(extraParams)) {
@@ -51,7 +69,7 @@ export async function criarExercicio(formData: FormData) {
 
     const { error: erroUpload } = await supabase.storage
       .from("exercicios")
-      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
+      .upload(caminho, arquivo, { contentType: inferirContentType(arquivo.name, arquivo.type) });
 
     if (!erroUpload) {
       const { data: publicUrlData } = supabase.storage
@@ -124,7 +142,7 @@ export async function atualizarExercicio(id: string, formData: FormData) {
 
     const { error: erroUpload } = await supabase.storage
       .from("exercicios")
-      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
+      .upload(caminho, arquivo, { contentType: inferirContentType(arquivo.name, arquivo.type) });
 
     if (!erroUpload) {
       const { data: publicUrlData } = supabase.storage.from("exercicios").getPublicUrl(caminho);

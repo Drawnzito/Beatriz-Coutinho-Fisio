@@ -7,6 +7,7 @@ import { NavegacaoSemana } from "@/components/NavegacaoSemana";
 import { DiaEmDestaque } from "@/components/DiaEmDestaque";
 import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { DestaquesCarrossel } from "@/components/DestaquesCarrossel";
+import { AvisoModoTeste } from "@/components/AvisoModoTeste";
 import { AcaoConfirmarSessao } from "@/components/AcaoConfirmarSessao";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import Link from "next/link";
@@ -109,6 +110,7 @@ export default async function InicioPage({
 
   return (
     <>
+      {vendoComoPaciente && <AvisoModoTeste />}
       <Header
         titulo={`Olá, ${perfil?.nome?.split(" ")[0] || "por aqui"}`}
         subtitulo="Beatriz Coutinho Fisioterapia"
@@ -152,8 +154,8 @@ export default async function InicioPage({
           {totalSemana === 0
             ? "Nenhuma sessão agendada essa semana."
             : ehAdmin
-            ? `${totalSemana} sessão${totalSemana > 1 ? "ões" : ""} de pacientes essa semana.`
-            : `Você tem ${totalSemana} sessão${totalSemana > 1 ? "ões" : ""} agendada${totalSemana > 1 ? "s" : ""} essa semana.`}
+            ? `${totalSemana} ${totalSemana > 1 ? "sessões" : "sessão"} de pacientes essa semana.`
+            : `Você tem ${totalSemana} ${totalSemana > 1 ? "sessões" : "sessão"} agendada${totalSemana > 1 ? "s" : ""} essa semana.`}
         </p>
 
         <NavegacaoSemana

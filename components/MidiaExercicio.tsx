@@ -46,7 +46,6 @@ export function MidiaExercicio({
       <img
         src={url}
         alt="Demonstração do exercício"
-        loading="lazy"
         style={
           previa
             ? { height: 90, width: 90, borderRadius: 10, display: "block", objectFit: "cover" }

@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export async function ativarVisaoPaciente() {
-  cookies().set("ver_como_paciente", "1", { path: "/", maxAge: 60 * 60 * 24 * 30 });
+  cookies().set("ver_como_paciente", "1", { path: "/", maxAge: 60 * 60 * 4 });
   redirect("/inicio");
 }
 
