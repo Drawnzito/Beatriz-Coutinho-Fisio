@@ -191,7 +191,7 @@ export default async function DashboardPage({
     supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
     supabase
       .from("planos")
-      .select("id, titulo, ativo, paciente_id, perfis!paciente_id(nome, email), plano_exercicios(exercicio_id)")
+      .select("id, titulo, ativo, paciente_id, perfis!paciente_id(nome, email), plano_exercicios(exercicio_id, series, repeticoes)")
       .order("criado_em", { ascending: false }),
     listaSessoes,
     contagemSemana,
@@ -203,7 +203,7 @@ export default async function DashboardPage({
       .eq("status", "solicitada")
       .order("data", { ascending: true }),
     supabase.from("exercicios").select("categoria"),
-    supabase.from("exercicios").select("id, titulo").order("titulo", { ascending: true }),
+    supabase.from("exercicios").select("id, titulo, series_padrao, repeticoes_padrao").order("titulo", { ascending: true }),
     supabase
       .from("avaliacoes_atendimento")
       .select("nota_1, nota_2, nota_3, comentario, criado_em, perfis!paciente_id(nome, email)")
@@ -849,15 +849,29 @@ export default async function DashboardPage({
                       </select>
                       <input name="titulo" placeholder="Título do plano (ex: Treino A)" required style={campo} />
 
-                      <div style={{ display: "grid", gap: 6 }}>
+                      <div style={{ display: "grid", gap: 8 }}>
                         <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
-                          Selecione os exercícios deste plano:
+                          Selecione os exercícios deste plano (séries/repetições em branco = usa o padrão do exercício):
                         </p>
-                        {(exerciciosTodos ?? []).map((ex) => (
-                          <label key={ex.id} style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center" }}>
-                            <input type="checkbox" name="exercicio_id" value={ex.id} />
-                            {ex.titulo}
-                          </label>
+                        {(exerciciosTodos ?? []).map((ex: any) => (
+                          <div key={ex.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <label style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center", flex: 1 }}>
+                              <input type="checkbox" name="exercicio_id" value={ex.id} />
+                              {ex.titulo}
+                            </label>
+                            <input
+                              name={`series_${ex.id}`}
+                              type="number"
+                              placeholder={ex.series_padrao ? String(ex.series_padrao) : "séries"}
+                              style={campoNumeroPequeno}
+                            />
+                            <input
+                              name={`repeticoes_${ex.id}`}
+                              type="number"
+                              placeholder={ex.repeticoes_padrao ? String(ex.repeticoes_padrao) : "reps"}
+                              style={campoNumeroPequeno}
+                            />
+                          </div>
                         ))}
                       </div>
 
@@ -871,21 +885,40 @@ export default async function DashboardPage({
                         <div key={pl.id} style={{ ...cartao, display: "block" }}>
                           <form action={atualizarPlano.bind(null, pl.id)} style={{ display: "grid", gap: 10 }}>
                             <input name="titulo" defaultValue={pl.titulo} required style={campo} />
-                            <div style={{ display: "grid", gap: 6 }}>
+                            <div style={{ display: "grid", gap: 8 }}>
                               <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
-                                Exercícios deste plano:
+                                Exercícios deste plano (séries/repetições em branco = usa o padrão do exercício):
                               </p>
-                              {(exerciciosTodos ?? []).map((ex) => (
-                                <label key={ex.id} style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center" }}>
-                                  <input
-                                    type="checkbox"
-                                    name="exercicio_id"
-                                    value={ex.id}
-                                    defaultChecked={(pl.plano_exercicios ?? []).some((pe: any) => pe.exercicio_id === ex.id)}
-                                  />
-                                  {ex.titulo}
-                                </label>
-                              ))}
+                              {(exerciciosTodos ?? []).map((ex: any) => {
+                                const itemAtual = (pl.plano_exercicios ?? []).find((pe: any) => pe.exercicio_id === ex.id);
+                                return (
+                                  <div key={ex.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                    <label style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center", flex: 1 }}>
+                                      <input
+                                        type="checkbox"
+                                        name="exercicio_id"
+                                        value={ex.id}
+                                        defaultChecked={!!itemAtual}
+                                      />
+                                      {ex.titulo}
+                                    </label>
+                                    <input
+                                      name={`series_${ex.id}`}
+                                      type="number"
+                                      defaultValue={itemAtual?.series ?? ""}
+                                      placeholder={ex.series_padrao ? String(ex.series_padrao) : "séries"}
+                                      style={campoNumeroPequeno}
+                                    />
+                                    <input
+                                      name={`repeticoes_${ex.id}`}
+                                      type="number"
+                                      defaultValue={itemAtual?.repeticoes ?? ""}
+                                      placeholder={ex.repeticoes_padrao ? String(ex.repeticoes_padrao) : "reps"}
+                                      style={campoNumeroPequeno}
+                                    />
+                                  </div>
+                                );
+                              })}
                             </div>
                             <div style={{ display: "flex", gap: 10 }}>
                               <button type="submit" style={botaoPrimario}>Salvar alterações</button>
@@ -1352,6 +1385,16 @@ const campo: React.CSSProperties = {
   fontSize: 14,
   fontFamily: "var(--fonte-corpo)",
   width: "100%",
+};
+
+const campoNumeroPequeno: React.CSSProperties = {
+  padding: "8px 6px",
+  borderRadius: 8,
+  border: "1px solid var(--cor-borda)",
+  fontSize: 13,
+  fontFamily: "var(--fonte-corpo)",
+  width: 56,
+  textAlign: "center",
 };
 
 const botaoPrimario: React.CSSProperties = {

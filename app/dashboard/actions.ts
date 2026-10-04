@@ -207,6 +207,21 @@ export async function removerAviso(id: string) {
   irComSucesso("Aviso removido", "avisos");
 }
 
+function montarItensPlano(formData: FormData, exercicioIds: string[]) {
+  return exercicioIds.map((exercicio_id, i) => {
+    const seriesRaw = formData.get(`series_${exercicio_id}`);
+    const repeticoesRaw = formData.get(`repeticoes_${exercicio_id}`);
+    const series = seriesRaw ? Number(seriesRaw) : null;
+    const repeticoes = repeticoesRaw ? Number(repeticoesRaw) : null;
+    return {
+      exercicio_id,
+      ordem: i,
+      series: series && series > 0 ? series : null,
+      repeticoes: repeticoes && repeticoes > 0 ? repeticoes : null,
+    };
+  });
+}
+
 export async function criarPlano(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 
@@ -227,10 +242,9 @@ export async function criarPlano(formData: FormData) {
     return;
   }
 
-  const itens = exercicioIds.map((exercicio_id, i) => ({
+  const itens = montarItensPlano(formData, exercicioIds).map((item) => ({
+    ...item,
     plano_id: plano.id,
-    exercicio_id,
-    ordem: i,
   }));
 
   const { error: erroItens } = await supabase.from("plano_exercicios").insert(itens);
@@ -263,10 +277,9 @@ export async function atualizarPlano(id: string, formData: FormData) {
     return;
   }
 
-  const itens = exercicioIds.map((exercicio_id, i) => ({
+  const itens = montarItensPlano(formData, exercicioIds).map((item) => ({
+    ...item,
     plano_id: id,
-    exercicio_id,
-    ordem: i,
   }));
 
   const { error: erroItens } = await supabase.from("plano_exercicios").insert(itens);
