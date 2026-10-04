@@ -2,6 +2,9 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ["@react-pdf/renderer", "yoga-layout"],
+    outputFileTracingIncludes: {
+      "/dashboard/evolucao/**": ["./node_modules/pdfkit/js/**/*"],
+    },
   },
 };
 
