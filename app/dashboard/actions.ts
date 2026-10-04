@@ -239,6 +239,47 @@ export async function criarPlano(formData: FormData) {
   irComSucesso("Plano criado com sucesso", "plano");
 }
 
+export async function atualizarPlano(id: string, formData: FormData) {
+  const { supabase } = await exigirAdmin();
+
+  const titulo = String(formData.get("titulo") || "");
+  const exercicioIds = formData.getAll("exercicio_id") as string[];
+
+  if (!titulo || exercicioIds.length === 0) {
+    irComErro("informe o título e selecione ao menos um exercício", "plano");
+    return;
+  }
+
+  const { error: erroTitulo } = await supabase.from("planos").update({ titulo }).eq("id", id);
+  if (erroTitulo) {
+    irComErro(erroTitulo.message, "plano");
+    return;
+  }
+
+  const { error: erroRemover } = await supabase.from("plano_exercicios").delete().eq("plano_id", id);
+  if (erroRemover) {
+    irComErro(erroRemover.message, "plano");
+    return;
+  }
+
+  const itens = exercicioIds.map((exercicio_id, i) => ({
+    plano_id: id,
+    exercicio_id,
+    ordem: i,
+  }));
+
+  const { error: erroItens } = await supabase.from("plano_exercicios").insert(itens);
+  if (erroItens) {
+    irComErro(erroItens.message, "plano");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  revalidatePath("/exercicios");
+  irComSucesso("Plano atualizado", "plano");
+}
+
 export async function alternarAtivoPlano(id: string, formData: FormData) {
   const { supabase } = await exigirAdmin();
   const ativoAtual = String(formData.get("ativo_atual") || "") === "true";

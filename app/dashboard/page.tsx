@@ -28,6 +28,7 @@ import {
   criarAviso,
   removerAviso,
   criarPlano,
+  atualizarPlano,
   alternarAtivoPlano,
   duplicarPlano,
   criarSessao,
@@ -68,6 +69,7 @@ export default async function DashboardPage({
     paginaExercicios?: string;
     paginaPacientes?: string;
     paginaSessoesPaciente?: string;
+    editarPlano?: string;
   };
 }) {
   const supabase = createClient();
@@ -170,6 +172,7 @@ export default async function DashboardPage({
     { data: destaques },
     { data: solicitacoes },
     { data: categoriasTodas },
+    { data: exerciciosTodos },
   ] = await Promise.all([
     consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -177,7 +180,7 @@ export default async function DashboardPage({
     supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
     supabase
       .from("planos")
-      .select("id, titulo, ativo, paciente_id, perfis!paciente_id(nome, email)")
+      .select("id, titulo, ativo, paciente_id, perfis!paciente_id(nome, email), plano_exercicios(exercicio_id)")
       .order("criado_em", { ascending: false }),
     listaSessoes,
     contagemSemana,
@@ -189,6 +192,7 @@ export default async function DashboardPage({
       .eq("status", "solicitada")
       .order("data", { ascending: true }),
     supabase.from("exercicios").select("categoria"),
+    supabase.from("exercicios").select("id, titulo").order("titulo", { ascending: true }),
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
@@ -288,6 +292,7 @@ export default async function DashboardPage({
   const exerciciosFiltrados = exercicios ?? [];
 
   const editandoId = searchParams.editar || undefined;
+  const editarPlanoId = searchParams.editarPlano || undefined;
   const editandoDestaqueId = searchParams.editarDestaque || undefined;
   const hrefDestaques = (editar?: string) =>
     editar ? `/dashboard?aba=destaques&editarDestaque=${editar}` : "/dashboard?aba=destaques";
@@ -358,7 +363,7 @@ export default async function DashboardPage({
                       <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                         Vídeo/gif demonstrativo — envie um arquivo:
                       </label>
-                      <input name="video_arquivo" type="file" accept="video/*,image/gif" style={campo} />
+                      <input name="video_arquivo" type="file" accept="video/*,image/*" style={campo} />
                     </div>
                     <div style={{ display: "grid", gap: 4 }}>
                       <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
@@ -438,7 +443,7 @@ export default async function DashboardPage({
                               <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                                 Trocar vídeo/gif — envie um novo arquivo:
                               </label>
-                              <input name="video_arquivo" type="file" accept="video/*,image/gif" style={campo} />
+                              <input name="video_arquivo" type="file" accept="video/*,image/*" style={campo} />
                             </div>
                             <div style={{ display: "grid", gap: 4 }}>
                               <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
@@ -815,7 +820,7 @@ export default async function DashboardPage({
                         <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
                           Selecione os exercícios deste plano:
                         </p>
-                        {(exercicios ?? []).map((ex) => (
+                        {(exerciciosTodos ?? []).map((ex) => (
                           <label key={ex.id} style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center" }}>
                             <input type="checkbox" name="exercicio_id" value={ex.id} />
                             {ex.titulo}
@@ -828,15 +833,49 @@ export default async function DashboardPage({
                   )}
 
                   <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
-                    {(planos ?? []).map((pl: any) => (
+                    {(planos ?? []).map((pl: any) =>
+                      pl.id === editarPlanoId ? (
+                        <div key={pl.id} style={{ ...cartao, display: "block" }}>
+                          <form action={atualizarPlano.bind(null, pl.id)} style={{ display: "grid", gap: 10 }}>
+                            <input name="titulo" defaultValue={pl.titulo} required style={campo} />
+                            <div style={{ display: "grid", gap: 6 }}>
+                              <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
+                                Exercícios deste plano:
+                              </p>
+                              {(exerciciosTodos ?? []).map((ex) => (
+                                <label key={ex.id} style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center" }}>
+                                  <input
+                                    type="checkbox"
+                                    name="exercicio_id"
+                                    value={ex.id}
+                                    defaultChecked={(pl.plano_exercicios ?? []).some((pe: any) => pe.exercicio_id === ex.id)}
+                                  />
+                                  {ex.titulo}
+                                </label>
+                              ))}
+                            </div>
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <button type="submit" style={botaoPrimario}>Salvar alterações</button>
+                              <Link href="/dashboard?aba=plano" style={{ ...botaoTexto, alignSelf: "center" }}>
+                                cancelar
+                              </Link>
+                            </div>
+                          </form>
+                        </div>
+                      ) : (
                       <div key={pl.id} style={{ ...cartao, alignItems: "flex-start" }}>
                         <div>
                           <strong>{pl.titulo}</strong>
                           <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
                             {pl.perfis?.nome || pl.perfis?.email} {pl.ativo ? "· ativo" : "· inativo"}
+                            {" · "}
+                            {(pl.plano_exercicios ?? []).length} exercício{(pl.plano_exercicios ?? []).length === 1 ? "" : "s"}
                           </p>
                         </div>
-                        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                        <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+                          <Link href={`/dashboard?aba=plano&editarPlano=${pl.id}`} style={botaoTexto}>
+                            editar
+                          </Link>
                           <form action={duplicarPlano.bind(null, pl.id)}>
                             <button type="submit" style={botaoTexto}>duplicar</button>
                           </form>
@@ -846,7 +885,8 @@ export default async function DashboardPage({
                           </form>
                         </div>
                       </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
               ),
