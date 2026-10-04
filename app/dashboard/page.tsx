@@ -178,7 +178,12 @@ export default async function DashboardPage({
 
   function textoEvolucaoExpandivel(texto: string) {
     const LIMITE = 180;
-    const estiloTexto: React.CSSProperties = { margin: "4px 0 0", fontSize: 13.5, whiteSpace: "pre-wrap" };
+    const estiloTexto: React.CSSProperties = {
+      margin: "4px 0 0",
+      fontSize: 13.5,
+      whiteSpace: "pre-wrap",
+      overflowWrap: "anywhere",
+    };
 
     if (texto.length <= LIMITE) {
       return <div style={estiloTexto}>{texto}</div>;
@@ -524,7 +529,7 @@ export default async function DashboardPage({
                       <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
                         {evolucoesDetalhe.map((e) => (
                           <div key={e.id} style={{ ...cartao, alignItems: "flex-start" }}>
-                            <div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
                               <strong style={{ fontSize: 13 }}>
                                 {new Date(`${e.data}T00:00:00`).toLocaleDateString("pt-BR")}
                               </strong>
