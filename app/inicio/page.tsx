@@ -12,6 +12,7 @@ import { InfoContatoClinica } from "@/components/InfoContatoClinica";
 import { SolicitarSessaoForm } from "@/components/SolicitarSessaoForm";
 import { AcaoConfirmarSessao } from "@/components/AcaoConfirmarSessao";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
+import { Paginacao } from "@/components/Paginacao";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -24,7 +25,7 @@ export const dynamic = "force-dynamic";
 export default async function InicioPage({
   searchParams,
 }: {
-  searchParams: { dia?: string; semana?: string };
+  searchParams: { dia?: string; semana?: string; paginaProximas?: string; paginaAnteriores?: string };
 }) {
   const supabase = createClient();
   const {
@@ -67,15 +68,34 @@ export default async function InicioPage({
     .order("hora", { ascending: true });
   if (!ehAdmin) consultaSemana = consultaSemana.eq("paciente_id", user.id);
 
-  let consultaOutras = supabase
-    .from("sessoes")
-    .select("id, data, hora, status, motivo_recusa, tipo, perfis!paciente_id(nome, email), planos(titulo)")
-    .or(`data.lt.${inicioSemana},data.gt.${fimSemana}`)
-    .order("data", { ascending: false })
-    .limit(8);
-  if (!ehAdmin) consultaOutras = consultaOutras.eq("paciente_id", user.id);
+  const TAMANHO_HISTORICO = 8;
+  const paginaProximas = Math.max(1, parseInt(searchParams.paginaProximas ?? "1", 10) || 1);
+  const paginaAnteriores = Math.max(1, parseInt(searchParams.paginaAnteriores ?? "1", 10) || 1);
 
-  const [{ data: avisos }, { data: sessoesSemana }, { data: outrasSessoes }, { data: destaques }, { data: configClinica }] = await Promise.all([
+  let consultaProximas = supabase
+    .from("sessoes")
+    .select("id, data, hora, status, motivo_recusa, tipo, perfis!paciente_id(nome, email), planos(titulo)", { count: "exact" })
+    .gt("data", fimSemana)
+    .order("data", { ascending: true })
+    .range((paginaProximas - 1) * TAMANHO_HISTORICO, paginaProximas * TAMANHO_HISTORICO - 1);
+  if (!ehAdmin) consultaProximas = consultaProximas.eq("paciente_id", user.id);
+
+  let consultaAnteriores = supabase
+    .from("sessoes")
+    .select("id, data, hora, status, motivo_recusa, tipo, perfis!paciente_id(nome, email), planos(titulo)", { count: "exact" })
+    .lt("data", inicioSemana)
+    .order("data", { ascending: false })
+    .range((paginaAnteriores - 1) * TAMANHO_HISTORICO, paginaAnteriores * TAMANHO_HISTORICO - 1);
+  if (!ehAdmin) consultaAnteriores = consultaAnteriores.eq("paciente_id", user.id);
+
+  const [
+    { data: avisos },
+    { data: sessoesSemana },
+    { data: proximasSessoes, count: totalProximas },
+    { data: anterioresSessoes, count: totalAnteriores },
+    { data: destaques },
+    { data: configClinica },
+  ] = await Promise.all([
     supabase
       .from("avisos")
       .select("*")
@@ -83,7 +103,8 @@ export default async function InicioPage({
       .or(`validade.is.null,validade.gte.${hojeIso}`)
       .order("criado_em", { ascending: false }),
     consultaSemana,
-    consultaOutras,
+    consultaProximas,
+    consultaAnteriores,
     supabase.from("destaques").select("*").eq("ativo", true).order("ordem", { ascending: true }),
     supabase.from("configuracoes_clinica").select("whatsapp_contato").eq("id", "global").maybeSingle(),
   ]);
@@ -104,6 +125,17 @@ export default async function InicioPage({
 
   function hrefSemana(semana: number) {
     return semana ? `/inicio?semana=${semana}` : "/inicio";
+  }
+
+  function hrefHistorico(overrides: { paginaProximas?: number; paginaAnteriores?: number }) {
+    const params = new URLSearchParams();
+    if (searchParams.dia) params.set("dia", searchParams.dia);
+    if (semanaOffset) params.set("semana", String(semanaOffset));
+    const pProximas = overrides.paginaProximas ?? paginaProximas;
+    const pAnteriores = overrides.paginaAnteriores ?? paginaAnteriores;
+    if (pProximas > 1) params.set("paginaProximas", String(pProximas));
+    if (pAnteriores > 1) params.set("paginaAnteriores", String(pAnteriores));
+    return `/inicio?${params.toString()}`;
   }
 
   const hrefsSemana = Object.fromEntries(dias.map((d) => [d.iso, hrefDia(d.iso)]));
@@ -285,10 +317,7 @@ export default async function InicioPage({
         </div>
 
         {/* ---------- Outras sessões (fora da semana atual) ---------- */}
-        {outrasSessoes && outrasSessoes.length > 0 && (() => {
-          const proximas = outrasSessoes.filter((s: any) => s.data > hojeIso).sort((a: any, b: any) => a.data.localeCompare(b.data));
-          const anteriores = outrasSessoes.filter((s: any) => s.data <= hojeIso);
-
+        {(() => {
           function cartaoOutraSessao(s: any) {
             const data = new Date(`${s.data}T00:00:00`);
             return (
@@ -311,16 +340,28 @@ export default async function InicioPage({
 
           return (
             <>
-              {proximas.length > 0 && (
+              {(proximasSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 36 }}>Próximas sessões</h2>
-                  <div style={{ display: "grid", gap: 8 }}>{proximas.map(cartaoOutraSessao)}</div>
+                  <div style={{ display: "grid", gap: 8 }}>{(proximasSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <Paginacao
+                    pagina={paginaProximas}
+                    total={totalProximas ?? 0}
+                    tamanhoPagina={TAMANHO_HISTORICO}
+                    hrefPagina={(p) => hrefHistorico({ paginaProximas: p })}
+                  />
                 </>
               )}
-              {anteriores.length > 0 && (
+              {(anterioresSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 28 }}>Sessões anteriores</h2>
-                  <div style={{ display: "grid", gap: 8 }}>{anteriores.map(cartaoOutraSessao)}</div>
+                  <div style={{ display: "grid", gap: 8 }}>{(anterioresSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <Paginacao
+                    pagina={paginaAnteriores}
+                    total={totalAnteriores ?? 0}
+                    tamanhoPagina={TAMANHO_HISTORICO}
+                    hrefPagina={(p) => hrefHistorico({ paginaAnteriores: p })}
+                  />
                 </>
               )}
             </>
