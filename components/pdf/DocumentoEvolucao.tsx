@@ -12,35 +12,53 @@ const CORES = {
 
 const estilos = StyleSheet.create({
   page: {
-    padding: 40,
+    padding: 0,
     fontFamily: "Helvetica",
     fontSize: 11,
     color: CORES.texto,
     backgroundColor: "#ffffff",
   },
-  cabecalho: {
-    marginBottom: 18,
+  faixaCabecalho: {
+    backgroundColor: CORES.primariaEscura,
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 40,
+    marginBottom: 26,
   },
-  subtitulo: {
-    fontFamily: "Helvetica",
-    fontSize: 10,
-    color: CORES.textoSuave,
-    marginBottom: 2,
+  clinica: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 9.5,
+    color: "rgba(255,255,255,0.72)",
+    letterSpacing: 1.2,
+    marginBottom: 8,
   },
   titulo: {
     fontFamily: "Times-Bold",
-    fontSize: 22,
-    color: CORES.primariaEscura,
-    marginBottom: 2,
+    fontSize: 24,
+    color: "#ffffff",
+    marginBottom: 14,
   },
-  legenda: {
+  linhaPaciente: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  rotuloPaciente: {
     fontFamily: "Helvetica",
-    fontSize: 11,
-    color: CORES.textoSuave,
-    marginBottom: 10,
+    fontSize: 11.5,
+    color: "rgba(255,255,255,0.72)",
+    marginRight: 5,
+  },
+  nomePaciente: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 13,
+    color: "#ffffff",
+  },
+  corpo: {
+    paddingHorizontal: 40,
+    paddingBottom: 50,
   },
   traco: {
-    marginBottom: 6,
+    marginBottom: 18,
   },
   bloco: {
     marginBottom: 14,
@@ -104,31 +122,37 @@ export function DocumentoEvolucao({
   return (
     <Document title={`Evolução — ${nomePaciente}`}>
       <Page size="A4" style={estilos.page}>
-        <View style={estilos.cabecalho}>
-          <Text style={estilos.subtitulo}>Beatriz Coutinho Fisioterapia</Text>
+        <View style={estilos.faixaCabecalho}>
+          <Text style={estilos.clinica}>BEATRIZ COUTINHO FISIOTERAPIA</Text>
           <Text style={estilos.titulo}>Evolução do tratamento</Text>
-          <Text style={estilos.legenda}>{nomePaciente}</Text>
-          <TracoCadencia />
+          <View style={estilos.linhaPaciente}>
+            <Text style={estilos.rotuloPaciente}>Paciente:</Text>
+            <Text style={estilos.nomePaciente}>{nomePaciente}</Text>
+          </View>
         </View>
 
-        <View>
-          {evolucoes.map((e) => {
-            const data = new Date(`${e.data}T00:00:00`);
-            const dataFormatada = data.toLocaleDateString("pt-BR", {
-              day: "2-digit",
-              month: "long",
-              year: "numeric",
-            });
-            return (
-              <View key={e.id} style={estilos.bloco} wrap={false}>
-                <View style={estilos.linhaData}>
-                  <View style={estilos.marcador} />
-                  <Text style={estilos.data}>{dataFormatada}</Text>
+        <View style={estilos.corpo}>
+          <TracoCadencia />
+
+          <View>
+            {evolucoes.map((e) => {
+              const data = new Date(`${e.data}T00:00:00`);
+              const dataFormatada = data.toLocaleDateString("pt-BR", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+              });
+              return (
+                <View key={e.id} style={estilos.bloco} wrap={false}>
+                  <View style={estilos.linhaData}>
+                    <View style={estilos.marcador} />
+                    <Text style={estilos.data}>{dataFormatada}</Text>
+                  </View>
+                  <Text style={estilos.texto}>{e.texto}</Text>
                 </View>
-                <Text style={estilos.texto}>{e.texto}</Text>
-              </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </View>
 
         <Text
