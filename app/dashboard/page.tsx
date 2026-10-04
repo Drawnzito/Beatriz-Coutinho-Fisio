@@ -18,6 +18,8 @@ import { Paginacao } from "@/components/Paginacao";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import { ResumoAvaliacoes } from "@/components/ResumoAvaliacoes";
 import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
+import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
+import { CampoEspecialidade } from "@/components/CampoEspecialidade";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -149,7 +151,7 @@ export default async function DashboardPage({
   let listaSessoes = supabase
     .from("sessoes")
     .select(
-      "id, data, hora, status, motivo_recusa, tipo, observacoes, paciente_id, perfis!paciente_id(nome, email), planos(titulo)"
+      "id, data, hora, status, motivo_recusa, tipo, especialidade, modalidade, observacoes, paciente_id, perfis!paciente_id(nome, email), planos(titulo)"
     )
     .eq("data", diaFiltro)
     .order("hora", { ascending: true });
@@ -192,7 +194,7 @@ export default async function DashboardPage({
     supabase.from("destaques").select("*").order("ordem", { ascending: true }),
     supabase
       .from("sessoes")
-      .select("id, data, hora, tipo, observacoes, perfis!paciente_id(nome, email)")
+      .select("id, data, hora, tipo, especialidade, modalidade, observacoes, perfis!paciente_id(nome, email)")
       .eq("status", "solicitada")
       .order("data", { ascending: true }),
     supabase.from("exercicios").select("categoria"),
@@ -228,7 +230,7 @@ export default async function DashboardPage({
       supabase.from("perfis").select("id, nome, email, idade, whatsapp, arquivado_em").eq("id", verPacienteId).maybeSingle(),
       supabase
         .from("sessoes")
-        .select("id, data, hora, status, motivo_recusa, tipo, observacoes, planos(titulo)", { count: "exact" })
+        .select("id, data, hora, status, motivo_recusa, tipo, especialidade, modalidade, observacoes, planos(titulo)", { count: "exact" })
         .eq("paciente_id", verPacienteId)
         .order("data", { ascending: false })
         .range((paginaSessoesPaciente - 1) * TAMANHO_SESSOES_PACIENTE, paginaSessoesPaciente * TAMANHO_SESSOES_PACIENTE - 1),
@@ -688,6 +690,8 @@ export default async function DashboardPage({
                               </div>
                               <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
                                 {rotuloTipoSessao(s.tipo)}
+                                {rotuloEspecialidade(s.especialidade) ? ` · ${rotuloEspecialidade(s.especialidade)}` : ""}
+                                {s.modalidade ? ` (${rotuloModalidade(s.modalidade)})` : ""}
                                 {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
                               </p>
                               {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
@@ -961,6 +965,8 @@ export default async function DashboardPage({
                               </strong>
                               <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
                                 {s.perfis?.nome || s.perfis?.email} · {rotuloTipoSessao(s.tipo)}
+                                {rotuloEspecialidade(s.especialidade) ? ` · ${rotuloEspecialidade(s.especialidade)}` : ""}
+                                {s.modalidade ? ` (${rotuloModalidade(s.modalidade)})` : ""}
                               </p>
                               {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
 
@@ -1027,6 +1033,8 @@ export default async function DashboardPage({
                         ))}
                       </select>
 
+                      <CampoEspecialidade style={campo} obrigatorio={false} />
+
                       <textarea name="observacoes" placeholder="Observações (opcional)" rows={2} style={campo} />
 
                       <button type="submit" style={botaoPrimario}>Agendar sessão</button>
@@ -1058,6 +1066,8 @@ export default async function DashboardPage({
                             {numerosSessao.has(s.id) ? ` · Sessão nº ${numerosSessao.get(s.id)}` : ""} ·{" "}
                             <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong> ·{" "}
                             <strong style={{ color: "var(--cor-primaria)" }}>{perfilAtual?.nome || "Beatriz Coutinho"}</strong>
+                            {rotuloEspecialidade(s.especialidade) ? ` · ${rotuloEspecialidade(s.especialidade)}` : ""}
+                            {s.modalidade ? ` (${rotuloModalidade(s.modalidade)})` : ""}
                             {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
                           </p>
                           {s.observacoes && (

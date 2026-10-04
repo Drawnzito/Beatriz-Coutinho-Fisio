@@ -346,6 +346,8 @@ export async function criarSessao(formData: FormData) {
   const hora = String(formData.get("hora") || "") || null;
   const plano_id = String(formData.get("plano_id") || "") || null;
   const tipo = String(formData.get("tipo") || "tratamento");
+  const especialidade = String(formData.get("especialidade") || "") || null;
+  const modalidade = especialidade === "pelvica" ? String(formData.get("modalidade") || "presencial") : null;
   const observacoes = String(formData.get("observacoes") || "") || null;
   const filtroPaciente = String(formData.get("_filtro_paciente") || "") || undefined;
   const filtroDia = String(formData.get("_filtro_dia") || "") || undefined;
@@ -361,6 +363,8 @@ export async function criarSessao(formData: FormData) {
     hora,
     plano_id,
     tipo,
+    especialidade,
+    modalidade,
     observacoes,
     criado_por: user.id,
   });

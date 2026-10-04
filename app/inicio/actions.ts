@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { enviarEmail } from "@/lib/email";
 import { rotuloTipoSessao } from "@/lib/tiposSessao";
+import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
 
 export async function responderSessao(formData: FormData) {
   const supabase = createClient();
@@ -39,15 +40,19 @@ export async function solicitarSessao(formData: FormData) {
   const data = String(formData.get("data") || "");
   const hora = String(formData.get("hora") || "") || null;
   const tipo = String(formData.get("tipo") || "tratamento");
+  const especialidade = String(formData.get("especialidade") || "") || null;
+  const modalidade = especialidade === "pelvica" ? String(formData.get("modalidade") || "presencial") : null;
   const observacoes = String(formData.get("observacoes") || "").trim() || null;
 
-  if (!data) return;
+  if (!data || !especialidade) return;
 
   const { error } = await supabase.rpc("solicitar_sessao", {
     data_sessao: data,
     hora_sessao: hora,
     tipo_sessao: tipo,
     observacoes_sessao: observacoes,
+    especialidade_sessao: especialidade,
+    modalidade_sessao: modalidade,
   });
 
   if (!error) {
@@ -66,6 +71,7 @@ export async function solicitarSessao(formData: FormData) {
           <p><strong>${nomePaciente}</strong> solicitou uma sessão.</p>
           <p>Data: ${dataFormatada}${hora ? ` às ${hora}` : ""}</p>
           <p>Tipo: ${rotuloTipoSessao(tipo)}</p>
+          <p>Especialidade: ${rotuloEspecialidade(especialidade) || especialidade}${modalidade ? ` (${rotuloModalidade(modalidade)})` : ""}</p>
           ${observacoes ? `<p>Observações: ${observacoes}</p>` : ""}
           <p>Entre no painel pra aprovar ou recusar.</p>
         `,

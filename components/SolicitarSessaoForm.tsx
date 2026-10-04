@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { solicitarSessao } from "@/app/inicio/actions";
 import { TIPOS_SESSAO } from "@/lib/tiposSessao";
+import { CampoEspecialidade } from "./CampoEspecialidade";
 
 export function SolicitarSessaoForm() {
   const [aberto, setAberto] = useState(false);
@@ -39,6 +40,7 @@ export function SolicitarSessaoForm() {
           </option>
         ))}
       </select>
+      <CampoEspecialidade style={campo} />
       <textarea name="observacoes" placeholder="Observações (opcional)" rows={2} style={campo} />
       <p style={{ margin: 0, fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
         A Beatriz precisa aprovar antes de ficar confirmada.
