@@ -20,6 +20,9 @@ import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
+import { AvaliarAtendimento } from "@/components/AvaliarAtendimento";
+import { GuiaPrimeirosPassos } from "@/components/GuiaPrimeirosPassos";
+import { marcarGuiaVisto } from "@/app/perfil/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +42,7 @@ export default async function InicioPage({
 
   const { data: perfil } = await supabase
     .from("perfis")
-    .select("nome, papel")
+    .select("nome, papel, guia_visto_em")
     .eq("id", user.id)
     .single();
 
@@ -97,6 +100,7 @@ export default async function InicioPage({
     { data: destaques },
     { data: configClinica },
     { data: fisio },
+    { data: avaliacoesFeitas },
   ] = await Promise.all([
     supabase
       .from("avisos")
@@ -110,6 +114,9 @@ export default async function InicioPage({
     supabase.from("destaques").select("*").eq("ativo", true).order("ordem", { ascending: true }),
     supabase.from("configuracoes_clinica").select("whatsapp_contato").eq("id", "global").maybeSingle(),
     ehAdmin ? Promise.resolve({ data: null }) : supabase.from("perfis").select("nome").eq("papel", "admin").limit(1).maybeSingle(),
+    ehAdmin
+      ? Promise.resolve({ data: [] })
+      : supabase.from("avaliacoes_atendimento").select("sessao_id").eq("paciente_id", user.id),
   ]);
 
   const nomeProfissional = ehAdmin ? perfil?.nome : (fisio as any)?.nome;
@@ -120,6 +127,7 @@ export default async function InicioPage({
     ...((anterioresSessoes ?? []) as any[]).map((s) => s.id),
   ];
   const numerosSessao = await buscarNumerosSessao(supabase, idsSessoesDoDia);
+  const sessoesJaAvaliadas = new Set((avaliacoesFeitas ?? []).map((a: any) => a.sessao_id));
 
   const contagens: Record<string, number> = {};
   const porDia: Record<string, any[]> = {};
@@ -166,6 +174,8 @@ export default async function InicioPage({
       />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
+        {!ehAdmin && !perfil?.guia_visto_em && <GuiaPrimeirosPassos onFechar={marcarGuiaVisto} />}
+
         {/* ---------- Destaques ---------- */}
         {destaques && destaques.length > 0 && (
           <>
@@ -355,6 +365,9 @@ export default async function InicioPage({
                   {ehAdmin && (s.perfis?.nome || s.perfis?.email) ? ` · ${s.perfis.nome || s.perfis.email}` : ""}
                   {s.planos?.titulo ? ` · ${s.planos.titulo}` : ""}
                 </p>
+                {!ehAdmin && s.status === "confirmada" && s.data <= hojeIso && !sessoesJaAvaliadas.has(s.id) && (
+                  <AvaliarAtendimento sessaoId={s.id} />
+                )}
               </div>
             );
           }

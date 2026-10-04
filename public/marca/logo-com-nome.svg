@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 230" width="920" height="230">
+  <g>
+    <path d="M 46 205 C 30 150, 60 60, 150 40 C 205 28, 245 45, 272 18"
+      fill="none" stroke="#a2465a" stroke-width="5" stroke-linecap="round" />
+    <circle cx="150" cy="40" r="9" fill="#a2465a" />
+    <text x="18" y="188" font-family="'Playfair Display', Georgia, serif" font-weight="700" font-size="160" fill="#163f3c">B</text>
+    <text x="128" y="188" font-family="'Playfair Display', Georgia, serif" font-weight="700" font-size="160" fill="#1f5c57">C</text>
+  </g>
+  <g>
+    <text x="320" y="116" font-family="'Playfair Display', Georgia, serif" font-weight="700" font-size="48" fill="#163f3c">Beatriz Coutinho</text>
+    <text x="320" y="164" font-family="Montserrat, Arial, sans-serif" font-weight="600" font-size="30" letter-spacing="2" fill="#a2465a">FISIOTERAPIA</text>
+  </g>
+</svg>

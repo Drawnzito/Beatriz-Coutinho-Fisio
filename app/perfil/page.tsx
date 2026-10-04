@@ -6,6 +6,8 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SairBotao } from "./SairBotao";
 import { InfoContatoClinica } from "@/components/InfoContatoClinica";
+import { AvaliarApp } from "@/components/AvaliarApp";
+import { VerGuiaBotao } from "@/components/VerGuiaBotao";
 import {
   ativarVisaoPaciente,
   desativarVisaoPaciente,
@@ -134,6 +136,13 @@ export default async function PerfilPage() {
             </p>
           </form>
         </div>
+
+        {(papel !== "admin" || vendoComoPaciente) && (
+          <div style={{ marginTop: 24, display: "grid", gap: 10, justifyItems: "center" }}>
+            <AvaliarApp />
+            <VerGuiaBotao />
+          </div>
+        )}
 
         <div style={{ marginTop: 32, display: "grid", gap: 12, justifyItems: "center" }}>
           <AtivarNotificacoes chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />

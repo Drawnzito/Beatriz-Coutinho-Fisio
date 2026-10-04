@@ -16,6 +16,8 @@ import { BotaoPerigo } from "@/components/BotaoPerigo";
 import { BotoesPdfEvolucao } from "@/components/BotoesPdfEvolucao";
 import { Paginacao } from "@/components/Paginacao";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
+import { ResumoAvaliacoes } from "@/components/ResumoAvaliacoes";
+import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -173,6 +175,8 @@ export default async function DashboardPage({
     { data: solicitacoes },
     { data: categoriasTodas },
     { data: exerciciosTodos },
+    { data: avaliacoesAtendimento },
+    { data: avaliacoesApp },
   ] = await Promise.all([
     consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -193,6 +197,16 @@ export default async function DashboardPage({
       .order("data", { ascending: true }),
     supabase.from("exercicios").select("categoria"),
     supabase.from("exercicios").select("id, titulo").order("titulo", { ascending: true }),
+    supabase
+      .from("avaliacoes_atendimento")
+      .select("nota_1, nota_2, nota_3, comentario, criado_em, perfis!paciente_id(nome, email)")
+      .order("criado_em", { ascending: false })
+      .limit(50),
+    supabase
+      .from("avaliacoes_app")
+      .select("nota_1, nota_2, nota_3, comentario, criado_em, perfis!paciente_id(nome, email)")
+      .order("criado_em", { ascending: false })
+      .limit(50),
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
@@ -1201,6 +1215,16 @@ export default async function DashboardPage({
                       </p>
                     )}
                   </div>
+                </div>
+              ),
+            },
+            {
+              id: "avaliacoes",
+              rotulo: "Avaliações",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0", display: "grid", gap: 32 }}>
+                  <ResumoAvaliacoes titulo="Atendimento" perguntas={PERGUNTAS_ATENDIMENTO} itens={(avaliacoesAtendimento ?? []) as any} />
+                  <ResumoAvaliacoes titulo="Aplicativo" perguntas={PERGUNTAS_APP} itens={(avaliacoesApp ?? []) as any} />
                 </div>
               ),
             },

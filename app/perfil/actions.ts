@@ -77,3 +77,39 @@ export async function atualizarWhatsappContato(formData: FormData) {
   revalidatePath("/inicio");
   redirect("/perfil");
 }
+
+export async function enviarAvaliacaoApp(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const nota1 = Number(formData.get("nota_1"));
+  const nota2 = Number(formData.get("nota_2"));
+  const nota3 = Number(formData.get("nota_3"));
+  const comentario = String(formData.get("comentario") || "").trim() || null;
+
+  if (!nota1 || !nota2 || !nota3) return;
+
+  await supabase.from("avaliacoes_app").insert({
+    paciente_id: user.id,
+    nota_1: nota1,
+    nota_2: nota2,
+    nota_3: nota3,
+    comentario,
+  });
+
+  revalidatePath("/perfil");
+}
+
+export async function marcarGuiaVisto() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("perfis").update({ guia_visto_em: new Date().toISOString() }).eq("id", user.id);
+  revalidatePath("/inicio");
+}

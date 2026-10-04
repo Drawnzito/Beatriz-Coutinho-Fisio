@@ -77,3 +77,30 @@ export async function solicitarSessao(formData: FormData) {
   revalidatePath("/dashboard");
   redirect("/inicio");
 }
+
+export async function enviarAvaliacaoAtendimento(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const sessaoId = String(formData.get("sessao_id") || "") || null;
+  const nota1 = Number(formData.get("nota_1"));
+  const nota2 = Number(formData.get("nota_2"));
+  const nota3 = Number(formData.get("nota_3"));
+  const comentario = String(formData.get("comentario") || "").trim() || null;
+
+  if (!nota1 || !nota2 || !nota3) return;
+
+  await supabase.from("avaliacoes_atendimento").insert({
+    paciente_id: user.id,
+    sessao_id: sessaoId,
+    nota_1: nota1,
+    nota_2: nota2,
+    nota_3: nota3,
+    comentario,
+  });
+
+  revalidatePath("/inicio");
+}
