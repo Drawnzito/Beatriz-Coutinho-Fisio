@@ -32,43 +32,61 @@ export function GuiaPrimeirosPassos({ onFechar }: { onFechar?: () => void | Prom
   const [passo, setPasso] = useState(0);
   const [retangulo, setRetangulo] = useState<Retangulo | null>(null);
 
+  async function fechar() {
+    setVisivel(false);
+    await onFechar?.();
+  }
+
   useEffect(() => {
     if (!visivel) return;
 
-    function medir() {
-      const alvo = PASSOS[passo].alvo;
-      const elemento = document.querySelector(`[data-tour="${alvo}"]`);
-      if (!elemento) {
-        setRetangulo(null);
-        return;
+    const elemento = document.querySelector(`[data-tour="${PASSOS[passo].alvo}"]`);
+
+    // Essa etapa não existe na tela atual (ex: "agenda"/"solicitar" quando o
+    // guia é reaberto a partir do Perfil) — pula direto pra próxima em vez de
+    // mostrar uma etapa sem nada pra destacar.
+    if (!elemento) {
+      if (passo + 1 >= PASSOS.length) {
+        fechar();
+      } else {
+        setPasso(passo + 1);
       }
-      const rect = elemento.getBoundingClientRect();
-      elemento.scrollIntoView({ block: "center", behavior: "smooth" });
-      setRetangulo({
-        top: rect.top - 6,
-        left: rect.left - 6,
-        width: rect.width + 12,
-        height: rect.height + 12,
-      });
+      return;
     }
 
-    const tempo = setTimeout(medir, 220);
-    window.addEventListener("resize", medir);
+    elemento.scrollIntoView({ block: "center", behavior: "smooth" });
+
+    let ativo = true;
+    let quadro: number;
+
+    function medir() {
+      if (!ativo) return;
+      const el = document.querySelector(`[data-tour="${PASSOS[passo].alvo}"]`);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        setRetangulo({
+          top: rect.top - 6,
+          left: rect.left - 6,
+          width: rect.width + 12,
+          height: rect.height + 12,
+        });
+      }
+      quadro = requestAnimationFrame(medir);
+    }
+
+    quadro = requestAnimationFrame(medir);
+
     return () => {
-      clearTimeout(tempo);
-      window.removeEventListener("resize", medir);
+      ativo = false;
+      cancelAnimationFrame(quadro);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passo, visivel]);
 
   if (!visivel) return null;
 
   const ultimo = passo === PASSOS.length - 1;
   const atual = PASSOS[passo];
-
-  async function fechar() {
-    setVisivel(false);
-    await onFechar?.();
-  }
 
   const tooltipEmbaixo = retangulo ? retangulo.top < window.innerHeight / 2 : true;
 
@@ -85,7 +103,6 @@ export function GuiaPrimeirosPassos({ onFechar }: { onFechar?: () => void | Prom
             borderRadius: 14,
             boxShadow: "0 0 0 9999px rgba(12, 28, 26, 0.72)",
             border: "2px solid #fff",
-            transition: "all 0.3s ease",
             pointerEvents: "none",
           }}
         />
