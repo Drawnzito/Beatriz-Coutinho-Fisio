@@ -103,6 +103,27 @@ export async function enviarAvaliacaoApp(formData: FormData) {
   revalidatePath("/perfil");
 }
 
+export async function criarIndicacao(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const nome = String(formData.get("nome_indicada") || "").trim();
+  const contato = String(formData.get("contato_indicada") || "").trim();
+
+  if (!nome || !contato) return;
+
+  await supabase.from("indicacoes").insert({
+    paciente_id: user.id,
+    nome_indicada: nome,
+    contato_indicada: contato,
+  });
+
+  revalidatePath("/perfil");
+}
+
 export async function marcarGuiaVisto() {
   const supabase = createClient();
   const {

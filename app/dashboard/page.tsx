@@ -39,6 +39,7 @@ import {
   removerSessao,
   criarBloqueioAgenda,
   removerBloqueioAgenda,
+  marcarIndicacaoUsada,
   aprovarSolicitacaoSessao,
   recusarSolicitacaoSessao,
   criarConvitePaciente,
@@ -182,6 +183,7 @@ export default async function DashboardPage({
     { data: avaliacoesAtendimento },
     { data: avaliacoesApp },
     { data: bloqueios },
+    { data: indicacoes },
   ] = await Promise.all([
     consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -218,6 +220,10 @@ export default async function DashboardPage({
       .gte("data", hojeIso)
       .order("data", { ascending: true })
       .order("hora_inicio", { ascending: true }),
+    supabase
+      .from("indicacoes")
+      .select("id, nome_indicada, contato_indicada, status, criado_em, usada_em, perfis!paciente_id(nome, email)")
+      .order("criado_em", { ascending: false }),
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
@@ -1289,6 +1295,44 @@ export default async function DashboardPage({
                 <div style={{ padding: "24px 20px 0", display: "grid", gap: 32 }}>
                   <ResumoAvaliacoes titulo="Atendimento" perguntas={PERGUNTAS_ATENDIMENTO} itens={(avaliacoesAtendimento ?? []) as any} />
                   <ResumoAvaliacoes titulo="Aplicativo" perguntas={PERGUNTAS_APP} itens={(avaliacoesApp ?? []) as any} />
+                </div>
+              ),
+            },
+            {
+              id: "indicacoes",
+              rotulo: "Indicações",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 14px" }}>
+                    Indicações pro programa de fisioterapia pélvica domiciliar (50% na primeira sessão da indicada).
+                    Marque como "usada" quando aplicar o desconto.
+                  </p>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(indicacoes ?? []).map((i: any) => (
+                      <div key={i.id} style={{ ...cartao, alignItems: "flex-start" }}>
+                        <div>
+                          <strong>{i.nome_indicada}</strong>
+                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                            {i.contato_indicada}
+                          </p>
+                          <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                            indicada por {i.perfis?.nome || i.perfis?.email} · {new Date(i.criado_em).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                        {i.status === "usada" ? (
+                          <span style={{ color: "#2f7a4f", fontWeight: 700, fontSize: 12.5 }}>usada</span>
+                        ) : (
+                          <form action={marcarIndicacaoUsada.bind(null, i.id)}>
+                            <button type="submit" style={botaoTexto}>marcar como usada</button>
+                          </form>
+                        )}
+                      </div>
+                    ))}
+                    {(!indicacoes || indicacoes.length === 0) && (
+                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>Nenhuma indicação ainda.</p>
+                    )}
+                  </div>
                 </div>
               ),
             },

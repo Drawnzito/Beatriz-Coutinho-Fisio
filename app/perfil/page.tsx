@@ -8,6 +8,7 @@ import { SairBotao } from "./SairBotao";
 import { InfoContatoClinica } from "@/components/InfoContatoClinica";
 import { AvaliarApp } from "@/components/AvaliarApp";
 import { VerGuiaBotao } from "@/components/VerGuiaBotao";
+import { IndicarAmiga } from "@/components/IndicarAmiga";
 import {
   ativarVisaoPaciente,
   desativarVisaoPaciente,
@@ -116,6 +117,12 @@ export default async function PerfilPage() {
             mostrarBotaoWhatsapp={papel !== "admin" || vendoComoPaciente}
           />
         </div>
+
+        {(papel !== "admin" || vendoComoPaciente) && (
+          <div style={{ marginTop: 20 }}>
+            <IndicarAmiga />
+          </div>
+        )}
 
         <div style={{ marginTop: 20, textAlign: "left" }}>
           <form action={atualizarMeuWhatsapp} style={{ display: "grid", gap: 6 }}>

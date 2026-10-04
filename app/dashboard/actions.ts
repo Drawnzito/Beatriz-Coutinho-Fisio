@@ -453,6 +453,23 @@ export async function removerBloqueioAgenda(id: string) {
   irComSucesso("Bloqueio removido", "agenda");
 }
 
+export async function marcarIndicacaoUsada(id: string) {
+  const { supabase } = await exigirAdmin();
+
+  const { error } = await supabase
+    .from("indicacoes")
+    .update({ status: "usada", usada_em: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    irComErro(error.message, "indicacoes");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  irComSucesso("Indicação marcada como usada", "indicacoes");
+}
+
 export async function aprovarSolicitacaoSessao(id: string, formData: FormData) {
   const { supabase } = await exigirAdmin();
 
