@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { envolverEmailComMarca } from "@/lib/emailTemplate";
 
 const LIMITE_MENSAL = 2900;
 const REMETENTE = process.env.RESEND_FROM || "Beatriz Coutinho Fisioterapia <onboarding@resend.dev>";
@@ -44,7 +45,7 @@ export async function enviarEmail({
         from: REMETENTE,
         to: destinatario,
         subject: assunto,
-        html,
+        html: envolverEmailComMarca(html),
       }),
     });
 
