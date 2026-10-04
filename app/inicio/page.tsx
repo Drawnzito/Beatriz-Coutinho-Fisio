@@ -8,6 +8,7 @@ import { DiaEmDestaque } from "@/components/DiaEmDestaque";
 import { EstadoVazioAgenda } from "@/components/EstadoVazioAgenda";
 import { DestaquesCarrossel } from "@/components/DestaquesCarrossel";
 import { AvisoModoTeste } from "@/components/AvisoModoTeste";
+import { InfoContatoClinica } from "@/components/InfoContatoClinica";
 import { AcaoConfirmarSessao } from "@/components/AcaoConfirmarSessao";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import Link from "next/link";
@@ -73,7 +74,7 @@ export default async function InicioPage({
     .limit(8);
   if (!ehAdmin) consultaOutras = consultaOutras.eq("paciente_id", user.id);
 
-  const [{ data: avisos }, { data: sessoesSemana }, { data: outrasSessoes }, { data: destaques }] = await Promise.all([
+  const [{ data: avisos }, { data: sessoesSemana }, { data: outrasSessoes }, { data: destaques }, { data: configClinica }] = await Promise.all([
     supabase
       .from("avisos")
       .select("*")
@@ -83,6 +84,7 @@ export default async function InicioPage({
     consultaSemana,
     consultaOutras,
     supabase.from("destaques").select("*").eq("ativo", true).order("ordem", { ascending: true }),
+    supabase.from("configuracoes_clinica").select("whatsapp_contato").eq("id", "global").maybeSingle(),
   ]);
 
   const contagens: Record<string, number> = {};
@@ -119,6 +121,11 @@ export default async function InicioPage({
       />
 
       <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
+        {/* ---------- Local de atendimento ---------- */}
+        <div style={{ marginBottom: 28 }}>
+          <InfoContatoClinica whatsapp={configClinica?.whatsapp_contato} mostrarBotaoWhatsapp={!ehAdmin} />
+        </div>
+
         {/* ---------- Destaques ---------- */}
         {destaques && destaques.length > 0 && (
           <>
