@@ -51,7 +51,7 @@ export async function atualizarMeuWhatsapp(formData: FormData) {
   if (!user) return;
 
   const whatsapp = String(formData.get("whatsapp") || "").trim();
-  await supabase.from("perfis").update({ whatsapp: whatsapp || null }).eq("id", user.id);
+  await supabase.rpc("atualizar_meu_whatsapp", { novo_whatsapp: whatsapp || null });
 
   revalidatePath("/perfil");
   redirect("/perfil");
@@ -110,6 +110,6 @@ export async function marcarGuiaVisto() {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase.from("perfis").update({ guia_visto_em: new Date().toISOString() }).eq("id", user.id);
+  await supabase.rpc("marcar_guia_visto");
   revalidatePath("/inicio");
 }

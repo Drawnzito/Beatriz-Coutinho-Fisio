@@ -76,6 +76,7 @@ export function BottomNav({ papel }: { papel: "admin" | "paciente" }) {
           <Link
             key={item.href}
             href={item.href}
+            data-tour={item.href === "/exercicios" ? "nav-exercicios" : item.href === "/perfil" ? "nav-perfil" : undefined}
             style={{
               display: "flex",
               alignItems: "center",

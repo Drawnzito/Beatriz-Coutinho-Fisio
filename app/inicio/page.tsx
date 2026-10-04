@@ -19,6 +19,7 @@ import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
+import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import { AvaliarAtendimento } from "@/components/AvaliarAtendimento";
 import { GuiaPrimeirosPassos } from "@/components/GuiaPrimeirosPassos";
@@ -64,7 +65,7 @@ export default async function InicioPage({
   let consultaSemana = supabase
     .from("sessoes")
     .select(
-      "id, data, hora, status, motivo_recusa, tipo, observacoes, perfis!paciente_id(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
+      "id, data, hora, status, motivo_recusa, tipo, especialidade, modalidade, observacoes, perfis!paciente_id(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
     )
     .gte("data", inicioSemana)
     .lte("data", fimSemana)
@@ -78,7 +79,7 @@ export default async function InicioPage({
 
   let consultaProximas = supabase
     .from("sessoes")
-    .select("id, data, hora, status, motivo_recusa, tipo, perfis!paciente_id(nome, email), planos(titulo)", { count: "exact" })
+    .select("id, data, hora, status, motivo_recusa, tipo, especialidade, modalidade, perfis!paciente_id(nome, email), planos(titulo)", { count: "exact" })
     .gt("data", fimSemana)
     .order("data", { ascending: true })
     .range((paginaProximas - 1) * TAMANHO_HISTORICO, paginaProximas * TAMANHO_HISTORICO - 1);
@@ -86,7 +87,7 @@ export default async function InicioPage({
 
   let consultaAnteriores = supabase
     .from("sessoes")
-    .select("id, data, hora, status, motivo_recusa, tipo, perfis!paciente_id(nome, email), planos(titulo)", { count: "exact" })
+    .select("id, data, hora, status, motivo_recusa, tipo, especialidade, modalidade, perfis!paciente_id(nome, email), planos(titulo)", { count: "exact" })
     .lt("data", inicioSemana)
     .order("data", { ascending: false })
     .range((paginaAnteriores - 1) * TAMANHO_HISTORICO, paginaAnteriores * TAMANHO_HISTORICO - 1);
@@ -205,6 +206,7 @@ export default async function InicioPage({
         </div>
 
         {/* ---------- Sua semana ---------- */}
+        <div data-tour="agenda">
         <h2 style={{ ...tituloSecao, marginTop: 36 }}>{ehAdmin ? "Pacientes desta semana" : "Sua semana"}</h2>
 
         <p style={{ margin: "0 0 14px", fontSize: 13.5, color: "var(--cor-texto-suave)" }}>
@@ -216,7 +218,7 @@ export default async function InicioPage({
         </p>
 
         {!ehAdmin && (
-          <div style={{ marginBottom: 18 }}>
+          <div data-tour="solicitar" style={{ marginBottom: 18 }}>
             <SolicitarSessaoForm />
           </div>
         )}
@@ -333,6 +335,7 @@ export default async function InicioPage({
               </div>
             ))}
           </div>
+        </div>
         </div>
 
         {/* ---------- Local de atendimento ---------- */}
