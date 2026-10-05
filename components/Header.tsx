@@ -37,7 +37,11 @@ export function Header({
         />
       )}
 
+      {/* A faixa colorida vai de ponta a ponta, mas o conteúdo acompanha a
+          largura da coluna do resto da página — senão o nome fica solto no
+          canto esquerdo de uma tela larga. */}
       <div
+        className="faixa-interna"
         style={{
           position: "relative",
           display: "flex",
@@ -102,12 +106,14 @@ export function Header({
           )}
         </div>
       </div>
-      <AcentoCadencia
-        largura={220}
-        cor={destaque ? "#ffffff" : "var(--cor-acento)"}
-        opacidade={destaque ? 0.4 : 0.55}
-        style={{ position: "relative", display: "block", margin: "0 24px 16px" }}
-      />
+      <div className="faixa-interna">
+        <AcentoCadencia
+          largura={220}
+          cor={destaque ? "#ffffff" : "var(--cor-acento)"}
+          opacidade={destaque ? 0.4 : 0.55}
+          style={{ position: "relative", display: "block", margin: "0 24px 16px" }}
+        />
+      </div>
     </header>
   );
 }

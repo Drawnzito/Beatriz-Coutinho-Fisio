@@ -385,7 +385,8 @@ export default async function DashboardPage({
         variante="boasVindas"
       />
 
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 0 100px" }}>
+      {/* Sem padding lateral: as abas precisam encostar nas bordas. */}
+      <main className="conteudo" style={{ padding: "24px 0 100px" }}>
         <Abas
           inicial={searchParams.aba}
           abas={[

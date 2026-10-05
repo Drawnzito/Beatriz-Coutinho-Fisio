@@ -10,6 +10,16 @@ import { AvaliarApp } from "@/components/AvaliarApp";
 import { VerGuiaBotao } from "@/components/VerGuiaBotao";
 import { IndicarAmiga } from "@/components/IndicarAmiga";
 import {
+  SecaoPerfil,
+  CartaoPerfil,
+  IconeTelefone,
+  IconeSino,
+  IconeEstrela,
+  IconeBussola,
+  IconeOlho,
+  IconeMala,
+} from "@/components/perfil/SecaoPerfil";
+import {
   ativarVisaoPaciente,
   desativarVisaoPaciente,
   atualizarWhatsappContato,
@@ -43,136 +53,190 @@ export default async function PerfilPage() {
   const papel = perfil?.papel === "admin" ? "admin" : "paciente";
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
   const vendoComoPaciente = cookies().get("ver_como_paciente")?.value === "1";
+  const comoPaciente = papel !== "admin" || vendoComoPaciente;
 
   return (
     <>
-      <main
-        style={{
-          maxWidth: 480,
-          margin: "0 auto",
-          padding: "40px 20px 100px",
-          textAlign: "center",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
+      <main className="conteudo" style={{ position: "relative", overflow: "hidden" }}>
         <AcentoArabesque
           tamanho={260}
           opacidade={0.16}
           style={{ position: "absolute", top: 4, right: -6, zIndex: -1, pointerEvents: "none" }}
         />
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt=""
-            width={96}
-            height={96}
-            style={{ borderRadius: "50%", objectFit: "cover", margin: "0 auto 16px" }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: "50%",
-              background: "var(--cor-acento-suave)",
-              margin: "0 auto 16px",
-            }}
-          />
-        )}
 
-        <h1
+        {/* ---------- Identificação ---------- */}
+        <div
           style={{
-            fontFamily: "var(--fonte-titulo)",
-            fontSize: 22,
-            color: "var(--cor-primaria)",
-            margin: "0 0 4px",
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            padding: "20px 22px",
+            borderRadius: 16,
+            border: "1px solid var(--cor-borda)",
+            background: "var(--cor-superficie)",
+            flexWrap: "wrap",
           }}
         >
-          {perfil?.nome || "Sem nome"}
-        </h1>
-        <p style={{ margin: "0 0 4px", fontSize: 14, color: "var(--cor-texto-suave)" }}>
-          {perfil?.email}
-        </p>
-        <p
-          style={{
-            display: "inline-block",
-            marginTop: 8,
-            padding: "4px 12px",
-            borderRadius: 999,
-            background: papel === "admin" ? "var(--cor-primaria)" : "var(--cor-acento-suave)",
-            color: papel === "admin" ? "#fff" : "var(--cor-acento)",
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: 1,
-          }}
-        >
-          {papel === "admin" ? "FISIOTERAPEUTA" : "PACIENTE"}
-        </p>
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt=""
+              width={72}
+              height={72}
+              style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: "50%",
+                background: "var(--cor-acento-suave)",
+                flexShrink: 0,
+              }}
+            />
+          )}
 
-        <div style={{ marginTop: 32, textAlign: "left" }}>
-          <InfoContatoClinica
-            whatsapp={configClinica?.whatsapp_contato}
-            mostrarBotaoWhatsapp={papel !== "admin" || vendoComoPaciente}
-          />
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <h1
+              style={{
+                fontFamily: "var(--fonte-titulo)",
+                fontSize: 22,
+                color: "var(--cor-primaria)",
+                margin: "0 0 3px",
+              }}
+            >
+              {perfil?.nome || "Sem nome"}
+            </h1>
+            <p style={{ margin: "0 0 8px", fontSize: 13.5, color: "var(--cor-texto-suave)" }}>
+              {perfil?.email}
+            </p>
+            <span
+              style={{
+                display: "inline-block",
+                padding: "4px 12px",
+                borderRadius: 999,
+                background: papel === "admin" ? "var(--cor-primaria)" : "var(--cor-acento-suave)",
+                color: papel === "admin" ? "#fff" : "var(--cor-acento)",
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: 1,
+              }}
+            >
+              {papel === "admin" ? "FISIOTERAPEUTA" : "PACIENTE"}
+            </span>
+          </div>
         </div>
 
-        {(papel !== "admin" || vendoComoPaciente) && (
+        {/* ---------- Indique uma amiga ---------- */}
+        {comoPaciente && (
           <div style={{ marginTop: 20 }}>
             <IndicarAmiga />
           </div>
         )}
 
-        <div style={{ marginTop: 20, textAlign: "left" }}>
-          <CampoWhatsApp valorInicial={perfil?.whatsapp} />
-        </div>
+        {/* ---------- Seus dados ---------- */}
+        <SecaoPerfil titulo="Seus dados">
+          <CartaoPerfil
+            icone={<IconeTelefone />}
+            titulo="Seu WhatsApp"
+            descricao="Pra Beatriz falar com você sobre as sessões"
+          >
+            <CampoWhatsApp valorInicial={perfil?.whatsapp} />
+          </CartaoPerfil>
 
-        {(papel !== "admin" || vendoComoPaciente) && (
-          <div style={{ marginTop: 24, display: "grid", gap: 10, justifyItems: "center" }}>
-            <AvaliarApp />
-            <VerGuiaBotao />
-          </div>
+          <CartaoPerfil
+            icone={<IconeSino />}
+            titulo="Lembretes"
+            descricao="Um aviso de manhã, nos dias em que você tem sessão"
+          >
+            <AtivarNotificacoes chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
+          </CartaoPerfil>
+        </SecaoPerfil>
+
+        {/* ---------- Aplicativo ---------- */}
+        {comoPaciente && (
+          <SecaoPerfil titulo="Aplicativo">
+            <CartaoPerfil
+              icone={<IconeEstrela />}
+              titulo="Avaliar o app"
+              descricao="Conta o que dá pra melhorar aqui"
+            >
+              <AvaliarApp />
+            </CartaoPerfil>
+
+            <CartaoPerfil
+              icone={<IconeBussola />}
+              titulo="Primeiros passos"
+              descricao="Rever o guia rápido de como usar"
+            >
+              <VerGuiaBotao />
+            </CartaoPerfil>
+          </SecaoPerfil>
         )}
 
-        <div style={{ marginTop: 32, display: "grid", gap: 12, justifyItems: "center" }}>
-          <AtivarNotificacoes chavePublica={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY} />
-          <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "var(--cor-texto-suave)", maxWidth: 300 }}>
-            Manda um lembrete uma vez por dia, de manhã, se você tiver sessão marcada pra hoje.
-          </p>
-
-          {papel === "admin" && (
-            <>
+        {/* ---------- Área da fisioterapeuta ---------- */}
+        {papel === "admin" && (
+          <SecaoPerfil
+            titulo="Área da fisioterapeuta"
+            descricao="Só você enxerga esta parte."
+          >
+            <CartaoPerfil
+              icone={<IconeOlho />}
+              titulo={vendoComoPaciente ? "Modo de teste ligado" : "Ver como paciente"}
+              descricao={
+                vendoComoPaciente
+                  ? "Início e Exercícios estão mostrando a visão de uma paciente."
+                  : "Liga um modo de teste pra conferir a visão da paciente."
+              }
+              destaque={vendoComoPaciente}
+            >
               <form action={vendoComoPaciente ? desativarVisaoPaciente : ativarVisaoPaciente}>
-                <button type="submit" style={botaoTeste}>
-                  {vendoComoPaciente ? "Voltar pra visão de fisioterapeuta" : "Ver como paciente (teste)"}
+                <button type="submit" style={botaoSecundario}>
+                  {vendoComoPaciente ? "Voltar pra visão de fisioterapeuta" : "Ativar modo de teste"}
                 </button>
               </form>
-              <p style={{ margin: "0 0 8px", fontSize: 11.5, color: "var(--cor-texto-suave)", maxWidth: 300 }}>
-                {vendoComoPaciente
-                  ? "Você está vendo o app como se fosse um paciente — Início e Exercícios mostram os seus próprios (se você tiver algum plano atribuído em Montar plano)."
-                  : "Liga um modo de teste pra você ver Início e Exercícios como um paciente veria."}
-              </p>
+            </CartaoPerfil>
 
-              {!vendoComoPaciente && (
-              <form action={atualizarWhatsappContato} style={{ display: "grid", gap: 6, width: "100%", maxWidth: 300, textAlign: "left" }}>
-                <label style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", fontWeight: 600 }}>
-                  WhatsApp Business (botão que os pacientes veem)
-                </label>
-                <div style={{ display: "flex", gap: 8 }}>
+            {!vendoComoPaciente && (
+              <CartaoPerfil
+                icone={<IconeMala />}
+                titulo="WhatsApp Business"
+                descricao="É o número do botão que as pacientes veem. Em branco, o botão fica escondido."
+              >
+                <form action={atualizarWhatsappContato} style={{ display: "flex", gap: 8 }}>
                   <input
                     name="whatsapp_contato"
                     placeholder="(81) 9xxxx-xxxx"
                     defaultValue={configClinica?.whatsapp_contato || ""}
-                    style={{ ...campoWhatsapp, flex: 1 }}
+                    style={campoTexto}
                   />
-                  <button type="submit" style={botaoTeste}>Salvar</button>
-                </div>
-              </form>
-              )}
-            </>
-          )}
+                  <button type="submit" style={botaoSecundario}>Salvar</button>
+                </form>
+              </CartaoPerfil>
+            )}
+          </SecaoPerfil>
+        )}
 
+        {/* ---------- Atendimento (no fim, logo acima de sair) ---------- */}
+        <SecaoPerfil titulo="Onde a Beatriz atende" colunas={1}>
+          <InfoContatoClinica
+            whatsapp={configClinica?.whatsapp_contato}
+            mostrarBotaoWhatsapp={comoPaciente}
+          />
+        </SecaoPerfil>
+
+        {/* ---------- Sair ---------- */}
+        <div
+          style={{
+            marginTop: 26,
+            paddingTop: 20,
+            borderTop: "1px solid var(--cor-borda)",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
           <SairBotao />
         </div>
       </main>
@@ -182,22 +246,25 @@ export default async function PerfilPage() {
   );
 }
 
-const campoWhatsapp: React.CSSProperties = {
+const campoTexto: React.CSSProperties = {
   flex: 1,
+  minWidth: 0,
   padding: "9px 12px",
   borderRadius: 8,
   border: "1px solid var(--cor-borda)",
   background: "var(--cor-superficie)",
   fontSize: 13.5,
+  fontFamily: "var(--fonte-corpo)",
 };
 
-const botaoTeste: React.CSSProperties = {
-  padding: "10px 18px",
+const botaoSecundario: React.CSSProperties = {
+  padding: "9px 16px",
   borderRadius: 999,
   border: "1px solid var(--cor-borda)",
-  background: "var(--cor-superficie)",
+  background: "var(--cor-fundo)",
   color: "var(--cor-primaria-escura)",
   fontWeight: 600,
-  fontSize: 13.5,
+  fontSize: 13,
   cursor: "pointer",
+  whiteSpace: "nowrap",
 };

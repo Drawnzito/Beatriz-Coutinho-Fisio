@@ -11,6 +11,10 @@
 
   --fonte-titulo: var(--fonte-titulo-base), "Georgia", serif;
   --fonte-corpo: var(--fonte-corpo-base), "Segoe UI", Arial, sans-serif;
+
+  /* Largura da coluna de conteúdo. Cresce no desktop (ver media query). */
+  --largura-conteudo: 640px;
+  --altura-nav: 0px;
 }
 
 * {
@@ -26,10 +30,148 @@ body {
   font-family: var(--fonte-corpo);
 }
 
+body {
+  padding-top: var(--altura-nav);
+}
+
 a {
   color: inherit;
 }
 
 button {
   font-family: inherit;
+}
+
+/* ==========================================================
+   LAYOUT RESPONSIVO
+   ==========================================================
+   O app inteiro usa estilo inline, que não aceita @media. Estas
+   classes existem pra dar o que o inline não dá: adaptação de
+   largura e troca de navegação entre celular e computador. */
+
+.conteudo {
+  width: 100%;
+  max-width: var(--largura-conteudo);
+  margin: 0 auto;
+  padding: 24px 20px 100px;
+}
+
+/* Conteúdo centralizado dentro de uma faixa que vai de ponta a ponta
+   (usado no cabeçalho, que tem fundo próprio). */
+.faixa-interna {
+  width: 100%;
+  max-width: var(--largura-conteudo);
+  margin: 0 auto;
+}
+
+/* Grade que vira 1 coluna no celular e N colunas no computador. */
+.grade-auto {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+/* ==========================================================
+   NAVEGAÇÃO
+   ==========================================================
+   Celular: barra fixa embaixo, só o item ativo mostra o rótulo.
+   Computador: barra fixa no topo, todos os rótulos visíveis. */
+
+.nav-app {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 4px;
+  background: var(--cor-superficie);
+  border-top: 1px solid var(--cor-borda);
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  z-index: 20;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-item--ativo {
+  background: var(--cor-primaria);
+  color: #fff;
+  padding: 8px 16px;
+}
+
+.nav-rotulo {
+  display: none;
+}
+
+.nav-item--ativo .nav-rotulo {
+  display: inline;
+}
+
+@media (hover: hover) {
+  .nav-item:not(.nav-item--ativo):hover {
+    background: var(--cor-acento-suave);
+    color: var(--cor-acento);
+  }
+}
+
+@media (min-width: 900px) {
+  :root {
+    --largura-conteudo: 1020px;
+    --altura-nav: 62px;
+  }
+
+  .conteudo {
+    padding: 32px 32px 56px;
+  }
+
+  /* No computador a navegação sobe. Fica `fixed` em vez de `sticky`
+     porque no DOM ela vem depois do <main> — sticky encostaria no
+     rodapé da página, não no topo. */
+  .nav-app {
+    top: 0;
+    bottom: auto;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 32px;
+    border-top: none;
+    border-bottom: 1px solid var(--cor-borda);
+    box-shadow: 0 1px 12px -6px rgba(22, 63, 60, 0.35);
+  }
+
+  .nav-rotulo {
+    display: inline;
+  }
+
+  .nav-item {
+    font-size: 13px;
+    padding: 8px 16px;
+  }
+
+  .grade-auto--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grade-auto--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Telas bem largas: não deixa a leitura esticar demais. */
+@media (min-width: 1400px) {
+  :root {
+    --largura-conteudo: 1120px;
+  }
 }

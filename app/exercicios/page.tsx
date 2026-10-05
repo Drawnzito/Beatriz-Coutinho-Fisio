@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
+import { MiniaturaExercicio } from "@/components/MiniaturaExercicio";
 import { Feedback } from "@/components/Feedback";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { AvisoModoTeste } from "@/components/AvisoModoTeste";
@@ -66,7 +67,7 @@ export default async function ExerciciosPage({
       {vendoComoPaciente && <AvisoModoTeste />}
       <Header titulo="Seus exercícios" subtitulo="Beatriz Coutinho Fisioterapia" variante="boasVindas" />
 
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
+      <main className="conteudo">
         {planos.length === 0 && planosAnteriores.length === 0 && (
           <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
             Nenhum plano atribuído ainda. Assim que a Beatriz montar o seu, ele aparece aqui.
@@ -153,31 +154,35 @@ export default async function ExerciciosPage({
                   const ex = item.exercicios;
                   return (
                     <div key={item.id} style={{ ...exercicioCartao, display: "flex", gap: 12 }}>
-                      {ex.video_url && (
-                        <div style={{ flexShrink: 0 }}>
-                          <MidiaExercicio url={ex.video_url} previa pdfUrl={ex.pdf_url} />
-                        </div>
-                      )}
+                      <div style={{ flexShrink: 0 }}>
+                        <MiniaturaExercicio
+                          videoUrl={ex.video_url}
+                          pdfUrl={ex.pdf_url}
+                          titulo={ex.titulo}
+                        />
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <strong>{ex.titulo}</strong>
-                        <p style={{ margin: "4px 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                          {item.series ?? ex.series_padrao ?? "-"} séries ×{" "}
+                        <strong style={{ fontSize: 14.5 }}>{ex.titulo}</strong>
+                        <p
+                          style={{
+                            display: "inline-block",
+                            margin: "5px 0 0",
+                            padding: "2px 9px",
+                            borderRadius: 999,
+                            background: "var(--cor-fundo)",
+                            border: "1px solid var(--cor-borda)",
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: "var(--cor-primaria)",
+                          }}
+                        >
+                          {item.series ?? ex.series_padrao ?? "-"} ×{" "}
                           {item.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
                         </p>
                         {ex.descricao && (
-                          <p style={{ margin: "4px 0", fontSize: 13 }}>{ex.descricao}</p>
-                        )}
-                        {!ex.video_url && ex.pdf_url && (
-                          <div style={{ marginTop: 6 }}>
-                            <a
-                              href={ex.pdf_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ fontSize: 12, fontWeight: 600, color: "var(--cor-acento)", textDecoration: "none" }}
-                            >
-                              📄 PDF passo a passo
-                            </a>
-                          </div>
+                          <p style={{ margin: "7px 0 0", fontSize: 13, color: "var(--cor-texto-suave)", lineHeight: 1.35 }}>
+                            {ex.descricao}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -218,15 +223,17 @@ export default async function ExerciciosPage({
                       const ex = item.exercicios;
                       return (
                         <div key={item.id} style={{ ...exercicioCartao, display: "flex", gap: 12 }}>
-                          {ex.video_url && (
-                            <div style={{ flexShrink: 0 }}>
-                              <MidiaExercicio url={ex.video_url} previa pdfUrl={ex.pdf_url} />
-                            </div>
-                          )}
+                          <div style={{ flexShrink: 0 }}>
+                            <MiniaturaExercicio
+                              videoUrl={ex.video_url}
+                              pdfUrl={ex.pdf_url}
+                              titulo={ex.titulo}
+                            />
+                          </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong>{ex.titulo}</strong>
-                            <p style={{ margin: "4px 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                              {item.series ?? ex.series_padrao ?? "-"} séries ×{" "}
+                            <strong style={{ fontSize: 14.5 }}>{ex.titulo}</strong>
+                            <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                              {item.series ?? ex.series_padrao ?? "-"} ×{" "}
                               {item.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
                             </p>
                           </div>
@@ -276,7 +283,7 @@ async function VisaoAdmin({
       <Feedback mensagem={sucesso} />
       <Header titulo="Exercícios por paciente" subtitulo="Beatriz Coutinho Fisioterapia" variante="boasVindas" />
 
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
+      <main className="conteudo">
         <SeletorPaciente pacientes={pacientes ?? []} selecionado={pacienteSelecionado} />
 
         {!pacienteSelecionado && (

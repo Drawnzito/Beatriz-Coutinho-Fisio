@@ -6,32 +6,34 @@ import { usePathname } from "next/navigation";
 type Item = {
   href: string;
   label: string;
-  icon: (ativo: boolean) => React.ReactNode;
+  icon: () => React.ReactNode;
 };
 
-const ICONE_INICIO = (ativo: boolean) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ativo ? "#fff" : "currentColor"} strokeWidth="2">
+// Todos os ícones herdam a cor do link (currentColor) pra que o estado ativo
+// e o hover do computador sejam resolvidos só no CSS.
+const ICONE_INICIO = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M3 11.5 12 4l9 7.5" strokeLinecap="round" strokeLinejoin="round" />
     <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
-const ICONE_EXERCICIOS = (ativo: boolean) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ativo ? "#fff" : "currentColor"} strokeWidth="2">
+const ICONE_EXERCICIOS = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M6.5 6.5 4 4M17.5 6.5 20 4M6.5 17.5 4 20M17.5 17.5 20 20" strokeLinecap="round" />
     <rect x="7" y="7" width="10" height="10" rx="2" />
   </svg>
 );
 
-const ICONE_PAINEL = (ativo: boolean) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ativo ? "#fff" : "currentColor"} strokeWidth="2">
+const ICONE_PAINEL = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <rect x="3" y="4" width="18" height="14" rx="2" />
     <path d="M3 9h18M8 4v14" strokeLinecap="round" />
   </svg>
 );
 
-const ICONE_PERFIL = (ativo: boolean) => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={ativo ? "#fff" : "currentColor"} strokeWidth="2">
+const ICONE_PERFIL = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="8" r="3.5" />
     <path d="M4.5 20c1.5-4 4.5-6 7.5-6s6 2 7.5 6" strokeLinecap="round" />
   </svg>
@@ -55,44 +57,21 @@ export function BottomNav({ papel }: { papel: "admin" | "paciente" }) {
         ];
 
   return (
-    <nav
-      style={{
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        display: "flex",
-        justifyContent: "space-around",
-        alignItems: "center",
-        background: "var(--cor-superficie)",
-        borderTop: "1px solid var(--cor-borda)",
-        padding: "8px 12px calc(8px + env(safe-area-inset-bottom))",
-        zIndex: 20,
-      }}
-    >
+    // Barra embaixo no celular, barra no topo no computador — a troca é toda
+    // em CSS (globals.css), porque estilo inline não aceita media query.
+    <nav className="nav-app">
       {itens.map((item) => {
         const ativo = pathname === item.href;
         return (
           <Link
             key={item.href}
             href={item.href}
+            aria-current={ativo ? "page" : undefined}
+            className={`nav-item${ativo ? " nav-item--ativo" : ""}`}
             data-tour={item.href === "/exercicios" ? "nav-exercicios" : item.href === "/perfil" ? "nav-perfil" : undefined}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              padding: ativo ? "8px 16px" : "8px 10px",
-              borderRadius: 20,
-              background: ativo ? "var(--cor-primaria)" : "transparent",
-              color: ativo ? "#fff" : "var(--cor-texto-suave)",
-              textDecoration: "none",
-              fontSize: 12,
-              fontWeight: 600,
-              transition: "background 0.15s ease",
-            }}
           >
-            {item.icon(ativo)}
-            {ativo && <span>{item.label}</span>}
+            {item.icon()}
+            <span className="nav-rotulo">{item.label}</span>
           </Link>
         );
       })}

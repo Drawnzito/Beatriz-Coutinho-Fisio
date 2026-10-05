@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { MidiaExercicio } from "@/components/MidiaExercicio";
+import { MiniaturaExercicio } from "@/components/MiniaturaExercicio";
 import { TiraSemana } from "@/components/TiraSemana";
 import { NavegacaoSemana } from "@/components/NavegacaoSemana";
 import { DiaEmDestaque } from "@/components/DiaEmDestaque";
@@ -68,10 +68,17 @@ export default async function InicioPage({
     : dias[0].iso;
   const diaInfo = dias.find((d) => d.iso === diaSelecionado)!;
 
+  // A fisio ve so o nome do plano e a contagem: puxar os exercicios inteiros
+  // (com midia) deixava o cartao enorme na agenda dela, e o detalhe ja esta na
+  // ficha do paciente. A paciente continua vendo os exercicios do proprio dia.
+  const camposPlano = ehAdmin
+    ? "planos(id, titulo, plano_exercicios(id))"
+    : "planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))";
+
   let consultaSemana = supabase
     .from("sessoes")
     .select(
-      "id, data, hora, status, motivo_recusa, tipo, especialidade, modalidade, observacoes, perfis!paciente_id(nome, email), planos(id, titulo, plano_exercicios(id, series, repeticoes, ordem, exercicios(*)))"
+      `id, data, hora, status, motivo_recusa, tipo, especialidade, modalidade, observacoes, paciente_id, perfis!paciente_id(nome, email), ${camposPlano}`
     )
     .gte("data", inicioSemana)
     .lte("data", fimSemana)
@@ -180,7 +187,7 @@ export default async function InicioPage({
         variante="boasVindas"
       />
 
-      <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px 100px" }}>
+      <main className="conteudo">
         {!ehAdmin && !perfil?.guia_visto_em && <GuiaPrimeirosPassos onFechar={marcarGuiaVisto} />}
 
         {/* ---------- Destaques ---------- */}
@@ -314,13 +321,29 @@ export default async function InicioPage({
                   <p style={{ margin: "6px 0 0", fontSize: 14 }}>{item.observacoes}</p>
                 )}
 
-                {item.planos && (
+                {item.planos && ehAdmin && (
+                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                    Plano: <strong>{item.planos.titulo}</strong>
+                    {" · "}
+                    {(item.planos.plano_exercicios ?? []).length} exercício
+                    {(item.planos.plano_exercicios ?? []).length === 1 ? "" : "s"}
+                    {" · "}
+                    <Link
+                      href={`/dashboard?aba=pacientes&verPaciente=${item.paciente_id}`}
+                      style={{ color: "var(--cor-acento)", fontWeight: 600, textDecoration: "none" }}
+                    >
+                      ver ficha
+                    </Link>
+                  </p>
+                )}
+
+                {item.planos && !ehAdmin && (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>
                         Plano: {item.planos.titulo}
                       </p>
-                      {!ehAdmin && (item.planos.plano_exercicios ?? []).length > 0 && (
+                      {(item.planos.plano_exercicios ?? []).length > 0 && (
                         <Link
                           href={`/treino/${item.planos.id}`}
                           style={{
@@ -343,17 +366,21 @@ export default async function InicioPage({
                         .map((pe: any) => {
                           const ex = pe.exercicios;
                           return (
-                            <div key={pe.id} style={exercicioMiniCartao}>
-                              <strong style={{ fontSize: 13 }}>{ex.titulo}</strong>
-                              <p style={{ margin: "2px 0 0", fontSize: 12, color: "var(--cor-texto-suave)" }}>
-                                {pe.series ?? ex.series_padrao ?? "-"} séries ×{" "}
-                                {pe.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
-                              </p>
-                              {ex.video_url && (
-                                <div style={{ marginTop: 6 }}>
-                                  <MidiaExercicio url={ex.video_url} />
-                                </div>
-                              )}
+                            <div key={pe.id} style={{ ...exercicioMiniCartao, display: "flex", gap: 11 }}>
+                              <div style={{ flexShrink: 0 }}>
+                                <MiniaturaExercicio
+                                  videoUrl={ex.video_url}
+                                  pdfUrl={ex.pdf_url}
+                                  titulo={ex.titulo}
+                                />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <strong style={{ fontSize: 13.5 }}>{ex.titulo}</strong>
+                                <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--cor-texto-suave)" }}>
+                                  {pe.series ?? ex.series_padrao ?? "-"} ×{" "}
+                                  {pe.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
+                                </p>
+                              </div>
                             </div>
                           );
                         })}
