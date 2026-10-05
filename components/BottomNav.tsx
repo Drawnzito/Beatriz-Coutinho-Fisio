@@ -32,6 +32,15 @@ const ICONE_PAINEL = () => (
   </svg>
 );
 
+const ICONE_BLOG = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+       strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+    <path d="M9 7h7M9 11h7" />
+  </svg>
+);
+
 const ICONE_PERFIL = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <circle cx="12" cy="8" r="3.5" />
@@ -48,11 +57,13 @@ export function BottomNav({ papel }: { papel: "admin" | "paciente" }) {
           { href: "/inicio", label: "Início", icon: ICONE_INICIO },
           { href: "/exercicios", label: "Exercícios", icon: ICONE_EXERCICIOS },
           { href: "/dashboard", label: "Painel", icon: ICONE_PAINEL },
+          { href: "/blog", label: "Blog", icon: ICONE_BLOG },
           { href: "/perfil", label: "Perfil", icon: ICONE_PERFIL },
         ]
       : [
           { href: "/inicio", label: "Início", icon: ICONE_INICIO },
           { href: "/exercicios", label: "Exercícios", icon: ICONE_EXERCICIOS },
+          { href: "/blog", label: "Blog", icon: ICONE_BLOG },
           { href: "/perfil", label: "Perfil", icon: ICONE_PERFIL },
         ];
 
@@ -61,7 +72,8 @@ export function BottomNav({ papel }: { papel: "admin" | "paciente" }) {
     // em CSS (globals.css), porque estilo inline não aceita media query.
     <nav className="nav-app">
       {itens.map((item) => {
-        const ativo = pathname === item.href;
+        // Blog tem páginas filhas (/blog/slug) e precisa continuar marcado.
+        const ativo = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}

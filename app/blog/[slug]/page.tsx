@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TopoPublico } from "@/components/TopoPublico";
+import { BottomNav } from "@/components/BottomNav";
 import { AcentoCadencia } from "@/components/Acentos";
 import { CLINICA, urlDoSite } from "@/lib/clinica";
 
@@ -53,6 +54,17 @@ export default async function PostPage({ params }: { params: { slug: string } })
   const post = await buscarPost(params.slug);
   if (!post) notFound();
 
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let papel: "admin" | "paciente" | null = null;
+  if (user) {
+    const { data: perfil } = await supabase.from("perfis").select("papel").eq("id", user.id).single();
+    papel = perfil?.papel === "admin" ? "admin" : "paciente";
+  }
+
   // O conteúdo é texto simples escrito pela Beatriz: cada linha em branco
   // separa um parágrafo. Renderizar como texto (e não como HTML) é
   // deliberado — evita qualquer risco de injeção vindo do editor.
@@ -63,9 +75,9 @@ export default async function PostPage({ params }: { params: { slug: string } })
 
   return (
     <>
-      <TopoPublico />
+      {!papel && <TopoPublico />}
 
-      <main className="conteudo" style={{ maxWidth: 720, paddingBottom: 56 }}>
+      <main className="conteudo" style={{ maxWidth: 720, paddingBottom: papel ? 100 : 56 }}>
         <Link href="/blog" style={{ fontSize: 13, fontWeight: 600, color: "var(--cor-acento)" }}>
           ← Blog
         </Link>
@@ -196,6 +208,8 @@ export default async function PostPage({ params }: { params: { slug: string } })
           </Link>
         </aside>
       </main>
+
+      {papel && <BottomNav papel={papel} />}
     </>
   );
 }

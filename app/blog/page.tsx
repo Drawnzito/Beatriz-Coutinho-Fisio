@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TopoPublico } from "@/components/TopoPublico";
+import { BottomNav } from "@/components/BottomNav";
 import { CLINICA, urlDoSite } from "@/lib/clinica";
 
 export const dynamic = "force-dynamic";
@@ -26,17 +27,29 @@ export const metadata: Metadata = {
 export default async function BlogPage() {
   const supabase = createClient();
 
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("slug, titulo, resumo, capa_url, publicado_em, link_externo")
-    .eq("publicado", true)
-    .order("publicado_em", { ascending: false });
+  // A mesma página serve visitante e paciente logada. Quem está logada
+  // precisa da navegação do app, senão entra no blog e não acha o caminho
+  // de volta; quem não está vê a barra pública, com botão de entrar.
+  const [{ data: { user } }, { data: posts }] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase
+      .from("posts")
+      .select("slug, titulo, resumo, capa_url, publicado_em, link_externo")
+      .eq("publicado", true)
+      .order("publicado_em", { ascending: false }),
+  ]);
+
+  let papel: "admin" | "paciente" | null = null;
+  if (user) {
+    const { data: perfil } = await supabase.from("perfis").select("papel").eq("id", user.id).single();
+    papel = perfil?.papel === "admin" ? "admin" : "paciente";
+  }
 
   return (
     <>
-      <TopoPublico />
+      {!papel && <TopoPublico />}
 
-      <main className="conteudo" style={{ paddingBottom: 56 }}>
+      <main className="conteudo" style={{ paddingBottom: papel ? 100 : 56 }}>
         <h1
           style={{
             fontFamily: "var(--fonte-titulo)",
@@ -128,6 +141,8 @@ export default async function BlogPage() {
           ))}
         </div>
       </main>
+
+      {papel && <BottomNav papel={papel} />}
     </>
   );
 }

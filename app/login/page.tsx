@@ -128,45 +128,94 @@ function LoginForm() {
             position: "relative",
             overflow: "hidden",
             width: "100%",
-            maxWidth: 380,
-            background: "rgba(255,255,255,0.95)",
-            borderRadius: 18,
-            padding: "32px 28px",
+            maxWidth: 400,
+            background: "linear-gradient(170deg, #ffffff 0%, #fdfbf8 100%)",
+            borderRadius: 26,
+            padding: "40px 32px 34px",
             textAlign: "center",
-            boxShadow: "0 24px 50px -18px rgba(22,63,60,0.45)",
-            backdropFilter: "blur(6px)",
+            boxShadow: "0 30px 70px -22px rgba(10,40,38,0.55)",
           }}
         >
-          <AcentoArabesque
-            tamanho={150}
-            opacidade={0.07}
-            style={{ position: "absolute", right: -24, bottom: -14, zIndex: -1, pointerEvents: "none" }}
+          {/* Fio terracota no topo: a mesma cor do ponto da marca, costurando
+              a vinheta ao cartão em vez de cortar seco pro branco. */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 4,
+              background:
+                "linear-gradient(90deg, transparent, var(--cor-acento) 25%, var(--cor-acento) 75%, transparent)",
+            }}
           />
 
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
-            <Marca tamanho={44} />
+          <AcentoArabesque
+            tamanho={190}
+            opacidade={0.08}
+            style={{ position: "absolute", right: -40, bottom: -28, pointerEvents: "none" }}
+          />
+
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              width: 82,
+              height: 82,
+              margin: "0 auto 18px",
+              borderRadius: "50%",
+              background: "var(--cor-acento-suave)",
+            }}
+          >
+            <Marca tamanho={48} />
           </div>
 
           <p
             style={{
+              position: "relative",
               fontFamily: "var(--fonte-titulo)",
-              fontSize: 19,
+              fontSize: 25,
               fontWeight: 700,
+              lineHeight: 1.2,
               color: "var(--cor-primaria-escura)",
-              margin: "0 0 10px",
+              margin: "0 0 6px",
             }}
           >
             Que bom ter você de volta
           </p>
 
+          <p
+            style={{
+              position: "relative",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: 2.6,
+              color: "var(--cor-acento)",
+              margin: "0 0 14px",
+            }}
+          >
+            BEATRIZ COUTINHO
+          </p>
+
           <AcentoCadencia
-            largura={110}
-            opacidade={0.5}
-            style={{ display: "block", margin: "0 auto 18px" }}
+            largura={120}
+            opacidade={0.55}
+            style={{ display: "block", margin: "0 auto 20px" }}
           />
 
-          <p style={{ position: "relative", color: "var(--cor-texto-suave)", fontSize: 14, margin: "0 0 24px" }}>
-            Entre com sua conta Google para ver seus exercícios e sessões.
+          <p
+            style={{
+              position: "relative",
+              color: "var(--cor-texto-suave)",
+              fontSize: 14.5,
+              lineHeight: 1.55,
+              margin: "0 0 26px",
+            }}
+          >
+            Entre para ver seus exercícios, suas sessões e a sua evolução.
           </p>
 
           {mensagemErro && (
@@ -174,8 +223,8 @@ function LoginForm() {
               style={{
                 background: "#fdecea",
                 color: "#b3261e",
-                borderRadius: 8,
-                padding: "10px 12px",
+                borderRadius: 10,
+                padding: "11px 13px",
                 fontSize: 13,
                 margin: "0 0 20px",
                 textAlign: "left",
@@ -188,9 +237,10 @@ function LoginForm() {
           <button
             onClick={entrarComGoogle}
             style={{
+              position: "relative",
               width: "100%",
-              padding: "12px 16px",
-              borderRadius: 8,
+              padding: "14px 16px",
+              borderRadius: 999,
               border: "1px solid var(--cor-borda)",
               background: "#fff",
               fontSize: 15,
@@ -201,6 +251,7 @@ function LoginForm() {
               alignItems: "center",
               justifyContent: "center",
               gap: 10,
+              boxShadow: "0 6px 16px -8px rgba(22,63,60,0.4)",
             }}
           >
             <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -211,6 +262,18 @@ function LoginForm() {
             </svg>
             Entrar com Google
           </button>
+
+          <p
+            style={{
+              position: "relative",
+              margin: "16px 0 0",
+              fontSize: 11.5,
+              lineHeight: 1.5,
+              color: "var(--cor-texto-suave)",
+            }}
+          >
+            O Google vai pedir confirmação numa tela dele antes de voltar pra cá.
+          </p>
         </div>
       )}
     </main>

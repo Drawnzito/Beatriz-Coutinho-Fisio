@@ -114,10 +114,11 @@ button {
   position: relative;
   flex: 0 0 100%;
   scroll-snap-align: center;
-  /* Mais alto que 16:9 de propósito: foto em pé era cortada demais pelo
-     object-fit: cover. A arte da indicação foi desenhada com margem de
-     segurança pra caber inteira nesta proporção e na do computador. */
-  aspect-ratio: 4 / 3;
+  /* O JS mede a proporção real das fotos e escreve --proporcao-destaque no
+     trilho, então o cartão acompanha o formato da imagem em vez de cortá-la.
+     O 4/3 é só o valor enquanto nada carregou ainda. */
+  aspect-ratio: var(--proporcao-destaque, 4 / 3);
+  transition: aspect-ratio 0.25s ease;
   border-radius: 16px;
   overflow: hidden;
   background: var(--cor-borda);
@@ -125,28 +126,14 @@ button {
   display: block;
 }
 
-/* Foto de celular (retrato) num cartão deitado: em vez de cortar as laterais
-   com object-fit: cover, mostramos a foto inteira (contain) e preenchemos o
-   resto do cartão com uma cópia borrada dela. Mesma solução do Instagram. */
-.destaque-fundo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: blur(26px) brightness(0.62) saturate(1.1);
-  transform: scale(1.2);
-}
-
 .destaque-foto {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
-/* Arte feita sob medida pro cartão: preenche sem desperdício. */
 .destaque-foto--preenche {
   object-fit: cover;
 }
@@ -180,6 +167,8 @@ button {
 }
 
 @media (min-width: 900px) {
+  /* No computador a coluna é larga: um cartão em pé tomaria a tela toda.
+     Aqui o limite é 16:9, e a foto preenche recortada. */
   .destaque-slide {
     aspect-ratio: 16 / 9;
   }

@@ -43,6 +43,11 @@ export function DestaquesCarrossel({
   const timeoutRetomarRef = useRef<ReturnType<typeof setTimeout>>();
   const [atual, setAtual] = useState(0);
 
+  // Proporção natural de cada imagem, medida quando ela carrega. O cartão
+  // acompanha o formato da foto em vez de cortá-la: foto de celular fica em
+  // pé, arte deitada fica deitada.
+  const [proporcoes, setProporcoes] = useState<Record<string, number>>({});
+
   // A indicação entra como primeiro slide: é a chamada que o Hugo quer que
   // todo mundo veja, independente de a Beatriz ter cadastrado destaques.
   const slides: Slide[] = mostrarIndicacao
@@ -104,6 +109,18 @@ export function DestaquesCarrossel({
 
   if (slides.length === 0) return null;
 
+  // Todos os slides precisam da mesma altura, senão o trilho pula a cada
+  // troca. Usamos a proporção mais alta entre as fotos já medidas, limitada
+  // pra que uma foto muito estreita não tome a tela inteira.
+  const PROPORCAO_MINIMA = 0.8; // 4:5, retrato
+  const PROPORCAO_MAXIMA = 1.78; // 16:9, deitada
+  const medidas = slides
+    .map((s) => proporcoes[s.id])
+    .filter((p): p is number => typeof p === "number");
+  const proporcaoCartao = medidas.length
+    ? Math.min(PROPORCAO_MAXIMA, Math.max(PROPORCAO_MINIMA, Math.min(...medidas)))
+    : 4 / 3;
+
   function navegar(passo: number) {
     pausar();
     retomarDaqui();
@@ -116,6 +133,7 @@ export function DestaquesCarrossel({
       <div
         ref={trilhoRef}
         className="destaque-trilho"
+        style={{ ["--proporcao-destaque" as string]: String(proporcaoCartao) }}
         onPointerDown={pausar}
         onPointerUp={retomarDaqui}
         onTouchStart={pausar}
@@ -124,18 +142,21 @@ export function DestaquesCarrossel({
         {slides.map((slide) => {
           const miolo = (
             <>
-              {/* Fundo borrado só quando a foto não foi feita pro formato do
-                  cartão — é o caso das fotos tiradas no celular, em pé. */}
-              {!slide.textoNaArte && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={slide.imagem_url} alt="" aria-hidden="true" className="destaque-fundo" />
-              )}
-
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={slide.imagem_url}
                 alt={slide.textoNaArte ? slide.titulo : ""}
-                className={`destaque-foto${slide.textoNaArte ? " destaque-foto--preenche" : ""}`}
+                className="destaque-foto destaque-foto--preenche"
+                onLoad={(e) => {
+                  const img = e.currentTarget;
+                  if (!img.naturalHeight) return;
+                  const proporcao = img.naturalWidth / img.naturalHeight;
+                  setProporcoes((anterior) =>
+                    anterior[slide.id] === proporcao
+                      ? anterior
+                      : { ...anterior, [slide.id]: proporcao }
+                  );
+                }}
               />
 
               {!slide.textoNaArte && (
