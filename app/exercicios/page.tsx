@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { MiniaturaExercicio } from "@/components/MiniaturaExercicio";
+import { AtalhoPassoAPasso } from "@/components/PassoAPasso";
 import { Feedback } from "@/components/Feedback";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { AvisoModoTeste } from "@/components/AvisoModoTeste";
@@ -184,6 +185,8 @@ export default async function ExerciciosPage({
                             {ex.descricao}
                           </p>
                         )}
+                        {/* Com vídeo, o atalho já aparece embaixo da miniatura */}
+                        {!ex.video_url && ex.pdf_url && <AtalhoPassoAPasso url={ex.pdf_url} />}
                       </div>
                     </div>
                   );

@@ -16,6 +16,47 @@ type Estado = "ocioso" | "enviando" | "pronto" | "erro";
  * fica presa em "Enviando…" sem erro nenhum. O sufixo aleatório aqui não
  * precisa ser criptográfico — serve só pra não colidir nome de arquivo.
  */
+/** Quadradinho de prévia do anexo já salvo. */
+function PreviaAnexo({ url }: { url: string }) {
+  const semQuery = url.split("?")[0].toLowerCase();
+  const ehImagem = /\.(gif|png|jpe?g|webp|heic)$/.test(semQuery);
+  const ehVideo = /\.(mp4|webm|mov|ogg)$/.test(semQuery);
+
+  const caixa: React.CSSProperties = {
+    width: 46,
+    height: 46,
+    borderRadius: 8,
+    flexShrink: 0,
+    objectFit: "cover",
+    display: "block",
+    background: "var(--cor-acento-suave)",
+  };
+
+  if (ehImagem) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={url} alt="Anexo atual" style={caixa} />;
+  }
+
+  if (ehVideo) {
+    return <video src={url} muted playsInline preload="metadata" style={{ ...caixa, background: "#000" }} />;
+  }
+
+  return (
+    <span
+      style={{
+        ...caixa,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "var(--cor-acento)",
+        fontSize: 18,
+      }}
+    >
+      📄
+    </span>
+  );
+}
+
 function identificadorUnico(): string {
   try {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -47,12 +88,15 @@ export function UploadArquivo({
   rotulo,
   ajuda,
   extensoes,
+  urlAtual,
 }: {
   nome: string;
   bucket: string;
   rotulo: string;
   ajuda?: string;
   extensoes: string[];
+  /** Anexo já salvo, mostrado como prévia no formulário de edição. */
+  urlAtual?: string | null;
 }) {
   const [estado, setEstado] = useState<Estado>("ocioso");
   const [mensagem, setMensagem] = useState("");
@@ -136,6 +180,32 @@ export function UploadArquivo({
   return (
     <div style={{ display: "grid", gap: 6 }}>
       <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>{rotulo}</label>
+
+      {/* Mostra o que já está salvo: antes o campo vinha vazio na edição e
+          parecia que o anexo tinha sumido (ele era mantido, mas sem aviso). */}
+      {urlAtual && estado !== "pronto" && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            padding: 8,
+            borderRadius: 10,
+            background: "var(--cor-fundo)",
+            border: "1px solid var(--cor-borda)",
+          }}
+        >
+          <PreviaAnexo url={urlAtual} />
+          <div style={{ minWidth: 0 }}>
+            <strong style={{ display: "block", fontSize: 12, color: "var(--cor-primaria)" }}>
+              Anexo atual
+            </strong>
+            <span style={{ fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
+              Continua salvo se você não escolher outro.
+            </span>
+          </div>
+        </div>
+      )}
 
       <input
         ref={inputRef}

@@ -53,7 +53,12 @@ export function inferirContentType(nomeArquivo: string, tipoDetectado?: string):
 
 export const EXTENSOES_MIDIA = ["gif", "png", "jpg", "jpeg", "webp", "heic", "mp4", "webm", "mov", "ogg"];
 export const EXTENSOES_IMAGEM = ["gif", "png", "jpg", "jpeg", "webp", "heic"];
-export const EXTENSOES_PDF = ["pdf"];
+
+/**
+ * Passo a passo do exercicio: nasceu como PDF, virou imagem.
+ * O PDF continua aceito porque ja existem exercicios antigos com PDF salvo.
+ */
+export const EXTENSOES_PASSO_A_PASSO = [...EXTENSOES_IMAGEM, "pdf"];
 
 /** Teto do bucket no Supabase. Avisamos antes de subir pra nao gastar a conexao a toa. */
 export const TAMANHO_MAXIMO_MB = 50;

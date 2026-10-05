@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
+import { PassoAPasso } from "@/components/PassoAPasso";
 
 type Item = {
   id: string;
@@ -179,19 +180,7 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
 
       {item.pdf_url && (
         <div style={{ marginBottom: 16 }}>
-          <iframe
-            src={item.pdf_url}
-            title="Passo a passo em PDF"
-            style={{ width: "100%", height: 420, border: "1px solid var(--cor-borda)", borderRadius: 10, display: "block" }}
-          />
-          <a
-            href={item.pdf_url}
-            target="_blank"
-            rel="noreferrer"
-            style={{ display: "inline-block", marginTop: 6, fontSize: 12.5, color: "var(--cor-acento)" }}
-          >
-            abrir PDF em nova aba →
-          </a>
+          <PassoAPasso url={item.pdf_url} />
         </div>
       )}
 

@@ -22,7 +22,7 @@ import { CampoEspecialidade } from "@/components/CampoEspecialidade";
 import { ChipEspecialidade } from "@/components/ChipEspecialidade";
 import { DIAS_SEMANA, rotuloDiaSemana } from "@/lib/diasSemana";
 import { UploadArquivo } from "@/components/UploadArquivo";
-import { EXTENSOES_MIDIA, EXTENSOES_IMAGEM, EXTENSOES_PDF } from "@/lib/tiposArquivo";
+import { EXTENSOES_MIDIA, EXTENSOES_IMAGEM, EXTENSOES_PASSO_A_PASSO } from "@/lib/tiposArquivo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -406,28 +406,17 @@ export default async function DashboardPage({
                     <UploadArquivo
                       nome="video_arquivo_url"
                       bucket="exercicios"
-                      rotulo="Vídeo/gif demonstrativo — envie um arquivo:"
-                      ajuda="GIF, foto ou vídeo da galeria. Até 50 MB."
+                      rotulo="Vídeo ou gif demonstrativo"
+                      ajuda="GIF, foto ou vídeo direto da galeria. Até 50 MB."
                       extensoes={EXTENSOES_MIDIA}
                     />
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                        ...ou cole um link (Youtube, Instagram, Drive):
-                      </label>
-                      <input name="video_url" placeholder="https://..." style={campo} />
-                    </div>
                     <UploadArquivo
                       nome="pdf_arquivo_url"
                       bucket="exercicios"
-                      rotulo="PDF passo a passo (opcional) — envie um arquivo:"
-                      extensoes={EXTENSOES_PDF}
+                      rotulo="Passo a passo (opcional)"
+                      ajuda="Imagem com as instruções. PDF também funciona."
+                      extensoes={EXTENSOES_PASSO_A_PASSO}
                     />
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                        ...ou cole um link do PDF:
-                      </label>
-                      <input name="pdf_url" placeholder="https://..." style={campo} />
-                    </div>
                     <div style={{ display: "flex", gap: 10 }}>
                       <input name="series_padrao" type="number" placeholder="Séries padrão" style={campo} />
                       <input name="repeticoes_padrao" type="number" placeholder="Repetições padrão" style={campo} />
@@ -487,30 +476,19 @@ export default async function DashboardPage({
                             <UploadArquivo
                               nome="video_arquivo_url"
                               bucket="exercicios"
-                              rotulo="Trocar vídeo/gif — envie um novo arquivo:"
-                              ajuda="Deixe em branco pra manter o atual."
+                              rotulo="Vídeo ou gif demonstrativo"
+                              ajuda="Escolha outro arquivo só se quiser trocar."
                               extensoes={EXTENSOES_MIDIA}
+                              urlAtual={ex.video_url}
                             />
-                            <div style={{ display: "grid", gap: 4 }}>
-                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                ...ou cole um novo link (deixe em branco pra manter o atual):
-                              </label>
-                              <input name="video_url" placeholder="https://..." style={campo} />
-                            </div>
                             <UploadArquivo
                               nome="pdf_arquivo_url"
                               bucket="exercicios"
-                              rotulo="Trocar PDF — envie um novo arquivo:"
-                              ajuda="Deixe em branco pra manter o atual."
-                              extensoes={EXTENSOES_PDF}
+                              rotulo="Passo a passo (opcional)"
+                              ajuda="Escolha outro arquivo só se quiser trocar."
+                              extensoes={EXTENSOES_PASSO_A_PASSO}
+                              urlAtual={ex.pdf_url}
                             />
-
-                            <div style={{ display: "grid", gap: 4 }}>
-                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                ...ou cole um novo link do PDF (deixe em branco pra manter o atual):
-                              </label>
-                              <input name="pdf_url" placeholder="https://..." style={campo} />
-                            </div>
                             <div style={{ display: "flex", gap: 10 }}>
                               <input
                                 name="series_padrao"

@@ -1,30 +1,10 @@
+import { AtalhoPassoAPasso } from "./PassoAPasso";
+
 function extrairIdYoutube(url: string): string | null {
   const match = url.match(
     /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{6,})/
   );
   return match ? match[1] : null;
-}
-
-function BadgePdf({ url }: { url: string }) {
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noreferrer"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        marginTop: 6,
-        fontSize: 12,
-        fontWeight: 600,
-        color: "var(--cor-acento)",
-        textDecoration: "none",
-      }}
-    >
-      📄 PDF passo a passo
-    </a>
-  );
 }
 
 export function MidiaExercicio({
@@ -121,7 +101,7 @@ export function MidiaExercicio({
   return (
     <div>
       {conteudo}
-      <BadgePdf url={pdfUrl} />
+      <AtalhoPassoAPasso url={pdfUrl} />
     </div>
   );
 }

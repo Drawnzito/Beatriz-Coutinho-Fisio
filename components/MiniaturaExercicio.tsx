@@ -1,4 +1,5 @@
 import { MidiaExercicio } from "./MidiaExercicio";
+import { ehImagemPassoAPasso } from "./PassoAPasso";
 
 const LADO = 90;
 
@@ -21,6 +22,28 @@ export function MiniaturaExercicio({
 }) {
   if (videoUrl) {
     return <MidiaExercicio url={videoUrl} previa pdfUrl={pdfUrl} />;
+  }
+
+  // Sem vídeo, mas com um passo a passo em imagem: a própria imagem vira a
+  // miniatura — bem melhor que um ícone genérico de arquivo.
+  if (pdfUrl && ehImagemPassoAPasso(pdfUrl)) {
+    return (
+      <a href={pdfUrl} target="_blank" rel="noreferrer" title="Abrir o passo a passo">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={pdfUrl}
+          alt="Passo a passo do exercício"
+          style={{
+            width: LADO,
+            height: LADO,
+            borderRadius: 10,
+            objectFit: "cover",
+            display: "block",
+            border: "1px solid var(--cor-borda)",
+          }}
+        />
+      </a>
+    );
   }
 
   const inicial = (titulo ?? "").trim().charAt(0).toUpperCase();
