@@ -6,7 +6,13 @@ export function Abas({
   abas,
   inicial,
 }: {
-  abas: { id: string; rotulo: string; conteudo: React.ReactNode }[];
+  abas: {
+    id: string;
+    rotulo: string;
+    conteudo: React.ReactNode;
+    /** Quantidade de itens esperando ação. Zero ou ausente não mostra nada. */
+    pendencias?: number;
+  }[];
   inicial?: string;
 }) {
   const [ativa, setAtiva] = useState(inicial && abas.some((a) => a.id === inicial) ? inicial : abas[0]?.id);
@@ -47,9 +53,33 @@ export function Abas({
                 color: selecionada ? "var(--cor-primaria-escura)" : "var(--cor-texto-suave)",
                 borderBottom: selecionada ? "2px solid var(--cor-primaria)" : "2px solid transparent",
                 marginBottom: -1,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
               {a.rotulo}
+              {!!a.pendencias && a.pendencias > 0 && (
+                <span
+                  aria-label={`${a.pendencias} aguardando você`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minWidth: 19,
+                    height: 19,
+                    padding: "0 6px",
+                    borderRadius: 999,
+                    background: "var(--cor-acento)",
+                    color: "#fff",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    lineHeight: 1,
+                  }}
+                >
+                  {a.pendencias > 99 ? "99+" : a.pendencias}
+                </span>
+              )}
             </button>
           );
         })}

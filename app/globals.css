@@ -99,7 +99,10 @@ button {
   position: relative;
   flex: 0 0 100%;
   scroll-snap-align: center;
-  aspect-ratio: 16 / 9;
+  /* Mais alto que 16:9 de propósito: foto em pé era cortada demais pelo
+     object-fit: cover. A arte da indicação foi desenhada com margem de
+     segurança pra caber inteira nesta proporção e na do computador. */
+  aspect-ratio: 4 / 3;
   border-radius: 16px;
   overflow: hidden;
   background: var(--cor-borda);
@@ -137,7 +140,7 @@ button {
 
 @media (min-width: 900px) {
   .destaque-slide {
-    aspect-ratio: 21 / 9;
+    aspect-ratio: 16 / 9;
   }
 }
 

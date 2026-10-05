@@ -240,6 +240,10 @@ export default async function DashboardPage({
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
 
+  // Contadores nas abas: sem isso a Beatriz só descobre que chegou coisa nova
+  // se abrir a aba por acaso.
+  const indicacoesPendentes = (indicacoes ?? []).filter((i: any) => i.status === "pendente").length;
+
   const opcoesAtribuicao = [
     ...(pacientesAtivosTodos ?? []),
     { id: user.id, nome: `${perfilAtual?.nome || "Você"} (teste)`, email: perfilAtual?.email ?? "", idade: null },
@@ -958,6 +962,7 @@ export default async function DashboardPage({
             {
               id: "agenda",
               rotulo: "Agenda",
+              pendencias: (solicitacoes ?? []).length,
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
                   <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
@@ -1461,6 +1466,7 @@ export default async function DashboardPage({
             {
               id: "indicacoes",
               rotulo: "Indicações",
+              pendencias: indicacoesPendentes,
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
                   <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 14px" }}>

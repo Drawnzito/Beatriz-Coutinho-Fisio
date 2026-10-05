@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { enviarEmail } from "@/lib/email";
 
 export async function ativarVisaoPaciente() {
   cookies().set("ver_como_paciente", "1", { path: "/", maxAge: 60 * 60 * 4 });
@@ -115,13 +116,42 @@ export async function criarIndicacao(formData: FormData) {
 
   if (!nome || !contato) return;
 
-  await supabase.from("indicacoes").insert({
+  const { error } = await supabase.from("indicacoes").insert({
     paciente_id: user.id,
     nome_indicada: nome,
     contato_indicada: contato,
   });
 
+  // Avisa a Beatriz por e-mail: o contador na aba Indicações só resolve se ela
+  // abrir o painel, e indicação some no meio de outras coisas.
+  if (!error) {
+    const { data: perfil } = await supabase
+      .from("perfis")
+      .select("nome, email")
+      .eq("id", user.id)
+      .single();
+    const { data: admins } = await supabase.from("perfis").select("email").eq("papel", "admin");
+
+    const quemIndicou = perfil?.nome || perfil?.email || "Uma paciente";
+
+    for (const admin of admins ?? []) {
+      if (!admin.email) continue;
+      await enviarEmail({
+        destinatario: admin.email,
+        assunto: `Nova indicação — ${nome}`,
+        html: `
+          <p><strong>${quemIndicou}</strong> indicou alguém para a fisioterapia pélvica domiciliar.</p>
+          <p>Nome: <strong>${nome}</strong></p>
+          <p>Contato: <strong>${contato}</strong></p>
+          <p>A indicada tem 50% de desconto na primeira sessão. Marque como usada no painel,
+          na aba Indicações, quando aplicar o desconto.</p>
+        `,
+      });
+    }
+  }
+
   revalidatePath("/perfil");
+  revalidatePath("/dashboard");
 }
 
 export async function marcarGuiaVisto() {
