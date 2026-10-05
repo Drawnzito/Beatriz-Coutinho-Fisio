@@ -11,6 +11,23 @@ import {
 type Estado = "ocioso" | "enviando" | "pronto" | "erro";
 
 /**
+ * `crypto.randomUUID` só existe em contexto seguro e a partir do iOS 15.4.
+ * Num iPhone mais antigo ele lança, a promessa do onChange rejeita e a tela
+ * fica presa em "Enviando…" sem erro nenhum. O sufixo aleatório aqui não
+ * precisa ser criptográfico — serve só pra não colidir nome de arquivo.
+ */
+function identificadorUnico(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // cai no caminho de baixo
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/**
  * Envia o arquivo direto do navegador pro Supabase Storage e devolve a URL
  * publica num input escondido, que o Server Action le depois.
  *
@@ -46,11 +63,14 @@ export function UploadArquivo({
     const arquivo = evento.target.files?.[0];
     if (!arquivo) return;
 
-    const extensao = extensaoDe(arquivo.name);
+    const extensao = extensaoDe(arquivo.name, arquivo.type);
 
     if (!extensoes.includes(extensao)) {
       setEstado("erro");
-      setMensagem(`Formato .${extensao || "?"} não aceito aqui. Use: ${extensoes.join(", ")}.`);
+      setMensagem(
+        `Formato ${extensao ? `.${extensao}` : `"${arquivo.type || "desconhecido"}"`} não aceito aqui. ` +
+          `Use: ${extensoes.join(", ")}.`
+      );
       setUrl("");
       return;
     }
@@ -69,33 +89,41 @@ export function UploadArquivo({
     setMensagem(`Enviando ${arquivo.name}…`);
     setUrl("");
 
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // try/catch em volta de tudo: qualquer falha inesperada (API do navegador
+    // que não existe, rede caindo no meio) precisa virar mensagem na tela em
+    // vez de deixar o campo preso em "Enviando…" pra sempre.
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user) {
+      if (!user) {
+        setEstado("erro");
+        setMensagem("Sua sessão expirou. Recarregue a página e entre de novo.");
+        return;
+      }
+
+      const caminho = `${user.id}/${identificadorUnico()}.${extensao}`;
+      const { error } = await supabase.storage.from(bucket).upload(caminho, arquivo, {
+        contentType: inferirContentType(arquivo.name, arquivo.type),
+        upsert: false,
+      });
+
+      if (error) {
+        setEstado("erro");
+        setMensagem(`Não consegui enviar: ${error.message}`);
+        return;
+      }
+
+      const { data } = supabase.storage.from(bucket).getPublicUrl(caminho);
+      setUrl(data.publicUrl);
+      setEstado("pronto");
+      setMensagem(`${arquivo.name} enviado.`);
+    } catch (erro) {
       setEstado("erro");
-      setMensagem("Sua sessão expirou. Recarregue a página e entre de novo.");
-      return;
+      setMensagem(`Falhou no envio: ${erro instanceof Error ? erro.message : String(erro)}`);
     }
-
-    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
-    const { error } = await supabase.storage.from(bucket).upload(caminho, arquivo, {
-      contentType: inferirContentType(arquivo.name, arquivo.type),
-      upsert: false,
-    });
-
-    if (error) {
-      setEstado("erro");
-      setMensagem(`Não consegui enviar: ${error.message}`);
-      return;
-    }
-
-    const { data } = supabase.storage.from(bucket).getPublicUrl(caminho);
-    setUrl(data.publicUrl);
-    setEstado("pronto");
-    setMensagem(`${arquivo.name} enviado.`);
   }
 
   function limpar() {

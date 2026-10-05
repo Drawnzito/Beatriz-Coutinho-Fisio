@@ -147,7 +147,7 @@ export default async function ExerciciosPage({
               )}
             </div>
 
-            <div style={{ display: "grid", gap: 10 }}>
+            <div className="grade-auto grade-auto--2">
               {(planoSelecionado.plano_exercicios ?? [])
                 .sort((a: any, b: any) => a.ordem - b.ordem)
                 .map((item: any) => {
@@ -216,7 +216,7 @@ export default async function ExerciciosPage({
                   </h3>
                 </summary>
 
-                <div style={{ display: "grid", gap: 10 }}>
+                <div className="grade-auto grade-auto--2">
                   {(plano.plano_exercicios ?? [])
                     .sort((a: any, b: any) => a.ordem - b.ordem)
                     .map((item: any) => {

@@ -207,7 +207,7 @@ export default async function InicioPage({
           </p>
         )}
 
-        <div style={{ display: "grid", gap: 10 }}>
+        <div className="grade-auto grade-auto--2">
           {(avisos ?? []).map((a) => (
             <div key={a.id} style={avisoCartao}>
               <strong style={{ fontFamily: "var(--fonte-titulo)", color: "var(--cor-primaria-escura)", fontSize: 14.5 }}>
@@ -280,7 +280,9 @@ export default async function InicioPage({
             />
           )}
 
-          <div style={{ display: "grid", gap: 10 }}>
+          {/* Duas colunas no computador só na visão da fisio: ela costuma ter
+              vários pacientes no mesmo dia, a paciente tem uma sessão só. */}
+          <div className={ehAdmin ? "grade-auto grade-auto--2" : "grade-auto"}>
             {itensDoDia.map((item: any) => (
               <div key={item.id} style={sessaoCartao}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -444,7 +446,7 @@ export default async function InicioPage({
               {(proximasSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 36 }}>Próximas sessões</h2>
-                  <div style={{ display: "grid", gap: 8 }}>{(proximasSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <div className="grade-auto grade-auto--2">{(proximasSessoes ?? []).map(cartaoOutraSessao)}</div>
                   <Paginacao
                     pagina={paginaProximas}
                     total={totalProximas ?? 0}
@@ -456,7 +458,7 @@ export default async function InicioPage({
               {(anterioresSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 28 }}>Sessões anteriores</h2>
-                  <div style={{ display: "grid", gap: 8 }}>{(anterioresSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <div className="grade-auto grade-auto--2">{(anterioresSessoes ?? []).map(cartaoOutraSessao)}</div>
                   <Paginacao
                     pagina={paginaAnteriores}
                     total={totalAnteriores ?? 0}

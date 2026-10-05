@@ -19,13 +19,36 @@ const TIPOS_POR_EXTENSAO: Record<string, string> = {
   pdf: "application/pdf",
 };
 
-export function extensaoDe(nomeArquivo: string): string {
-  return nomeArquivo.split(".").pop()?.toLowerCase() || "";
+const EXTENSAO_POR_TIPO: Record<string, string> = Object.fromEntries(
+  Object.entries(TIPOS_POR_EXTENSAO).map(([extensao, tipo]) => [tipo, extensao])
+);
+
+/**
+ * Extensao do arquivo, caindo no MIME quando o nome nao tem ponto.
+ *
+ * Varios seletores de arquivo do Android entregam o arquivo como "image" ou
+ * "video", sem extensao nenhuma - sem esse fallback a validacao rejeitava um
+ * arquivo perfeitamente valido.
+ */
+export function extensaoDe(nomeArquivo: string, tipoDetectado?: string): string {
+  const partes = nomeArquivo.split(".");
+  if (partes.length > 1) {
+    const extensao = partes.pop()?.toLowerCase() || "";
+    if (extensao) return extensao;
+  }
+
+  if (tipoDetectado && EXTENSAO_POR_TIPO[tipoDetectado]) {
+    return EXTENSAO_POR_TIPO[tipoDetectado];
+  }
+
+  // Ultimo recurso: "image/jpeg" -> "jpeg", "video/mp4" -> "mp4"
+  const sufixo = tipoDetectado?.split("/")[1]?.toLowerCase() || "";
+  return sufixo.replace(/[^a-z0-9]/g, "");
 }
 
 export function inferirContentType(nomeArquivo: string, tipoDetectado?: string): string | undefined {
   if (tipoDetectado) return tipoDetectado;
-  return TIPOS_POR_EXTENSAO[extensaoDe(nomeArquivo)];
+  return TIPOS_POR_EXTENSAO[extensaoDe(nomeArquivo, tipoDetectado)];
 }
 
 export const EXTENSOES_MIDIA = ["gif", "png", "jpg", "jpeg", "webp", "heic", "mp4", "webm", "mov", "ogg"];

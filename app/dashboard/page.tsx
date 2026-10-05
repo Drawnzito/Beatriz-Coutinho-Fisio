@@ -709,7 +709,7 @@ export default async function DashboardPage({
                       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
                         Histórico de sessões ({totalSessoesDetalhe})
                       </p>
-                      <div style={{ display: "grid", gap: 8 }}>
+                      <div className="grade-auto grade-auto--2">
                         {sessoesDetalhe.map((s) => (
                           <div key={s.id} style={{ ...cartao, borderLeft: `3px solid ${corTipoSessao(s.tipo)}`, borderRadius: "0 10px 10px 0" }}>
                             <div>
@@ -817,7 +817,7 @@ export default async function DashboardPage({
                         </Link>
                       </div>
 
-                      <div style={{ display: "grid", gap: 10 }}>
+                      <div className="grade-auto grade-auto--2">
                         {(pacientesLista ?? []).map((p: any) => (
                           <Link key={p.id} href={hrefPacientes({ verPaciente: p.id })} style={{ ...cartao, textDecoration: "none", color: "inherit" }}>
                             <div>
@@ -1261,7 +1261,7 @@ export default async function DashboardPage({
                     </form>
                   )}
 
-                  <div style={{ display: "grid", gap: 10 }}>
+                  <div className="grade-auto grade-auto--2">
                     {(sessoes ?? []).map((s: any) => (
                       <div key={s.id} style={cartao}>
                         <div>
@@ -1345,7 +1345,7 @@ export default async function DashboardPage({
                     <button type="submit" style={botaoPrimario}>Publicar aviso</button>
                   </form>
 
-                  <div style={{ display: "grid", gap: 10 }}>
+                  <div className="grade-auto grade-auto--2">
                     {(avisos ?? []).map((a) => {
                       const expirado = a.validade && a.validade < hojeIso;
                       return (
@@ -1490,7 +1490,7 @@ export default async function DashboardPage({
                     Marque como "usada" quando aplicar o desconto.
                   </p>
 
-                  <div style={{ display: "grid", gap: 10 }}>
+                  <div className="grade-auto grade-auto--2">
                     {(indicacoes ?? []).map((i: any) => (
                       <div key={i.id} style={{ ...cartao, alignItems: "flex-start" }}>
                         <div>
