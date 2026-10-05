@@ -285,6 +285,30 @@ export async function duplicarPlano(id: string) {
   irComSucesso("Plano duplicado", "plano");
 }
 
+/**
+ * Apaga o plano de vez. Usado pra limpar plano de teste — desativar deixa
+ * o plano na tela da fisio pra sempre.
+ *
+ * Seguro por causa das chaves estrangeiras já definidas no schema:
+ * `plano_exercicios.plano_id` cai junto (on delete cascade) e
+ * `sessoes.plano_id` vira nulo (on delete set null), então o histórico de
+ * sessões da paciente continua existindo, só sem o vínculo com o plano.
+ */
+export async function removerPlano(id: string) {
+  const { supabase } = await exigirAdmin();
+
+  const { error } = await supabase.from("planos").delete().eq("id", id);
+  if (error) {
+    irComErro(error.message, "planos");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  revalidatePath("/exercicios");
+  irComSucesso("Plano removido", "planos");
+}
+
 export async function criarSessao(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 

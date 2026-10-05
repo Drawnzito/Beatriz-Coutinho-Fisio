@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Montserrat } from "next/font/google";
 import "./globals.css";
+import { AvisoCookies } from "@/components/AvisoCookies";
 
 const fonteTitulo = Playfair_Display({
   subsets: ["latin"],
@@ -40,7 +41,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" className={`${fonteTitulo.variable} ${fonteCorpo.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <AvisoCookies />
+      </body>
     </html>
   );
 }

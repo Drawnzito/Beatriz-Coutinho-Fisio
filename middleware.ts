@@ -54,7 +54,12 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
     pathname === "/robots.txt" ||
-    pathname === "/sitemap.xml";
+    pathname === "/sitemap.xml" ||
+    // Arquivo de verificação do Google Search Console. Precisa responder o
+    // conteúdo cru pro robô — se cair no redirecionamento do login, o Google
+    // não consegue confirmar a propriedade do site.
+    pathname.startsWith("/google") ||
+    pathname === "/politica-de-privacidade";
 
   if (!user && !rotaPublica) {
     const url = request.nextUrl.clone();
@@ -77,6 +82,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Arquivos estáticos não passam pelo middleware. O `.html` entrou na
+    // lista por causa do arquivo de verificação do Search Console.
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|html)$).*)",
   ],
 };

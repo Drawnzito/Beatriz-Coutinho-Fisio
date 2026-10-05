@@ -39,6 +39,7 @@ import {
   atualizarPlano,
   alternarAtivoPlano,
   duplicarPlano,
+  removerPlano,
   criarSessao,
   removerSessao,
   criarBloqueioAgenda,
@@ -965,6 +966,19 @@ export default async function DashboardPage({
                           <form action={alternarAtivoPlano.bind(null, pl.id)}>
                             <input type="hidden" name="ativo_atual" value={String(pl.ativo)} />
                             <button type="submit" style={botaoTexto}>{pl.ativo ? "desativar" : "reativar"}</button>
+                          </form>
+                          <form action={removerPlano.bind(null, pl.id)}>
+                            <BotaoPerigo
+                              mensagemConfirmacao={
+                                `Remover o plano "${pl.titulo}" de vez?\n\n` +
+                                `Os exercícios do plano são apagados junto. ` +
+                                `As sessões já registradas continuam no histórico, ` +
+                                `só deixam de apontar pra esse plano.\n\nIsso não tem volta.`
+                              }
+                              style={{ ...botaoTexto, color: "#a2334a" }}
+                            >
+                              remover
+                            </BotaoPerigo>
                           </form>
                         </div>
                       </div>

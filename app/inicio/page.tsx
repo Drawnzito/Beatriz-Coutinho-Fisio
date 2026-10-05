@@ -24,6 +24,7 @@ import { rotuloEspecialidade } from "@/lib/especialidades";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import { AvaliarAtendimento } from "@/components/AvaliarAtendimento";
 import { GuiaPrimeirosPassos } from "@/components/GuiaPrimeirosPassos";
+import { BotaoFlutuanteGuia } from "@/components/BotaoFlutuanteGuia";
 import { marcarGuiaVisto } from "@/app/perfil/actions";
 
 export const dynamic = "force-dynamic";
@@ -519,6 +520,10 @@ export default async function InicioPage({
           );
         })()}
       </main>
+
+      {/* Atalho pro guia: sempre à vista, mas dispensável no X. Só pra
+          paciente — a fisio não precisa do tour da visão dela. */}
+      {!ehAdmin && <BotaoFlutuanteGuia />}
 
       <BottomNav papel={ehAdmin ? "admin" : "paciente"} />
     </>
