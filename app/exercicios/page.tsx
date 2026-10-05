@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function ExerciciosPage({
   searchParams,
 }: {
-  searchParams: { paciente?: string; sucesso?: string };
+  searchParams: { paciente?: string; sucesso?: string; treino?: string };
 }) {
   const supabase = createClient();
   const {
@@ -55,6 +55,12 @@ export default async function ExerciciosPage({
   const planos = (todosOsPlanos ?? []).filter((p) => p.ativo);
   const planosAnteriores = (todosOsPlanos ?? []).filter((p) => !p.ativo);
 
+  // Antes todos os treinos eram <details> sem seta, com so o primeiro aberto:
+  // quem tinha mais de um nao percebia que havia outros. Agora e uma selecao
+  // explicita, com o treino escolhido na URL.
+  const planoSelecionado =
+    planos.find((p) => p.id === searchParams.treino) ?? planos[0] ?? null;
+
   return (
     <>
       {vendoComoPaciente && <AvisoModoTeste />}
@@ -67,33 +73,70 @@ export default async function ExerciciosPage({
           </p>
         )}
 
-        {planos.map((plano: any, indice: number) => (
-          <details key={plano.id} style={{ marginBottom: 14 }} open={indice === 0}>
-            <summary
+        {planos.length > 1 && (
+          <div style={{ marginBottom: 18 }}>
+            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)" }}>
+              Você tem {planos.length} treinos — escolha qual quer ver:
+            </p>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+              {planos.map((plano: any) => {
+                const ativo = plano.id === planoSelecionado?.id;
+                return (
+                  <Link
+                    key={plano.id}
+                    href={`/exercicios?treino=${plano.id}`}
+                    scroll={false}
+                    style={{
+                      flexShrink: 0,
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      textDecoration: "none",
+                      border: `1px solid ${ativo ? "var(--cor-primaria)" : "var(--cor-borda)"}`,
+                      background: ativo ? "var(--cor-primaria)" : "var(--cor-superficie)",
+                      color: ativo ? "#fff" : "var(--cor-texto-suave)",
+                    }}
+                  >
+                    {plano.titulo}
+                    <span style={{ marginLeft: 6, fontWeight: 500, opacity: 0.8 }}>
+                      ({(plano.plano_exercicios ?? []).length})
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {planoSelecionado && (
+          <section style={{ marginBottom: 14 }}>
+            <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 10,
-                cursor: "pointer",
-                listStyle: "none",
+                gap: 10,
+                marginBottom: 12,
+                flexWrap: "wrap",
               }}
             >
-              <h3 style={{ fontSize: 15, color: "var(--cor-texto)", margin: 0 }}>
-                {plano.titulo}
+              <h3 style={{ fontSize: 16, color: "var(--cor-primaria)", margin: 0, fontFamily: "var(--fonte-titulo)" }}>
+                {planoSelecionado.titulo}
                 <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: "var(--cor-texto-suave)" }}>
-                  {(plano.plano_exercicios ?? []).length} exercício{(plano.plano_exercicios ?? []).length === 1 ? "" : "s"}
+                  {(planoSelecionado.plano_exercicios ?? []).length} exercício
+                  {(planoSelecionado.plano_exercicios ?? []).length === 1 ? "" : "s"}
                 </span>
               </h3>
-              {(plano.plano_exercicios ?? []).length > 0 && (
+              {(planoSelecionado.plano_exercicios ?? []).length > 0 && (
                 <Link
-                  href={`/treino/${plano.id}`}
+                  href={`/treino/${planoSelecionado.id}`}
                   style={{
                     fontSize: 12.5,
                     fontWeight: 700,
                     color: "#fff",
                     background: "var(--cor-primaria)",
-                    padding: "6px 12px",
+                    padding: "8px 14px",
                     borderRadius: 999,
                     textDecoration: "none",
                   }}
@@ -101,10 +144,10 @@ export default async function ExerciciosPage({
                   ▶ Iniciar treino
                 </Link>
               )}
-            </summary>
+            </div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              {(plano.plano_exercicios ?? [])
+              {(planoSelecionado.plano_exercicios ?? [])
                 .sort((a: any, b: any) => a.ordem - b.ordem)
                 .map((item: any) => {
                   const ex = item.exercicios;
@@ -140,9 +183,14 @@ export default async function ExerciciosPage({
                     </div>
                   );
                 })}
+              {(planoSelecionado.plano_exercicios ?? []).length === 0 && (
+                <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>
+                  Esse treino ainda não tem exercícios.
+                </p>
+              )}
             </div>
-          </details>
-        ))}
+          </section>
+        )}
 
         {planosAnteriores.length > 0 && (
           <details style={{ marginTop: 20 }}>

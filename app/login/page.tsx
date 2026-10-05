@@ -7,6 +7,9 @@ import { Marca } from "@/components/Marca";
 import { AcentoArabesque, AcentoCadencia } from "@/components/Acentos";
 import styles from "./login.module.css";
 
+/** Tempo da vinheta de abertura. Precisa casar com os delays do login.module.css. */
+const DURACAO_VINHETA_MS = 3000;
+
 const MENSAGENS_ERRO: Record<string, string> = {
   auth_sem_codigo:
     "O Google não retornou um código de autenticação. Tente entrar novamente.",
@@ -30,8 +33,11 @@ function LoginForm() {
   const [fase, setFase] = useState<"abertura" | "entrada">("abertura");
 
   useEffect(() => {
-    const reduzMovimento = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(() => setFase("entrada"), reduzMovimento ? 300 : 4760);
+    // 3s fixos, com ou sem animacao. Antes caia pra 300ms quando o sistema
+    // pedia menos movimento (o padrao de varios Windows), e a vinheta sumia
+    // num piscar no computador enquanto rodava inteira no celular.
+    // "Menos movimento" aqui significa mostrar a marca parada, nao esconder.
+    const t = setTimeout(() => setFase("entrada"), DURACAO_VINHETA_MS);
     return () => clearTimeout(t);
   }, []);
 

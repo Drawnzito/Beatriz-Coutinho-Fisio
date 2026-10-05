@@ -18,8 +18,10 @@ import { Paginacao } from "@/components/Paginacao";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import { ResumoAvaliacoes } from "@/components/ResumoAvaliacoes";
 import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
-import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
 import { CampoEspecialidade } from "@/components/CampoEspecialidade";
+import { ChipEspecialidade } from "@/components/ChipEspecialidade";
+import { UploadArquivo } from "@/components/UploadArquivo";
+import { EXTENSOES_MIDIA, EXTENSOES_IMAGEM, EXTENSOES_PDF } from "@/lib/tiposArquivo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -390,24 +392,25 @@ export default async function DashboardPage({
                     <input name="titulo" placeholder="Nome do exercício" required style={campo} />
                     <input name="categoria" placeholder="Categoria (ex: mobilidade, fortalecimento)" style={campo} />
                     <textarea name="descricao" placeholder="Descrição / como executar" rows={3} style={campo} />
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                        Vídeo/gif demonstrativo — envie um arquivo:
-                      </label>
-                      <input name="video_arquivo" type="file" accept="video/*,image/*" style={campo} />
-                    </div>
+                    <UploadArquivo
+                      nome="video_arquivo_url"
+                      bucket="exercicios"
+                      rotulo="Vídeo/gif demonstrativo — envie um arquivo:"
+                      ajuda="GIF, foto ou vídeo da galeria. Até 50 MB."
+                      extensoes={EXTENSOES_MIDIA}
+                    />
                     <div style={{ display: "grid", gap: 4 }}>
                       <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                         ...ou cole um link (Youtube, Instagram, Drive):
                       </label>
                       <input name="video_url" placeholder="https://..." style={campo} />
                     </div>
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                        PDF passo a passo (opcional) — envie um arquivo:
-                      </label>
-                      <input name="pdf_arquivo" type="file" accept="application/pdf" style={campo} />
-                    </div>
+                    <UploadArquivo
+                      nome="pdf_arquivo_url"
+                      bucket="exercicios"
+                      rotulo="PDF passo a passo (opcional) — envie um arquivo:"
+                      extensoes={EXTENSOES_PDF}
+                    />
                     <div style={{ display: "grid", gap: 4 }}>
                       <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                         ...ou cole um link do PDF:
@@ -470,24 +473,27 @@ export default async function DashboardPage({
                             <input name="titulo" defaultValue={ex.titulo} required style={campo} />
                             <input name="categoria" defaultValue={ex.categoria} style={campo} />
                             <textarea name="descricao" defaultValue={ex.descricao ?? ""} rows={3} style={campo} />
-                            <div style={{ display: "grid", gap: 4 }}>
-                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                Trocar vídeo/gif — envie um novo arquivo:
-                              </label>
-                              <input name="video_arquivo" type="file" accept="video/*,image/*" style={campo} />
-                            </div>
+                            <UploadArquivo
+                              nome="video_arquivo_url"
+                              bucket="exercicios"
+                              rotulo="Trocar vídeo/gif — envie um novo arquivo:"
+                              ajuda="Deixe em branco pra manter o atual."
+                              extensoes={EXTENSOES_MIDIA}
+                            />
                             <div style={{ display: "grid", gap: 4 }}>
                               <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                                 ...ou cole um novo link (deixe em branco pra manter o atual):
                               </label>
                               <input name="video_url" placeholder="https://..." style={campo} />
                             </div>
-                            <div style={{ display: "grid", gap: 4 }}>
-                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                Trocar PDF — envie um novo arquivo:
-                              </label>
-                              <input name="pdf_arquivo" type="file" accept="application/pdf" style={campo} />
-                            </div>
+                            <UploadArquivo
+                              nome="pdf_arquivo_url"
+                              bucket="exercicios"
+                              rotulo="Trocar PDF — envie um novo arquivo:"
+                              ajuda="Deixe em branco pra manter o atual."
+                              extensoes={EXTENSOES_PDF}
+                            />
+
                             <div style={{ display: "grid", gap: 4 }}>
                               <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                                 ...ou cole um novo link do PDF (deixe em branco pra manter o atual):
@@ -703,10 +709,13 @@ export default async function DashboardPage({
                                 </strong>
                                 <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                               </div>
-                              <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                              {s.especialidade && (
+                                <div style={{ margin: "6px 0 0" }}>
+                                  <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} tamanho="pequeno" />
+                                </div>
+                              )}
+                              <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
                                 {rotuloTipoSessao(s.tipo)}
-                                {rotuloEspecialidade(s.especialidade) ? ` · ${rotuloEspecialidade(s.especialidade)}` : ""}
-                                {s.modalidade ? ` (${rotuloModalidade(s.modalidade)})` : ""}
                                 {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
                               </p>
                               {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
@@ -1056,10 +1065,16 @@ export default async function DashboardPage({
                                 {new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}
                                 {s.hora ? ` às ${s.hora.slice(0, 5)}` : " · sem horário definido"}
                               </strong>
-                              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                {s.perfis?.nome || s.perfis?.email} · {rotuloTipoSessao(s.tipo)}
-                                {rotuloEspecialidade(s.especialidade) ? ` · ${rotuloEspecialidade(s.especialidade)}` : ""}
-                                {s.modalidade ? ` (${rotuloModalidade(s.modalidade)})` : ""}
+                              <p style={{ margin: "6px 0 0", fontSize: 13.5, fontWeight: 700 }}>
+                                {s.perfis?.nome || s.perfis?.email}
+                              </p>
+                              {s.especialidade && (
+                                <div style={{ margin: "6px 0 0" }}>
+                                  <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} />
+                                </div>
+                              )}
+                              <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                                {rotuloTipoSessao(s.tipo)}
                               </p>
                               {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
 
@@ -1154,15 +1169,33 @@ export default async function DashboardPage({
                             </strong>
                             <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                           </div>
-                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                          {/* Hierarquia: paciente > especialidade > tipo/profissional > plano */}
+                          <p style={{ margin: "6px 0 0", fontSize: 14, fontWeight: 700, color: "var(--cor-texto)" }}>
                             {s.perfis?.nome || s.perfis?.email}
-                            {numerosSessao.has(s.id) ? ` · Sessão nº ${numerosSessao.get(s.id)}` : ""} ·{" "}
-                            <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong> ·{" "}
-                            <strong style={{ color: "var(--cor-primaria)" }}>{perfilAtual?.nome || "Beatriz Coutinho"}</strong>
-                            {rotuloEspecialidade(s.especialidade) ? ` · ${rotuloEspecialidade(s.especialidade)}` : ""}
-                            {s.modalidade ? ` (${rotuloModalidade(s.modalidade)})` : ""}
-                            {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
+                            {numerosSessao.has(s.id) && (
+                              <span style={{ fontWeight: 500, color: "var(--cor-texto-suave)" }}>
+                                {" "}· Sessão nº {numerosSessao.get(s.id)}
+                              </span>
+                            )}
                           </p>
+
+                          {s.especialidade && (
+                            <div style={{ margin: "6px 0 0" }}>
+                              <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} />
+                            </div>
+                          )}
+
+                          <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                            <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong>
+                            {" · "}
+                            <strong style={{ color: "var(--cor-primaria)" }}>{perfilAtual?.nome || "Beatriz Coutinho"}</strong>
+                          </p>
+
+                          {s.planos?.titulo && (
+                            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--cor-texto-suave)" }}>
+                              Plano: {s.planos.titulo}
+                            </p>
+                          )}
                           {s.observacoes && (
                             <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>
                           )}
@@ -1239,10 +1272,13 @@ export default async function DashboardPage({
                   <form action={criarDestaque} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
                     <input name="titulo" placeholder="Título (ex: Curso Cuidados com o bebê)" required style={campo} />
                     <textarea name="subtitulo" placeholder="Texto menor, embaixo do título (opcional)" rows={2} style={campo} />
-                    <div style={{ display: "grid", gap: 4 }}>
-                      <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>Foto — envie um arquivo:</label>
-                      <input name="imagem_arquivo" type="file" accept="image/*" style={campo} />
-                    </div>
+                    <UploadArquivo
+                      nome="imagem_arquivo_url"
+                      bucket="destaques"
+                      rotulo="Foto — envie um arquivo:"
+                      ajuda="Melhor resultado com imagem deitada (paisagem), até 50 MB."
+                      extensoes={EXTENSOES_IMAGEM}
+                    />
                     <div style={{ display: "grid", gap: 4 }}>
                       <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                         ...ou cole o link de uma imagem:
@@ -1260,12 +1296,13 @@ export default async function DashboardPage({
                           <form action={atualizarDestaque.bind(null, d.id)} style={{ display: "grid", gap: 10 }}>
                             <input name="titulo" defaultValue={d.titulo} required style={campo} />
                             <textarea name="subtitulo" defaultValue={d.subtitulo ?? ""} rows={2} style={campo} />
-                            <div style={{ display: "grid", gap: 4 }}>
-                              <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                Trocar foto — envie um novo arquivo:
-                              </label>
-                              <input name="imagem_arquivo" type="file" accept="image/*" style={campo} />
-                            </div>
+                            <UploadArquivo
+                              nome="imagem_arquivo_url"
+                              bucket="destaques"
+                              rotulo="Trocar foto — envie um novo arquivo:"
+                              ajuda="Deixe em branco pra manter a atual."
+                              extensoes={EXTENSOES_IMAGEM}
+                            />
                             <div style={{ display: "grid", gap: 4 }}>
                               <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
                                 ...ou cole um novo link (deixe em branco pra manter a atual):

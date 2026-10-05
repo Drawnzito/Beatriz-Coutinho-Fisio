@@ -19,7 +19,7 @@ import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
-import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
+import { ChipEspecialidade } from "@/components/ChipEspecialidade";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import { AvaliarAtendimento } from "@/components/AvaliarAtendimento";
 import { GuiaPrimeirosPassos } from "@/components/GuiaPrimeirosPassos";
@@ -79,7 +79,7 @@ export default async function InicioPage({
     .order("hora", { ascending: true });
   if (!ehAdmin) consultaSemana = consultaSemana.eq("paciente_id", user.id);
 
-  const TAMANHO_HISTORICO = 8;
+  const TAMANHO_HISTORICO = 5;
   const paginaProximas = Math.max(1, parseInt(searchParams.paginaProximas ?? "1", 10) || 1);
   const paginaAnteriores = Math.max(1, parseInt(searchParams.paginaAnteriores ?? "1", 10) || 1);
 
@@ -295,6 +295,13 @@ export default async function InicioPage({
                   </strong>
                 </div>
 
+                {/* Especialidade vem antes do plano: e o dado que define o atendimento */}
+                {item.especialidade && (
+                  <div style={{ marginTop: 8 }}>
+                    <ChipEspecialidade especialidade={item.especialidade} modalidade={item.modalidade} />
+                  </div>
+                )}
+
                 <div style={{ marginTop: 8 }}>
                   {ehAdmin ? (
                     <BadgeStatusSessao status={item.status} motivoRecusa={item.motivo_recusa} />
@@ -377,6 +384,11 @@ export default async function InicioPage({
                   </strong>
                   <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                 </div>
+                {s.especialidade && (
+                  <div style={{ margin: "6px 0 0" }}>
+                    <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} tamanho="pequeno" />
+                  </div>
+                )}
                 <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
                   {numerosSessao.has(s.id) ? `Sessão nº ${numerosSessao.get(s.id)} · ` : ""}
                   <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong>
@@ -387,8 +399,12 @@ export default async function InicioPage({
                     </>
                   ) : null}
                   {ehAdmin && (s.perfis?.nome || s.perfis?.email) ? ` · ${s.perfis.nome || s.perfis.email}` : ""}
-                  {s.planos?.titulo ? ` · ${s.planos.titulo}` : ""}
                 </p>
+                {s.planos?.titulo && (
+                  <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--cor-texto-suave)" }}>
+                    Plano: {s.planos.titulo}
+                  </p>
+                )}
                 {!ehAdmin && s.status === "confirmada" && s.data <= hojeIso && !sessoesJaAvaliadas.has(s.id) && (
                   <AvaliarAtendimento sessaoId={s.id} />
                 )}

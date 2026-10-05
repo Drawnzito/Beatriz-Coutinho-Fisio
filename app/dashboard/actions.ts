@@ -8,24 +8,6 @@ import { enviarEmail } from "@/lib/email";
 import { rotuloTipoSessao } from "@/lib/tiposSessao";
 import { verificarConflito } from "@/lib/disponibilidade";
 
-const TIPOS_POR_EXTENSAO: Record<string, string> = {
-  gif: "image/gif",
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  webp: "image/webp",
-  mp4: "video/mp4",
-  webm: "video/webm",
-  mov: "video/quicktime",
-  ogg: "video/ogg",
-};
-
-function inferirContentType(nomeArquivo: string, tipoDetectado: string): string | undefined {
-  if (tipoDetectado) return tipoDetectado;
-  const extensao = nomeArquivo.split(".").pop()?.toLowerCase() || "";
-  return TIPOS_POR_EXTENSAO[extensao];
-}
-
 function irComSucesso(mensagem: string, aba: string, extraParams: Record<string, string | undefined> = {}) {
   const params = new URLSearchParams({ sucesso: mensagem, aba });
   for (const [chave, valor] of Object.entries(extraParams)) {
@@ -63,42 +45,18 @@ async function exigirAdmin() {
 export async function criarExercicio(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 
-  let videoUrl = String(formData.get("video_url") || "") || null;
+  // O arquivo ja subiu pro Storage pelo navegador (components/UploadArquivo),
+  // aqui so chega a URL publica. Upload direto evita o teto de 1 MB do corpo
+  // de um Server Action, que fazia GIF de galeria falhar calado.
+  const videoUrl =
+    String(formData.get("video_arquivo_url") || "").trim() ||
+    String(formData.get("video_url") || "").trim() ||
+    null;
 
-  const arquivo = formData.get("video_arquivo") as File | null;
-  if (arquivo && arquivo.size > 0) {
-    const extensao = arquivo.name.split(".").pop() || "bin";
-    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
-
-    const { error: erroUpload } = await supabase.storage
-      .from("exercicios")
-      .upload(caminho, arquivo, { contentType: inferirContentType(arquivo.name, arquivo.type) });
-
-    if (!erroUpload) {
-      const { data: publicUrlData } = supabase.storage
-        .from("exercicios")
-        .getPublicUrl(caminho);
-      videoUrl = publicUrlData.publicUrl;
-    }
-  }
-
-  let pdfUrl = String(formData.get("pdf_url") || "") || null;
-
-  const arquivoPdf = formData.get("pdf_arquivo") as File | null;
-  if (arquivoPdf && arquivoPdf.size > 0) {
-    const caminho = `${user.id}/${crypto.randomUUID()}.pdf`;
-
-    const { error: erroUploadPdf } = await supabase.storage
-      .from("exercicios")
-      .upload(caminho, arquivoPdf, { contentType: "application/pdf" });
-
-    if (!erroUploadPdf) {
-      const { data: publicUrlData } = supabase.storage
-        .from("exercicios")
-        .getPublicUrl(caminho);
-      pdfUrl = publicUrlData.publicUrl;
-    }
-  }
+  const pdfUrl =
+    String(formData.get("pdf_arquivo_url") || "").trim() ||
+    String(formData.get("pdf_url") || "").trim() ||
+    null;
 
   const { error } = await supabase.from("exercicios").insert({
     titulo: String(formData.get("titulo") || ""),
@@ -136,42 +94,17 @@ export async function atualizarExercicio(id: string, formData: FormData) {
     repeticoes_padrao: Number(formData.get("repeticoes_padrao")) || null,
   };
 
-  const videoUrlDigitada = String(formData.get("video_url") || "").trim();
-  const arquivo = formData.get("video_arquivo") as File | null;
+  // Campo em branco = manter o que ja estava salvo (por isso o `if`, e nao um
+  // `?? null`): o formulario de edicao nao reenvia a midia atual.
+  const videoNovo =
+    String(formData.get("video_arquivo_url") || "").trim() ||
+    String(formData.get("video_url") || "").trim();
+  if (videoNovo) atualizacao.video_url = videoNovo;
 
-  if (arquivo && arquivo.size > 0) {
-    const extensao = arquivo.name.split(".").pop() || "bin";
-    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
-
-    const { error: erroUpload } = await supabase.storage
-      .from("exercicios")
-      .upload(caminho, arquivo, { contentType: inferirContentType(arquivo.name, arquivo.type) });
-
-    if (!erroUpload) {
-      const { data: publicUrlData } = supabase.storage.from("exercicios").getPublicUrl(caminho);
-      atualizacao.video_url = publicUrlData.publicUrl;
-    }
-  } else if (videoUrlDigitada) {
-    atualizacao.video_url = videoUrlDigitada;
-  }
-
-  const pdfUrlDigitada = String(formData.get("pdf_url") || "").trim();
-  const arquivoPdf = formData.get("pdf_arquivo") as File | null;
-
-  if (arquivoPdf && arquivoPdf.size > 0) {
-    const caminho = `${user.id}/${crypto.randomUUID()}.pdf`;
-
-    const { error: erroUploadPdf } = await supabase.storage
-      .from("exercicios")
-      .upload(caminho, arquivoPdf, { contentType: "application/pdf" });
-
-    if (!erroUploadPdf) {
-      const { data: publicUrlData } = supabase.storage.from("exercicios").getPublicUrl(caminho);
-      atualizacao.pdf_url = publicUrlData.publicUrl;
-    }
-  } else if (pdfUrlDigitada) {
-    atualizacao.pdf_url = pdfUrlDigitada;
-  }
+  const pdfNovo =
+    String(formData.get("pdf_arquivo_url") || "").trim() ||
+    String(formData.get("pdf_url") || "").trim();
+  if (pdfNovo) atualizacao.pdf_url = pdfNovo;
 
   const { error } = await supabase.from("exercicios").update(atualizacao).eq("id", id);
   if (error) irComErro(error.message, "biblioteca");
@@ -707,22 +640,10 @@ export async function criarDestaque(formData: FormData) {
   const titulo = String(formData.get("titulo") || "").trim();
   const subtitulo = String(formData.get("subtitulo") || "").trim() || null;
   const linkUrl = String(formData.get("link_url") || "").trim() || null;
-  let imagemUrl = String(formData.get("imagem_url") || "").trim() || null;
-
-  const arquivo = formData.get("imagem_arquivo") as File | null;
-  if (arquivo && arquivo.size > 0) {
-    const extensao = arquivo.name.split(".").pop() || "jpg";
-    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
-
-    const { error: erroUpload } = await supabase.storage
-      .from("destaques")
-      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
-
-    if (!erroUpload) {
-      const { data: publicUrlData } = supabase.storage.from("destaques").getPublicUrl(caminho);
-      imagemUrl = publicUrlData.publicUrl;
-    }
-  }
+  const imagemUrl =
+    String(formData.get("imagem_arquivo_url") || "").trim() ||
+    String(formData.get("imagem_url") || "").trim() ||
+    null;
 
   if (!titulo || !imagemUrl) {
     irComErro("título e imagem são obrigatórios", "destaques");
@@ -760,24 +681,10 @@ export async function atualizarDestaque(id: string, formData: FormData) {
     link_url: String(formData.get("link_url") || "").trim() || null,
   };
 
-  const imagemUrlDigitada = String(formData.get("imagem_url") || "").trim();
-  const arquivo = formData.get("imagem_arquivo") as File | null;
-
-  if (arquivo && arquivo.size > 0) {
-    const extensao = arquivo.name.split(".").pop() || "jpg";
-    const caminho = `${user.id}/${crypto.randomUUID()}.${extensao}`;
-
-    const { error: erroUpload } = await supabase.storage
-      .from("destaques")
-      .upload(caminho, arquivo, { contentType: arquivo.type || undefined });
-
-    if (!erroUpload) {
-      const { data: publicUrlData } = supabase.storage.from("destaques").getPublicUrl(caminho);
-      atualizacao.imagem_url = publicUrlData.publicUrl;
-    }
-  } else if (imagemUrlDigitada) {
-    atualizacao.imagem_url = imagemUrlDigitada;
-  }
+  const imagemNova =
+    String(formData.get("imagem_arquivo_url") || "").trim() ||
+    String(formData.get("imagem_url") || "").trim();
+  if (imagemNova) atualizacao.imagem_url = imagemNova;
 
   const { error } = await supabase.from("destaques").update(atualizacao).eq("id", id);
   if (error) irComErro(error.message, "destaques");

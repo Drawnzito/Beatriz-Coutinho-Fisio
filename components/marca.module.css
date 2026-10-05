@@ -17,8 +17,8 @@
   stroke-linecap: round;
   stroke-dasharray: 1;
   stroke-dashoffset: 1;
-  animation: arcoDesenha 1.6s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
-  animation-delay: 0.77s;
+  animation: arcoDesenha 1.1s cubic-bezier(0.3, 0.7, 0.2, 1) forwards;
+  animation-delay: 0.5s;
 }
 
 .ponto {
@@ -28,7 +28,8 @@
   animation:
     pontoSurge 0.7s cubic-bezier(0.2, 1.4, 0.4, 1) forwards,
     pontoRespira 4.5s ease-in-out infinite;
-  animation-delay: 2.17s, 2.9s;
+  /* Fecha antes dos 2.5s em que a vinheta do login comeca a sair. */
+  animation-delay: 1.5s, 2.1s;
 }
 
 @keyframes letraEntra {
