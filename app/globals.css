@@ -71,6 +71,21 @@ button {
   grid-template-columns: 1fr;
 }
 
+/* Grade de cartões de leitura rápida: já nasce em duas colunas no celular.
+   Só serve pra cartão enxuto — conteúdo longo não cabe em meia tela. */
+.grade-compacta {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 900px) {
+  .grade-compacta {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+}
+
 /* ==========================================================
    NAVEGAÇÃO
    ==========================================================

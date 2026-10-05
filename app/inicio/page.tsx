@@ -20,6 +20,7 @@ import { semanaAtual } from "@/lib/semana";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
 import { rotuloTipoSessao, corTipoSessao } from "@/lib/tiposSessao";
 import { ChipEspecialidade } from "@/components/ChipEspecialidade";
+import { rotuloEspecialidade } from "@/lib/especialidades";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import { AvaliarAtendimento } from "@/components/AvaliarAtendimento";
 import { GuiaPrimeirosPassos } from "@/components/GuiaPrimeirosPassos";
@@ -278,10 +279,68 @@ export default async function InicioPage({
             />
           )}
 
-          {/* Duas colunas no computador só na visão da fisio: ela costuma ter
-              vários pacientes no mesmo dia, a paciente tem uma sessão só. */}
-          <div className={ehAdmin ? "grade-auto grade-auto--2" : "grade-auto"}>
-            {itensDoDia.map((item: any) => (
+          {/* Na visão da fisio os cartões viram fichas compactas em duas
+              colunas: a leitura ali é "quem vem e a que horas", o detalhe
+              está na ficha do paciente. A paciente tem uma sessão por dia e
+              precisa do plano junto, então segue em cartão inteiro. */}
+          <div className={ehAdmin ? "grade-compacta" : "grade-auto"}>
+            {itensDoDia.map((item: any) =>
+              ehAdmin ? (
+                <Link
+                  key={item.id}
+                  href={`/dashboard?aba=pacientes&verPaciente=${item.paciente_id}`}
+                  style={{
+                    ...sessaoCartao,
+                    padding: "10px 11px",
+                    borderTop: `3px solid ${corTipoSessao(item.tipo)}`,
+                    display: "block",
+                    textDecoration: "none",
+                    color: "inherit",
+                  }}
+                >
+                  <strong
+                    style={{
+                      display: "block",
+                      fontSize: 15,
+                      fontWeight: 700,
+                      color: "var(--cor-primaria)",
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {item.hora ? item.hora.slice(0, 5) : "sem hora"}
+                  </strong>
+
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 3,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      lineHeight: 1.25,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {item.perfis?.nome || item.perfis?.email || "—"}
+                  </span>
+
+                  <span
+                    style={{
+                      display: "block",
+                      marginTop: 2,
+                      fontSize: 10.5,
+                      color: "var(--cor-texto-suave)",
+                    }}
+                  >
+                    {rotuloEspecialidade(item.especialidade) || rotuloTipoSessao(item.tipo)}
+                  </span>
+
+                  <div style={{ marginTop: 6 }}>
+                    <BadgeStatusSessao status={item.status} motivoRecusa={item.motivo_recusa} curto />
+                  </div>
+                </Link>
+              ) : (
               <div key={item.id} style={sessaoCartao}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span
@@ -294,7 +353,6 @@ export default async function InicioPage({
                     }}
                   />
                   <strong style={{ color: "var(--cor-primaria)", fontSize: 13 }}>
-                    {ehAdmin && (item.perfis?.nome || item.perfis?.email) ? `${item.perfis.nome || item.perfis.email} · ` : ""}
                     {numerosSessao.has(item.id) ? `Sessão nº ${numerosSessao.get(item.id)} · ` : ""}
                     {rotuloTipoSessao(item.tipo)}
                     {nomeProfissional ? ` · ${nomeProfissional}` : ""}
@@ -310,34 +368,14 @@ export default async function InicioPage({
                 )}
 
                 <div style={{ marginTop: 8 }}>
-                  {ehAdmin ? (
-                    <BadgeStatusSessao status={item.status} motivoRecusa={item.motivo_recusa} />
-                  ) : (
-                    <AcaoConfirmarSessao sessaoId={item.id} status={item.status} motivoRecusa={item.motivo_recusa} />
-                  )}
+                  <AcaoConfirmarSessao sessaoId={item.id} status={item.status} motivoRecusa={item.motivo_recusa} />
                 </div>
 
                 {item.observacoes && (
                   <p style={{ margin: "6px 0 0", fontSize: 14 }}>{item.observacoes}</p>
                 )}
 
-                {item.planos && ehAdmin && (
-                  <p style={{ margin: "8px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                    Plano: <strong>{item.planos.titulo}</strong>
-                    {" · "}
-                    {(item.planos.plano_exercicios ?? []).length} exercício
-                    {(item.planos.plano_exercicios ?? []).length === 1 ? "" : "s"}
-                    {" · "}
-                    <Link
-                      href={`/dashboard?aba=pacientes&verPaciente=${item.paciente_id}`}
-                      style={{ color: "var(--cor-acento)", fontWeight: 600, textDecoration: "none" }}
-                    >
-                      ver ficha
-                    </Link>
-                  </p>
-                )}
-
-                {item.planos && !ehAdmin && (
+                {item.planos && (
                   <div style={{ marginTop: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 700 }}>
@@ -388,7 +426,8 @@ export default async function InicioPage({
                   </div>
                 )}
               </div>
-            ))}
+              )
+            )}
           </div>
         </div>
         </div>
@@ -400,41 +439,53 @@ export default async function InicioPage({
 
         {/* ---------- Outras sessões (fora da semana atual) ---------- */}
         {(() => {
+          // Cartão de resumo: data, hora, quem/o quê e o status. É uma lista
+          // de consulta rápida — nome do plano e profissional saíram porque
+          // repetiam em todas as linhas sem ajudar a distinguir uma da outra.
           function cartaoOutraSessao(s: any) {
             const data = new Date(`${s.data}T00:00:00`);
+            const podeAvaliar =
+              !ehAdmin &&
+              s.status === "confirmada" &&
+              s.data <= hojeIso &&
+              !sessoesJaAvaliadas.has(s.id);
+
             return (
-              <div key={s.id} style={{ ...outraSessaoCartao, borderLeftColor: corTipoSessao(s.tipo) }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                  <strong style={{ fontSize: 13.5, textTransform: "capitalize" }}>
-                    {data.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}, {data.toLocaleDateString("pt-BR")}
-                    {s.hora ? ` · ${s.hora.slice(0, 5)}` : ""}
-                  </strong>
+              <div
+                key={s.id}
+                style={{
+                  ...outraSessaoCartao,
+                  padding: "9px 11px",
+                  borderLeftColor: corTipoSessao(s.tipo),
+                }}
+              >
+                <strong style={{ display: "block", fontSize: 12.5, textTransform: "capitalize" }}>
+                  {data.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")},{" "}
+                  {data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                  {s.hora ? ` · ${s.hora.slice(0, 5)}` : ""}
+                </strong>
+
+                <span
+                  style={{
+                    display: "block",
+                    marginTop: 2,
+                    fontSize: 11,
+                    color: "var(--cor-texto-suave)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {ehAdmin
+                    ? s.perfis?.nome || s.perfis?.email || "—"
+                    : rotuloEspecialidade(s.especialidade) || rotuloTipoSessao(s.tipo)}
+                </span>
+
+                <div style={{ marginTop: 5 }}>
                   <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
                 </div>
-                {s.especialidade && (
-                  <div style={{ margin: "6px 0 0" }}>
-                    <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} tamanho="pequeno" />
-                  </div>
-                )}
-                <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                  {numerosSessao.has(s.id) ? `Sessão nº ${numerosSessao.get(s.id)} · ` : ""}
-                  <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong>
-                  {nomeProfissional ? (
-                    <>
-                      {" · "}
-                      <strong style={{ color: "var(--cor-primaria)" }}>{nomeProfissional}</strong>
-                    </>
-                  ) : null}
-                  {ehAdmin && (s.perfis?.nome || s.perfis?.email) ? ` · ${s.perfis.nome || s.perfis.email}` : ""}
-                </p>
-                {s.planos?.titulo && (
-                  <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--cor-texto-suave)" }}>
-                    Plano: {s.planos.titulo}
-                  </p>
-                )}
-                {!ehAdmin && s.status === "confirmada" && s.data <= hojeIso && !sessoesJaAvaliadas.has(s.id) && (
-                  <AvaliarAtendimento sessaoId={s.id} />
-                )}
+
+                {podeAvaliar && <AvaliarAtendimento sessaoId={s.id} />}
               </div>
             );
           }
@@ -444,7 +495,7 @@ export default async function InicioPage({
               {(proximasSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 36 }}>Próximas sessões</h2>
-                  <div className="grade-auto grade-auto--2">{(proximasSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <div className="grade-compacta">{(proximasSessoes ?? []).map(cartaoOutraSessao)}</div>
                   <Paginacao
                     pagina={paginaProximas}
                     total={totalProximas ?? 0}
@@ -456,7 +507,7 @@ export default async function InicioPage({
               {(anterioresSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 28 }}>Sessões anteriores</h2>
-                  <div className="grade-auto grade-auto--2">{(anterioresSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <div className="grade-compacta">{(anterioresSessoes ?? []).map(cartaoOutraSessao)}</div>
                   <Paginacao
                     pagina={paginaAnteriores}
                     total={totalAnteriores ?? 0}
