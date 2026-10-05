@@ -20,6 +20,7 @@ import { ResumoAvaliacoes } from "@/components/ResumoAvaliacoes";
 import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
 import { CampoEspecialidade } from "@/components/CampoEspecialidade";
 import { ChipEspecialidade } from "@/components/ChipEspecialidade";
+import { DIAS_SEMANA, rotuloDiaSemana } from "@/lib/diasSemana";
 import { UploadArquivo } from "@/components/UploadArquivo";
 import { EXTENSOES_MIDIA, EXTENSOES_IMAGEM, EXTENSOES_PDF } from "@/lib/tiposArquivo";
 import Link from "next/link";
@@ -41,6 +42,9 @@ import {
   removerSessao,
   criarBloqueioAgenda,
   removerBloqueioAgenda,
+  criarHorarioAtendimento,
+  alternarAtivoHorarioAtendimento,
+  removerHorarioAtendimento,
   marcarIndicacaoUsada,
   aprovarSolicitacaoSessao,
   recusarSolicitacaoSessao,
@@ -186,6 +190,7 @@ export default async function DashboardPage({
     { data: avaliacoesApp },
     { data: bloqueios },
     { data: indicacoes },
+    { data: horariosAtendimento },
   ] = await Promise.all([
     consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -226,6 +231,11 @@ export default async function DashboardPage({
       .from("indicacoes")
       .select("id, nome_indicada, contato_indicada, status, criado_em, usada_em, perfis!paciente_id(nome, email)")
       .order("criado_em", { ascending: false }),
+    supabase
+      .from("horarios_atendimento")
+      .select("*")
+      .order("dia_semana", { ascending: true })
+      .order("hora_inicio", { ascending: true }),
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
@@ -1006,6 +1016,107 @@ export default async function DashboardPage({
                       </a>
                     )}
                   </div>
+
+                  <details style={{ marginBottom: 16 }}>
+                    <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+                      <span style={{ ...botaoTexto, fontWeight: 700 }}>
+                        Horários de atendimento
+                        {(horariosAtendimento ?? []).length > 0 ? ` (${horariosAtendimento!.length})` : ""}
+                      </span>
+                    </summary>
+
+                    <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                      Define as vagas que as pacientes veem ao solicitar sessão. Horário já
+                      confirmado some da grade delas; horário que alguém pediu aparece em amarelo.
+                    </p>
+
+                    <form action={criarHorarioAtendimento} style={{ display: "grid", gap: 10, marginBottom: 16 }}>
+                      <div style={{ display: "grid", gap: 5 }}>
+                        <label style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", fontWeight: 600 }}>
+                          Dias da semana
+                        </label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          {DIAS_SEMANA.map((dia) => (
+                            <label
+                              key={dia.valor}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                                padding: "6px 10px",
+                                borderRadius: 999,
+                                border: "1px solid var(--cor-borda)",
+                                background: "var(--cor-superficie)",
+                                fontSize: 12.5,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input type="checkbox" name="dia_semana" value={dia.valor} />
+                              {dia.curto}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                        <div style={{ display: "grid", gap: 4, flex: 1, minWidth: 110 }}>
+                          <label style={{ fontSize: 12, color: "var(--cor-texto-suave)" }}>Começa</label>
+                          <input name="hora_inicio" type="time" required defaultValue="08:00" style={campo} />
+                        </div>
+                        <div style={{ display: "grid", gap: 4, flex: 1, minWidth: 110 }}>
+                          <label style={{ fontSize: 12, color: "var(--cor-texto-suave)" }}>Termina</label>
+                          <input name="hora_fim" type="time" required defaultValue="18:00" style={campo} />
+                        </div>
+                        <div style={{ display: "grid", gap: 4, flex: 1, minWidth: 130 }}>
+                          <label style={{ fontSize: 12, color: "var(--cor-texto-suave)" }}>Duração da sessão</label>
+                          <select name="intervalo_minutos" defaultValue="60" style={campo}>
+                            <option value="30">30 minutos</option>
+                            <option value="45">45 minutos</option>
+                            <option value="60">1 hora</option>
+                            <option value="90">1h30</option>
+                            <option value="120">2 horas</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <button type="submit" style={botaoPrimario}>Adicionar horário</button>
+                    </form>
+
+                    {(horariosAtendimento ?? []).length === 0 ? (
+                      <p style={{ margin: 0, fontSize: 13, color: "var(--cor-acento)" }}>
+                        Nenhum horário cadastrado — as pacientes vão poder sugerir qualquer hora,
+                        e você confirma na aprovação.
+                      </p>
+                    ) : (
+                      <div style={{ display: "grid", gap: 8 }}>
+                        {horariosAtendimento!.map((h: any) => (
+                          <div key={h.id} style={{ ...cartao, opacity: h.ativo ? 1 : 0.55 }}>
+                            <div>
+                              <strong style={{ fontSize: 13.5 }}>
+                                {rotuloDiaSemana(h.dia_semana)}
+                                {" · "}
+                                {h.hora_inicio.slice(0, 5)}–{h.hora_fim.slice(0, 5)}
+                              </strong>
+                              <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                                Sessões de {h.intervalo_minutos} min
+                                {!h.ativo && " · desativado"}
+                              </p>
+                            </div>
+                            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                              <form action={alternarAtivoHorarioAtendimento.bind(null, h.id, h.ativo)}>
+                                <button type="submit" style={botaoTexto}>
+                                  {h.ativo ? "desativar" : "reativar"}
+                                </button>
+                              </form>
+                              <form action={removerHorarioAtendimento.bind(null, h.id)}>
+                                <button type="submit" style={botaoTexto}>remover</button>
+                              </form>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </details>
 
                   <details style={{ marginBottom: 24 }}>
                     <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { solicitarSessao } from "@/app/inicio/actions";
 import { TIPOS_SESSAO } from "@/lib/tiposSessao";
 import { CampoEspecialidade } from "./CampoEspecialidade";
+import { SeletorHorario } from "./SeletorHorario";
 
 export function SolicitarSessaoForm() {
   const [aberto, setAberto] = useState(false);
@@ -29,10 +30,7 @@ export function SolicitarSessaoForm() {
       }}
     >
       <strong style={{ fontSize: 13.5, color: "var(--cor-primaria-escura)" }}>Solicitar nova sessão</strong>
-      <div style={{ display: "flex", gap: 8 }}>
-        <input name="data" type="date" required style={campo} />
-        <input name="hora" type="time" style={campo} />
-      </div>
+      <SeletorHorario estiloCampo={{ ...campo, width: "100%" }} />
       <select name="tipo" defaultValue="tratamento" style={campo}>
         {TIPOS_SESSAO.map((t) => (
           <option key={t.valor} value={t.valor}>

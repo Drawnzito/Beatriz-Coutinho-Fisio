@@ -6,7 +6,26 @@ import { redirect } from "next/navigation";
 import { enviarEmail } from "@/lib/email";
 import { rotuloTipoSessao } from "@/lib/tiposSessao";
 import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
-import { verificarConflito } from "@/lib/disponibilidade";
+import { buscarVagas, verificarConflitoNaGrade, type VagaHorario } from "@/lib/disponibilidade";
+
+/**
+ * Vagas do dia pro seletor de horario.
+ *
+ * E um Server Action, e nao uma chamada direta do navegador, pra nao arrastar
+ * o cliente do Supabase pro bundle do /inicio - que e a tela que as pacientes
+ * mais abrem. So isso segurava ~70 kB de JavaScript a mais na primeira carga.
+ */
+export async function buscarVagasDoDia(data: string): Promise<VagaHorario[]> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) return [];
+
+  return buscarVagas(supabase, data);
+}
 
 export async function responderSessao(formData: FormData) {
   const supabase = createClient();
@@ -47,8 +66,10 @@ export async function solicitarSessao(formData: FormData) {
 
   if (!data || !especialidade) return;
 
+  // Revalida no servidor mesmo com a grade na tela: entre carregar os
+  // horarios e enviar o formulario, outra paciente pode ter ficado com a vaga.
   if (hora) {
-    const conflito = await verificarConflito(supabase, { data, hora });
+    const conflito = await verificarConflitoNaGrade(supabase, { data, hora });
     if (conflito) {
       redirect(`/inicio?conflito=${encodeURIComponent(conflito)}`);
     }

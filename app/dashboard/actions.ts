@@ -399,6 +399,82 @@ export async function removerBloqueioAgenda(id: string) {
   irComSucesso("Bloqueio removido", "agenda");
 }
 
+export async function criarHorarioAtendimento(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const dias = formData.getAll("dia_semana").map((d) => Number(d));
+  const horaInicio = String(formData.get("hora_inicio") || "");
+  const horaFim = String(formData.get("hora_fim") || "");
+  const intervalo = Number(formData.get("intervalo_minutos")) || 60;
+
+  if (dias.length === 0) {
+    irComErro("escolha pelo menos um dia da semana", "agenda");
+    return;
+  }
+  if (!horaInicio || !horaFim) {
+    irComErro("informe a hora de início e a hora de fim", "agenda");
+    return;
+  }
+  if (horaFim <= horaInicio) {
+    irComErro("a hora de fim precisa ser depois da hora de início", "agenda");
+    return;
+  }
+
+  const { error } = await supabase.from("horarios_atendimento").insert(
+    dias.map((dia) => ({
+      dia_semana: dia,
+      hora_inicio: horaInicio,
+      hora_fim: horaFim,
+      intervalo_minutos: intervalo,
+      criado_por: user.id,
+    }))
+  );
+
+  if (error) {
+    irComErro(error.message, "agenda");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso(
+    dias.length > 1 ? `Horário aplicado a ${dias.length} dias` : "Horário de atendimento criado",
+    "agenda"
+  );
+}
+
+export async function alternarAtivoHorarioAtendimento(id: string, ativoAtual: boolean) {
+  const { supabase } = await exigirAdmin();
+
+  const { error } = await supabase
+    .from("horarios_atendimento")
+    .update({ ativo: !ativoAtual })
+    .eq("id", id);
+
+  if (error) {
+    irComErro(error.message, "agenda");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso(ativoAtual ? "Horário desativado" : "Horário reativado", "agenda");
+}
+
+export async function removerHorarioAtendimento(id: string) {
+  const { supabase } = await exigirAdmin();
+
+  const { error } = await supabase.from("horarios_atendimento").delete().eq("id", id);
+  if (error) {
+    irComErro(error.message, "agenda");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso("Horário removido", "agenda");
+}
+
 export async function marcarIndicacaoUsada(id: string) {
   const { supabase } = await exigirAdmin();
 
