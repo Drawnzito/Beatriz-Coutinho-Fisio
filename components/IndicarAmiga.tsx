@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { criarIndicacao } from "@/app/perfil/actions";
 
-export function IndicarAmiga() {
-  const [aberto, setAberto] = useState(false);
+export function IndicarAmiga({ comecarAberto = false }: { comecarAberto?: boolean }) {
+  // Quem chega pelo destaque já clicou uma vez: abrir o formulário fechado
+  // obrigaria a clicar de novo pra fazer a mesma coisa.
+  const [aberto, setAberto] = useState(comecarAberto);
   const [enviado, setEnviado] = useState(false);
 
   return (

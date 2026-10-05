@@ -190,13 +190,11 @@ export default async function InicioPage({
       <main className="conteudo">
         {!ehAdmin && !perfil?.guia_visto_em && <GuiaPrimeirosPassos onFechar={marcarGuiaVisto} />}
 
-        {/* ---------- Destaques ---------- */}
-        {destaques && destaques.length > 0 && (
-          <>
-            <h2 style={{ ...tituloSecao, marginBottom: 14 }}>Destaques</h2>
-            <DestaquesCarrossel destaques={destaques} />
-          </>
-        )}
+        {/* ---------- Destaques ----------
+            A indicação entra como slide fixo, então o carrossel aparece
+            mesmo sem nenhum destaque cadastrado. */}
+        <h2 style={{ ...tituloSecao, marginBottom: 14 }}>Destaques</h2>
+        <DestaquesCarrossel destaques={destaques ?? []} mostrarIndicacao />
 
         {/* ---------- Mural de avisos ---------- */}
         <h2 style={tituloSecao}>Mural de avisos</h2>

@@ -28,7 +28,11 @@ import { CampoWhatsApp } from "@/components/CampoWhatsApp";
 
 export const dynamic = "force-dynamic";
 
-export default async function PerfilPage() {
+export default async function PerfilPage({
+  searchParams,
+}: {
+  searchParams: { indicar?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -129,12 +133,11 @@ export default async function PerfilPage() {
           </div>
         </div>
 
-        {/* ---------- Indique uma amiga ---------- */}
-        {comoPaciente && (
-          <div style={{ marginTop: 20 }}>
-            <IndicarAmiga />
-          </div>
-        )}
+        {/* ---------- Indique uma amiga ----------
+            Visível pra todo mundo, inclusive pra Beatriz: ela também indica. */}
+        <div id="indicar" style={{ marginTop: 20 }}>
+          <IndicarAmiga comecarAberto={searchParams.indicar === "1"} />
+        </div>
 
         {/* ---------- Seus dados ---------- */}
         <SecaoPerfil titulo="Seus dados">
