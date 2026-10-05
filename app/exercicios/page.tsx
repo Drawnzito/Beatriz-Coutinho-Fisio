@@ -5,6 +5,7 @@ import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { MiniaturaExercicio } from "@/components/MiniaturaExercicio";
 import { AtalhoPassoAPasso } from "@/components/PassoAPasso";
 import { Feedback } from "@/components/Feedback";
+import { MantemPosicao } from "@/components/MantemPosicao";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { AvisoModoTeste } from "@/components/AvisoModoTeste";
 import Link from "next/link";
@@ -284,6 +285,7 @@ async function VisaoAdmin({
   return (
     <>
       <Feedback mensagem={sucesso} />
+      <MantemPosicao />
       <Header titulo="Exercícios por paciente" subtitulo="Beatriz Coutinho Fisioterapia" variante="boasVindas" />
 
       <main className="conteudo">

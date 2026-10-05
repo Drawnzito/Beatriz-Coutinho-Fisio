@@ -44,9 +44,17 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // Rotas que existem pra quem ainda não é paciente: a apresentação da
+  // clínica e o blog. São elas que dão ao Google algo pra indexar — antes
+  // disso o site inteiro respondia com um redirecionamento pro login.
   const rotaPublica =
+    pathname === "/" ||
+    pathname === "/blog" ||
+    pathname.startsWith("/blog/") ||
     pathname.startsWith("/login") ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml";
 
   if (!user && !rotaPublica) {
     const url = request.nextUrl.clone();

@@ -125,6 +125,32 @@ button {
   display: block;
 }
 
+/* Foto de celular (retrato) num cartão deitado: em vez de cortar as laterais
+   com object-fit: cover, mostramos a foto inteira (contain) e preenchemos o
+   resto do cartão com uma cópia borrada dela. Mesma solução do Instagram. */
+.destaque-fundo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(26px) brightness(0.62) saturate(1.1);
+  transform: scale(1.2);
+}
+
+.destaque-foto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Arte feita sob medida pro cartão: preenche sem desperdício. */
+.destaque-foto--preenche {
+  object-fit: cover;
+}
+
 .destaque-seta {
   position: absolute;
   top: 50%;

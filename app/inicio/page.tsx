@@ -197,25 +197,24 @@ export default async function InicioPage({
         <h2 style={{ ...tituloSecao, marginBottom: 14 }}>Destaques</h2>
         <DestaquesCarrossel destaques={destaques ?? []} mostrarIndicacao />
 
-        {/* ---------- Mural de avisos ---------- */}
-        <h2 style={tituloSecao}>Mural de avisos</h2>
-
-        {(!avisos || avisos.length === 0) && (
-          <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-            Nenhum aviso publicado no momento.
-          </p>
-        )}
-
-        <div className="grade-auto grade-auto--2">
-          {(avisos ?? []).map((a) => (
-            <div key={a.id} style={avisoCartao}>
-              <strong style={{ fontFamily: "var(--fonte-titulo)", color: "var(--cor-primaria-escura)", fontSize: 14.5 }}>
-                {a.titulo}
-              </strong>
-              <p style={{ margin: "4px 0 0", fontSize: 14 }}>{a.conteudo}</p>
+        {/* ---------- Mural de avisos ----------
+            Seção inteira some quando não há aviso: título seguido de
+            "nenhum aviso" só ocupava espaço sem informar nada. */}
+        {avisos && avisos.length > 0 && (
+          <>
+            <h2 style={tituloSecao}>Mural de avisos</h2>
+            <div className="grade-auto grade-auto--2">
+              {avisos.map((a) => (
+                <div key={a.id} style={avisoCartao}>
+                  <strong style={{ fontFamily: "var(--fonte-titulo)", color: "var(--cor-primaria-escura)", fontSize: 14.5 }}>
+                    {a.titulo}
+                  </strong>
+                  <p style={{ margin: "4px 0 0", fontSize: 14 }}>{a.conteudo}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         {/* ---------- Sua semana ---------- */}
         <div data-tour="agenda">

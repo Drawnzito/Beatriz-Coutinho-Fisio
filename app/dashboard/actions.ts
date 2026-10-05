@@ -399,6 +399,118 @@ export async function removerBloqueioAgenda(id: string) {
   irComSucesso("Bloqueio removido", "agenda");
 }
 
+/**
+ * Transforma o titulo em endereco de URL: "Dor Pélvica Pós-Parto" ->
+ * "dor-pelvica-pos-parto". O slug entra na URL publica e no sitemap, entao
+ * nao pode ter acento, espaco nem pontuacao.
+ */
+function gerarSlug(titulo: string): string {
+  return titulo
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+export async function criarPost(formData: FormData) {
+  const { supabase, user } = await exigirAdmin();
+
+  const titulo = String(formData.get("titulo") || "").trim();
+  if (!titulo) {
+    irComErro("o post precisa de um título", "blog");
+    return;
+  }
+
+  const publicado = formData.get("publicado") === "on";
+  const baseSlug = gerarSlug(titulo) || "post";
+
+  // Slug repetido derruba o insert pelo unique. Em vez de devolver um erro
+  // de banco pra Beatriz, acrescenta um sufixo e segue.
+  const { data: existentes } = await supabase
+    .from("posts")
+    .select("slug")
+    .like("slug", `${baseSlug}%`);
+
+  const usados = new Set((existentes ?? []).map((p: any) => p.slug));
+  let slug = baseSlug;
+  let sufixo = 2;
+  while (usados.has(slug)) slug = `${baseSlug}-${sufixo++}`;
+
+  const { error } = await supabase.from("posts").insert({
+    slug,
+    titulo,
+    resumo: String(formData.get("resumo") || "").trim() || null,
+    conteudo: String(formData.get("conteudo") || ""),
+    capa_url: String(formData.get("capa_arquivo_url") || "").trim() || null,
+    link_externo: String(formData.get("link_externo") || "").trim() || null,
+    publicado,
+    publicado_em: publicado ? new Date().toISOString() : null,
+    criado_por: user.id,
+  });
+
+  if (error) {
+    irComErro(error.message, "blog");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/blog");
+  revalidatePath("/");
+  irComSucesso(publicado ? "Post publicado" : "Rascunho salvo", "blog");
+}
+
+export async function atualizarPost(id: string, formData: FormData) {
+  const { supabase } = await exigirAdmin();
+
+  const publicado = formData.get("publicado") === "on";
+
+  const atualizacao: Record<string, unknown> = {
+    titulo: String(formData.get("titulo") || "").trim(),
+    resumo: String(formData.get("resumo") || "").trim() || null,
+    conteudo: String(formData.get("conteudo") || ""),
+    link_externo: String(formData.get("link_externo") || "").trim() || null,
+    publicado,
+  };
+
+  const capaNova = String(formData.get("capa_arquivo_url") || "").trim();
+  if (capaNova) atualizacao.capa_url = capaNova;
+
+  // Primeira publicacao carimba a data; despublicar e republicar depois
+  // mantem a data original, pra nao reordenar o blog sem motivo.
+  const { data: atual } = await supabase.from("posts").select("publicado_em").eq("id", id).single();
+  if (publicado && !atual?.publicado_em) {
+    atualizacao.publicado_em = new Date().toISOString();
+  }
+
+  const { error } = await supabase.from("posts").update(atualizacao).eq("id", id);
+  if (error) {
+    irComErro(error.message, "blog");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/blog");
+  revalidatePath("/");
+  irComSucesso("Post atualizado", "blog");
+}
+
+export async function removerPost(id: string) {
+  const { supabase } = await exigirAdmin();
+
+  const { error } = await supabase.from("posts").delete().eq("id", id);
+  if (error) {
+    irComErro(error.message, "blog");
+    return;
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/blog");
+  revalidatePath("/");
+  irComSucesso("Post removido", "blog");
+}
+
 export async function criarHorarioAtendimento(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 

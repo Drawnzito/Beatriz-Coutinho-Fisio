@@ -124,17 +124,18 @@ export function DestaquesCarrossel({
         {slides.map((slide) => {
           const miolo = (
             <>
+              {/* Fundo borrado só quando a foto não foi feita pro formato do
+                  cartão — é o caso das fotos tiradas no celular, em pé. */}
+              {!slide.textoNaArte && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={slide.imagem_url} alt="" aria-hidden="true" className="destaque-fundo" />
+              )}
+
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={slide.imagem_url}
                 alt={slide.textoNaArte ? slide.titulo : ""}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
+                className={`destaque-foto${slide.textoNaArte ? " destaque-foto--preenche" : ""}`}
               />
 
               {!slide.textoNaArte && (

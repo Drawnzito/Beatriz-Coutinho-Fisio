@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { Feedback } from "@/components/Feedback";
+import { MantemPosicao } from "@/components/MantemPosicao";
 import { Abas } from "@/components/Abas";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { SeletorOpcao } from "@/components/SeletorOpcao";
@@ -53,6 +54,9 @@ import {
   criarDestaque,
   atualizarDestaque,
   removerDestaque,
+  criarPost,
+  atualizarPost,
+  removerPost,
   arquivarPaciente,
   desarquivarPaciente,
   removerPaciente,
@@ -83,6 +87,7 @@ export default async function DashboardPage({
     paginaPacientes?: string;
     paginaSessoesPaciente?: string;
     editarPlano?: string;
+    editarPost?: string;
   };
 }) {
   const supabase = createClient();
@@ -191,6 +196,7 @@ export default async function DashboardPage({
     { data: bloqueios },
     { data: indicacoes },
     { data: horariosAtendimento },
+    { data: posts },
   ] = await Promise.all([
     consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -236,6 +242,10 @@ export default async function DashboardPage({
       .select("*")
       .order("dia_semana", { ascending: true })
       .order("hora_inicio", { ascending: true }),
+    supabase
+      .from("posts")
+      .select("id, slug, titulo, resumo, conteudo, capa_url, link_externo, publicado, publicado_em")
+      .order("criado_em", { ascending: false }),
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
@@ -344,6 +354,10 @@ export default async function DashboardPage({
   const hrefDestaques = (editar?: string) =>
     editar ? `/dashboard?aba=destaques&editarDestaque=${editar}` : "/dashboard?aba=destaques";
 
+  const editandoPostId = searchParams.editarPost || undefined;
+  const hrefBlog = ({ editarPost }: { editarPost?: string }) =>
+    editarPost ? `/dashboard?aba=blog&editarPost=${editarPost}` : "/dashboard?aba=blog";
+
   function hrefBiblioteca(overrides: { categoria?: string; editar?: string; busca?: string; ordem?: string }) {
     const params = new URLSearchParams({ aba: "biblioteca" });
     const categoria = "categoria" in overrides ? overrides.categoria : categoriaFiltro;
@@ -382,6 +396,7 @@ export default async function DashboardPage({
   return (
     <>
       <Feedback mensagem={searchParams.sucesso} />
+      <MantemPosicao />
       <Header
         titulo="Beatriz Coutinho"
         subtitulo="Painel da fisioterapeuta"
@@ -1497,6 +1512,155 @@ export default async function DashboardPage({
                     ))}
                     {(!indicacoes || indicacoes.length === 0) && (
                       <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>Nenhuma indicação ainda.</p>
+                    )}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              id: "blog",
+              rotulo: "Blog",
+              conteudo: (
+                <div style={{ padding: "24px 20px 0" }}>
+                  <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--cor-texto-suave)" }}>
+                    O blog é a única parte do site que aparece <strong>sem login</strong> — é ele que
+                    faz o Google encontrar a Beatriz. Rascunho não fica visível pra ninguém.
+                  </p>
+
+                  <details style={{ marginBottom: 24 }}>
+                    <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+                      <span style={{ ...botaoPrimario, display: "inline-block" }}>+ Escrever post</span>
+                    </summary>
+
+                    <form action={criarPost} style={{ display: "grid", gap: 10, marginTop: 14 }}>
+                      <input name="titulo" placeholder="Título do post" required style={campo} />
+                      <textarea
+                        name="resumo"
+                        placeholder="Resumo — aparece na listagem e no link compartilhado (2 a 3 linhas)"
+                        rows={2}
+                        style={campo}
+                      />
+                      <textarea
+                        name="conteudo"
+                        placeholder="Texto do post. Deixe uma linha em branco entre os parágrafos."
+                        rows={9}
+                        style={campo}
+                      />
+                      <UploadArquivo
+                        nome="capa_arquivo_url"
+                        bucket="blog"
+                        rotulo="Imagem de capa (opcional)"
+                        ajuda="Melhor em formato deitado. É a imagem que aparece ao compartilhar o link."
+                        extensoes={EXTENSOES_IMAGEM}
+                      />
+                      <input
+                        name="link_externo"
+                        placeholder="Link do artigo publicado (DOI, SciELO, PubMed) — opcional"
+                        style={campo}
+                      />
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+                        <input type="checkbox" name="publicado" defaultChecked />
+                        Publicar agora (desmarque pra salvar como rascunho)
+                      </label>
+                      <button type="submit" style={botaoPrimario}>Salvar post</button>
+                    </form>
+                  </details>
+
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {(posts ?? []).map((post: any) =>
+                      post.id === editandoPostId ? (
+                        <div key={post.id} style={{ ...cartao, display: "block" }}>
+                          <form action={atualizarPost.bind(null, post.id)} style={{ display: "grid", gap: 10 }}>
+                            <input name="titulo" defaultValue={post.titulo} required style={campo} />
+                            <textarea name="resumo" defaultValue={post.resumo ?? ""} rows={2} style={campo} />
+                            <textarea name="conteudo" defaultValue={post.conteudo ?? ""} rows={9} style={campo} />
+                            <UploadArquivo
+                              nome="capa_arquivo_url"
+                              bucket="blog"
+                              rotulo="Imagem de capa"
+                              ajuda="Escolha outro arquivo só se quiser trocar."
+                              extensoes={EXTENSOES_IMAGEM}
+                              urlAtual={post.capa_url}
+                            />
+                            <input
+                              name="link_externo"
+                              defaultValue={post.link_externo ?? ""}
+                              placeholder="Link do artigo publicado — opcional"
+                              style={campo}
+                            />
+                            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5 }}>
+                              <input type="checkbox" name="publicado" defaultChecked={post.publicado} />
+                              Publicado
+                            </label>
+                            <div style={{ display: "flex", gap: 10 }}>
+                              <button type="submit" style={botaoPrimario}>Salvar</button>
+                              <Link href={hrefBlog({ editarPost: undefined })} style={botaoTexto}>
+                                cancelar
+                              </Link>
+                            </div>
+                          </form>
+                        </div>
+                      ) : (
+                        <div key={post.id} style={cartao}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <strong style={{ fontSize: 14 }}>{post.titulo}</strong>
+                              <span
+                                style={{
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  background: post.publicado ? "var(--cor-acento-suave)" : "var(--cor-borda)",
+                                  color: post.publicado ? "var(--cor-acento)" : "var(--cor-texto-suave)",
+                                }}
+                              >
+                                {post.publicado ? "PUBLICADO" : "RASCUNHO"}
+                              </span>
+                            </div>
+                            {post.resumo && (
+                              <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                                {post.resumo}
+                              </p>
+                            )}
+                            <p style={{ margin: "5px 0 0", fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
+                              /blog/{post.slug}
+                              {post.publicado && (
+                                <>
+                                  {" · "}
+                                  <a
+                                    href={`/blog/${post.slug}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    style={{ color: "var(--cor-acento)", fontWeight: 600 }}
+                                  >
+                                    ver no site
+                                  </a>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                          <div style={{ display: "flex", gap: 10, alignItems: "center", flexShrink: 0 }}>
+                            <Link href={hrefBlog({ editarPost: post.id })} style={botaoTexto}>
+                              editar
+                            </Link>
+                            <form action={removerPost.bind(null, post.id)}>
+                              <BotaoPerigo
+                                mensagemConfirmacao={`Remover o post "${post.titulo}"? Isso não tem volta.`}
+                                style={botaoTexto}
+                              >
+                                remover
+                              </BotaoPerigo>
+                            </form>
+                          </div>
+                        </div>
+                      )
+                    )}
+
+                    {(!posts || posts.length === 0) && (
+                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                        Nenhum post ainda. O blog só aparece no site depois do primeiro publicado.
+                      </p>
                     )}
                   </div>
                 </div>
