@@ -521,10 +521,11 @@ export default async function InicioPage({
         })()}
       </main>
 
-      {/* Assistente: sempre à vista, mas dispensável no X. Só pra paciente —
-          a fisio não precisa da FAQ da visão da paciente. O antigo atalho
-          "Primeiros passos" virou uma das perguntas dela. */}
-      {!ehAdmin && <Assistente whatsapp={configClinica?.whatsapp_contato} />}
+      {/* Assistente: sempre à vista, mas dispensável no X. Aparece também pra
+          Beatriz — ela precisa conseguir abrir e conferir o que a Bia anda
+          respondendo pras pacientes. O antigo atalho "Primeiros passos" virou
+          uma das perguntas dela. */}
+      <Assistente whatsapp={configClinica?.whatsapp_contato} />
 
       <BottomNav papel={ehAdmin ? "admin" : "paciente"} />
     </>
