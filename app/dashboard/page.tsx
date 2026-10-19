@@ -947,16 +947,55 @@ export default async function DashboardPage({
                           </form>
                         </div>
                       ) : (
-                      <div key={pl.id} style={{ ...cartao, alignItems: "flex-start" }}>
-                        <div>
-                          <strong>{pl.titulo}</strong>
-                          <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                            {pl.perfis?.nome || pl.perfis?.email} {pl.ativo ? "· ativo" : "· inativo"}
-                            {" · "}
-                            {(pl.plano_exercicios ?? []).length} exercício{(pl.plano_exercicios ?? []).length === 1 ? "" : "s"}
-                          </p>
+                      // Empilhado em vez de lado a lado: com quatro ações, a
+                      // linha de botões não cabia ao lado do título no celular
+                      // e quebrava torta sobre o texto.
+                      <div
+                        key={pl.id}
+                        style={{
+                          display: "block",
+                          padding: "12px 14px",
+                          borderRadius: 10,
+                          border: "1px solid var(--cor-borda)",
+                          background: "var(--cor-superficie)",
+                          opacity: pl.ativo ? 1 : 0.62,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <strong style={{ fontSize: 14 }}>{pl.titulo}</strong>
+                          <span
+                            style={{
+                              padding: "2px 8px",
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              letterSpacing: 0.3,
+                              background: pl.ativo ? "var(--cor-acento-suave)" : "var(--cor-borda)",
+                              color: pl.ativo ? "var(--cor-acento)" : "var(--cor-texto-suave)",
+                            }}
+                          >
+                            {pl.ativo ? "ATIVO" : "INATIVO"}
+                          </span>
                         </div>
-                        <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>
+
+                        <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                          {pl.perfis?.nome || pl.perfis?.email}
+                          {" · "}
+                          {(pl.plano_exercicios ?? []).length} exercício
+                          {(pl.plano_exercicios ?? []).length === 1 ? "" : "s"}
+                        </p>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 14,
+                            flexWrap: "wrap",
+                            marginTop: 10,
+                            paddingTop: 10,
+                            borderTop: "1px solid var(--cor-borda)",
+                          }}
+                        >
                           <Link href={`/dashboard?aba=plano&editarPlano=${pl.id}`} style={botaoTexto}>
                             editar
                           </Link>
@@ -967,7 +1006,7 @@ export default async function DashboardPage({
                             <input type="hidden" name="ativo_atual" value={String(pl.ativo)} />
                             <button type="submit" style={botaoTexto}>{pl.ativo ? "desativar" : "reativar"}</button>
                           </form>
-                          <form action={removerPlano.bind(null, pl.id)}>
+                          <form action={removerPlano.bind(null, pl.id)} style={{ marginLeft: "auto" }}>
                             <BotaoPerigo
                               mensagemConfirmacao={
                                 `Remover o plano "${pl.titulo}" de vez?\n\n` +
@@ -975,7 +1014,7 @@ export default async function DashboardPage({
                                 `As sessões já registradas continuam no histórico, ` +
                                 `só deixam de apontar pra esse plano.\n\nIsso não tem volta.`
                               }
-                              style={{ ...botaoTexto, color: "#a2334a" }}
+                              style={{ ...botaoTexto, color: "#a2334a", fontWeight: 600 }}
                             >
                               remover
                             </BotaoPerigo>
