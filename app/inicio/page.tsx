@@ -24,7 +24,7 @@ import { rotuloEspecialidade } from "@/lib/especialidades";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
 import { AvaliarAtendimento } from "@/components/AvaliarAtendimento";
 import { GuiaPrimeirosPassos } from "@/components/GuiaPrimeirosPassos";
-import { BotaoFlutuanteGuia } from "@/components/BotaoFlutuanteGuia";
+import { Assistente } from "@/components/Assistente";
 import { marcarGuiaVisto } from "@/app/perfil/actions";
 
 export const dynamic = "force-dynamic";
@@ -521,9 +521,10 @@ export default async function InicioPage({
         })()}
       </main>
 
-      {/* Atalho pro guia: sempre à vista, mas dispensável no X. Só pra
-          paciente — a fisio não precisa do tour da visão dela. */}
-      {!ehAdmin && <BotaoFlutuanteGuia />}
+      {/* Assistente: sempre à vista, mas dispensável no X. Só pra paciente —
+          a fisio não precisa da FAQ da visão da paciente. O antigo atalho
+          "Primeiros passos" virou uma das perguntas dela. */}
+      {!ehAdmin && <Assistente whatsapp={configClinica?.whatsapp_contato} />}
 
       <BottomNav papel={ehAdmin ? "admin" : "paciente"} />
     </>

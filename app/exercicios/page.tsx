@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
+import { Assistente } from "@/components/Assistente";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { MiniaturaExercicio } from "@/components/MiniaturaExercicio";
 import { AtalhoPassoAPasso } from "@/components/PassoAPasso";
@@ -57,6 +58,13 @@ export default async function ExerciciosPage({
 
   const planos = (todosOsPlanos ?? []).filter((p) => p.ativo);
   const planosAnteriores = (todosOsPlanos ?? []).filter((p) => !p.ativo);
+
+  // Só pra assistente saber se mostra o botão de WhatsApp.
+  const { data: configClinica } = await supabase
+    .from("configuracoes_clinica")
+    .select("whatsapp_contato")
+    .eq("id", "global")
+    .maybeSingle();
 
   // Antes todos os treinos eram <details> sem seta, com so o primeiro aberto:
   // quem tinha mais de um nao percebia que havia outros. Agora e uma selecao
@@ -250,6 +258,8 @@ export default async function ExerciciosPage({
           </details>
         )}
       </main>
+
+      <Assistente whatsapp={configClinica?.whatsapp_contato} />
 
       <BottomNav papel={ehAdmin ? "admin" : "paciente"} />
     </>
