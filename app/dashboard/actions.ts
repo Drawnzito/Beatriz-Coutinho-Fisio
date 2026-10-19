@@ -7,8 +7,9 @@ import { redirect } from "next/navigation";
 import { enviarEmail } from "@/lib/email";
 import { rotuloTipoSessao } from "@/lib/tiposSessao";
 import { verificarConflito } from "@/lib/disponibilidade";
+import type { AbaPainelId } from "@/lib/abasPainel";
 
-function irComSucesso(mensagem: string, aba: string, extraParams: Record<string, string | undefined> = {}) {
+function irComSucesso(mensagem: string, aba: AbaPainelId, extraParams: Record<string, string | undefined> = {}) {
   const params = new URLSearchParams({ sucesso: mensagem, aba });
   for (const [chave, valor] of Object.entries(extraParams)) {
     if (valor) params.set(chave, valor);
@@ -16,7 +17,7 @@ function irComSucesso(mensagem: string, aba: string, extraParams: Record<string,
   redirect(`/dashboard?${params.toString()}`);
 }
 
-function irComErro(mensagem: string, aba: string, extraParams: Record<string, string | undefined> = {}) {
+function irComErro(mensagem: string, aba: AbaPainelId, extraParams: Record<string, string | undefined> = {}) {
   const params = new URLSearchParams({ sucesso: `Erro: ${mensagem}`, aba });
   for (const [chave, valor] of Object.entries(extraParams)) {
     if (valor) params.set(chave, valor);
@@ -299,14 +300,16 @@ export async function removerPlano(id: string) {
 
   const { error } = await supabase.from("planos").delete().eq("id", id);
   if (error) {
-    irComErro(error.message, "planos");
+    // A aba se chama "plano", no singular: com o nome errado o painel não
+    // reconhece a aba e cai na primeira da lista (a Biblioteca).
+    irComErro(error.message, "plano");
     return;
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/inicio");
   revalidatePath("/exercicios");
-  irComSucesso("Plano removido", "planos");
+  irComSucesso("Plano removido", "plano");
 }
 
 export async function criarSessao(formData: FormData) {

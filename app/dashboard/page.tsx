@@ -4,7 +4,19 @@ import { BottomNav } from "@/components/BottomNav";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { Feedback } from "@/components/Feedback";
 import { MantemPosicao } from "@/components/MantemPosicao";
-import { Abas } from "@/components/Abas";
+import { PainelNavegacao } from "@/components/PainelNavegacao";
+import {
+  IconeAgenda,
+  IconePacientes,
+  IconeTreinos,
+  IconeConteudo,
+  IconeRelogio,
+  IconeCadeado,
+  IconeMais,
+} from "@/components/IconesPainel";
+import { SecaoRecolhivel } from "@/components/SecaoRecolhivel";
+import { CartaoSessaoAgenda } from "@/components/CartaoSessaoAgenda";
+import { LinhaPaciente } from "@/components/LinhaPaciente";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { SeletorOpcao } from "@/components/SeletorOpcao";
 import { TiraSemana } from "@/components/TiraSemana";
@@ -252,6 +264,28 @@ export default async function DashboardPage({
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
 
+  // Próxima sessão de cada paciente da página — é o que a Beatriz procura ao
+  // bater o olho na lista, e sem isso ela precisava abrir ficha por ficha.
+  // Só os 15 da página atual, numa consulta só.
+  const idsDaPagina = (pacientesLista ?? []).map((p: any) => p.id);
+  const { data: proximasDaLista } = idsDaPagina.length
+    ? await supabase
+        .from("sessoes")
+        .select("paciente_id, data, hora")
+        .in("paciente_id", idsDaPagina)
+        .in("status", ["agendada", "confirmada"])
+        .gte("data", hojeIso)
+        .order("data", { ascending: true })
+        .order("hora", { ascending: true })
+    : { data: [] };
+
+  const proximaPorPaciente = new Map<string, { data: string; hora: string | null }>();
+  for (const s of proximasDaLista ?? []) {
+    if (!proximaPorPaciente.has(s.paciente_id)) {
+      proximaPorPaciente.set(s.paciente_id, { data: s.data, hora: s.hora });
+    }
+  }
+
   // Contadores nas abas: sem isso a Beatriz só descobre que chegou coisa nova
   // se abrir a aba por acaso.
   const indicacoesPendentes = (indicacoes ?? []).filter((i: any) => i.status === "pendente").length;
@@ -408,8 +442,24 @@ export default async function DashboardPage({
 
       {/* Sem padding lateral: as abas precisam encostar nas bordas. */}
       <main className="conteudo" style={{ padding: "24px 0 100px" }}>
-        <Abas
+        <PainelNavegacao
           inicial={searchParams.aba}
+          grupos={[
+            { id: "atendimento", rotulo: "Agenda", icone: <IconeAgenda />, abas: ["agenda"] },
+            {
+              id: "pessoas",
+              rotulo: "Pacientes",
+              icone: <IconePacientes />,
+              abas: ["pacientes", "indicacoes", "avaliacoes"],
+            },
+            { id: "treinos", rotulo: "Treinos", icone: <IconeTreinos />, abas: ["plano", "biblioteca"] },
+            {
+              id: "conteudo",
+              rotulo: "Conteúdo",
+              icone: <IconeConteudo />,
+              abas: ["destaques", "avisos", "blog"],
+            },
+          ]}
           abas={[
             {
               id: "biblioteca",
@@ -742,14 +792,14 @@ export default async function DashboardPage({
                     </div>
                   ) : (
                     <>
-                      <details style={{ marginBottom: 24 }}>
-                        <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
-                          <span style={{ ...botaoTexto, fontWeight: 700 }}>
-                            Cadastro manual{(convites ?? []).length > 0 ? ` (${(convites ?? []).length} pendente${(convites ?? []).length > 1 ? "s" : ""})` : ""}
-                          </span>
-                        </summary>
-
-                        <form action={criarConvitePaciente} style={{ display: "grid", gap: 10, marginTop: 10, marginBottom: 20 }}>
+                      <SecaoRecolhivel
+                        titulo="Cadastrar paciente"
+                        descricao="Pré-cadastro: entra na lista sozinho no primeiro login"
+                        contador={(convites ?? []).length}
+                        icone={<IconeMais />}
+                        tom="acao"
+                      >
+                        <form action={criarConvitePaciente} style={{ display: "grid", gap: 10, marginBottom: 20 }}>
                           <input name="nome" placeholder="Nome do paciente" required style={campo} />
                           <div style={{ display: "flex", gap: 10 }}>
                             <input name="idade" type="number" placeholder="Idade (opcional)" style={campo} />
@@ -786,7 +836,7 @@ export default async function DashboardPage({
                             </div>
                           </>
                         )}
-                      </details>
+                      </SecaoRecolhivel>
 
                       <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
                         <input type="hidden" name="aba" value="pacientes" />
@@ -812,18 +862,16 @@ export default async function DashboardPage({
                         </Link>
                       </div>
 
+                      {/* Linha enxuta: nome e próxima sessão. E-mail e idade
+                          ficam na ficha — na lista só ocupavam espaço. */}
                       <div className="grade-auto grade-auto--2">
                         {(pacientesLista ?? []).map((p: any) => (
-                          <Link key={p.id} href={hrefPacientes({ verPaciente: p.id })} style={{ ...cartao, textDecoration: "none", color: "inherit" }}>
-                            <div>
-                              <strong>{p.nome || p.email}</strong>
-                              <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                                {p.email}
-                                {p.idade ? ` · ${p.idade} anos` : ""}
-                              </p>
-                            </div>
-                            <span style={{ color: "var(--cor-acento)", fontSize: 13 }}>ver ficha →</span>
-                          </Link>
+                          <LinhaPaciente
+                            key={p.id}
+                            nome={p.nome || p.email}
+                            href={hrefPacientes({ verPaciente: p.id })}
+                            proxima={proximaPorPaciente.get(p.id)}
+                          />
                         ))}
                         {(pacientesLista ?? []).length === 0 && (
                           <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
@@ -1066,17 +1114,14 @@ export default async function DashboardPage({
                     )}
                   </div>
 
-                  <details style={{ marginBottom: 16 }}>
-                    <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
-                      <span style={{ ...botaoTexto, fontWeight: 700 }}>
-                        Horários de atendimento
-                        {(horariosAtendimento ?? []).length > 0 ? ` (${horariosAtendimento!.length})` : ""}
-                      </span>
-                    </summary>
-
+                  <SecaoRecolhivel
+                    titulo="Horários de atendimento"
+                    descricao="As vagas que as pacientes veem ao pedir uma sessão"
+                    contador={(horariosAtendimento ?? []).length}
+                    icone={<IconeRelogio />}
+                  >
                     <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                      Define as vagas que as pacientes veem ao solicitar sessão. Horário já
-                      confirmado some da grade delas; horário que alguém pediu aparece em amarelo.
+                      Horário já confirmado some da grade delas; horário que alguém pediu aparece em amarelo.
                     </p>
 
                     <form action={criarHorarioAtendimento} style={{ display: "grid", gap: 10, marginBottom: 16 }}>
@@ -1165,16 +1210,15 @@ export default async function DashboardPage({
                         ))}
                       </div>
                     )}
-                  </details>
+                  </SecaoRecolhivel>
 
-                  <details style={{ marginBottom: 24 }}>
-                    <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
-                      <span style={{ ...botaoTexto, fontWeight: 700 }}>
-                        Bloquear agenda{(bloqueios ?? []).length > 0 ? ` (${bloqueios!.length})` : ""}
-                      </span>
-                    </summary>
-
-                    <form action={criarBloqueioAgenda} style={{ display: "grid", gap: 10, marginTop: 10, marginBottom: 16 }}>
+                  <SecaoRecolhivel
+                    titulo="Bloquear agenda"
+                    descricao="Férias, compromisso ou intervalo: some da grade das pacientes"
+                    contador={(bloqueios ?? []).length}
+                    icone={<IconeCadeado />}
+                  >
+                    <form action={criarBloqueioAgenda} style={{ display: "grid", gap: 10, marginBottom: 16 }}>
                       <div style={{ display: "flex", gap: 10 }}>
                         <input name="data" type="date" required defaultValue={diaFiltro ?? ""} style={campo} />
                       </div>
@@ -1210,7 +1254,7 @@ export default async function DashboardPage({
                         ))}
                       </div>
                     )}
-                  </details>
+                  </SecaoRecolhivel>
 
                   {(solicitacoes ?? []).length > 0 && (
                     <div style={{ marginBottom: 24 }}>
@@ -1257,16 +1301,21 @@ export default async function DashboardPage({
                     </div>
                   )}
 
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                    Agendar sessão
-                  </p>
-
+                  {/* Recolhido: o formulário inteiro antes das sessões do dia
+                      empurrava a agenda pra fora da tela, e marcar sessão é
+                      coisa pontual perto de só olhar o dia. */}
+                  <SecaoRecolhivel
+                    titulo="Agendar sessão"
+                    descricao="Marcar direto, sem esperar a paciente pedir"
+                    icone={<IconeMais />}
+                    tom="acao"
+                  >
                   {opcoesAtribuicao.length === 0 ? (
-                    <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                    <p style={{ color: "var(--cor-texto-suave)", fontSize: 14, margin: 0 }}>
                       Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
                     </p>
                   ) : (
-                    <form action={criarSessao} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+                    <form action={criarSessao} style={{ display: "grid", gap: 10 }}>
                       <input type="hidden" name="_filtro_paciente" value={pacienteFiltro ?? ""} />
                       <input type="hidden" name="_filtro_dia" value={diaFiltro ?? ""} />
 
@@ -1308,64 +1357,27 @@ export default async function DashboardPage({
                       <button type="submit" style={botaoPrimario}>Agendar sessão</button>
                     </form>
                   )}
+                  </SecaoRecolhivel>
+
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "20px 0 10px" }}>
+                    {(sessoes ?? []).length > 0
+                      ? `Sessões do dia (${sessoes!.length})`
+                      : "Sessões do dia"}
+                  </p>
 
                   <div className="grade-auto grade-auto--2">
+                    {/* Compacto por padrão: hora, paciente e situação resolvem
+                        o "quem vem agora". Especialidade, plano, observações e
+                        remover ficam a um toque, dentro do próprio cartão. */}
                     {(sessoes ?? []).map((s: any) => (
-                      <div key={s.id} style={cartao}>
-                        <div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <span
-                              style={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: "50%",
-                                background: corTipoSessao(s.tipo),
-                                flexShrink: 0,
-                              }}
-                            />
-                            <strong>
-                              {new Date(s.data + "T00:00:00").toLocaleDateString("pt-BR")}
-                              {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""}
-                            </strong>
-                            <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
-                          </div>
-                          {/* Hierarquia: paciente > especialidade > tipo/profissional > plano */}
-                          <p style={{ margin: "6px 0 0", fontSize: 14, fontWeight: 700, color: "var(--cor-texto)" }}>
-                            {s.perfis?.nome || s.perfis?.email}
-                            {numerosSessao.has(s.id) && (
-                              <span style={{ fontWeight: 500, color: "var(--cor-texto-suave)" }}>
-                                {" "}· Sessão nº {numerosSessao.get(s.id)}
-                              </span>
-                            )}
-                          </p>
-
-                          {s.especialidade && (
-                            <div style={{ margin: "6px 0 0" }}>
-                              <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} />
-                            </div>
-                          )}
-
-                          <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
-                            <strong style={{ color: "var(--cor-primaria)" }}>{rotuloTipoSessao(s.tipo)}</strong>
-                            {" · "}
-                            <strong style={{ color: "var(--cor-primaria)" }}>{perfilAtual?.nome || "Beatriz Coutinho"}</strong>
-                          </p>
-
-                          {s.planos?.titulo && (
-                            <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--cor-texto-suave)" }}>
-                              Plano: {s.planos.titulo}
-                            </p>
-                          )}
-                          {s.observacoes && (
-                            <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>
-                          )}
-                        </div>
-                        <form action={removerSessao.bind(null, s.id)}>
-                          <input type="hidden" name="_filtro_paciente" value={pacienteFiltro ?? ""} />
-                          <input type="hidden" name="_filtro_dia" value={diaFiltro ?? ""} />
-                          <button type="submit" style={botaoTexto}>remover</button>
-                        </form>
-                      </div>
+                      <CartaoSessaoAgenda
+                        key={s.id}
+                        sessao={s}
+                        numero={numerosSessao.get(s.id)}
+                        nomeProfissional={perfilAtual?.nome || "Beatriz Coutinho"}
+                        filtroPaciente={pacienteFiltro ?? ""}
+                        filtroDia={diaFiltro ?? ""}
+                      />
                     ))}
                     {(!sessoes || sessoes.length === 0) && (
                       <EstadoVazioAgenda

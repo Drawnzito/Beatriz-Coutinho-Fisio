@@ -1,0 +1,153 @@
+/* ---------- Nível 1: áreas ---------- */
+
+.barraGrupos {
+  display: grid;
+  /* Quatro colunas iguais: cabe sem rolagem até em tela estreita, que era o
+     problema da barra antiga com nove abas em fileira. */
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 0 12px 10px;
+  border-bottom: 1px solid var(--cor-borda);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--cor-fundo);
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 4px 8px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--cor-texto-suave);
+  font-family: var(--fonte-corpo);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.grupoAtivo {
+  background: var(--cor-primaria);
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .grupo:not(.grupoAtivo):hover {
+    background: var(--cor-acento-suave);
+    color: var(--cor-acento);
+  }
+}
+
+.grupoIcone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grupoRotulo {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  line-height: 1;
+}
+
+.pontoPendencia {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cor-acento);
+  box-shadow: 0 0 0 2px var(--cor-fundo);
+}
+
+.grupoAtivo .pontoPendencia {
+  background: #ffd9e0;
+  box-shadow: 0 0 0 2px var(--cor-primaria);
+}
+
+/* ---------- Nível 2: abas da área ---------- */
+
+.barraAbas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 12px 16px 0;
+}
+
+.aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  font-family: var(--fonte-corpo);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.abaAtiva {
+  border-color: var(--cor-primaria);
+  background: var(--cor-primaria);
+  color: #fff;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .aba:not(.abaAtiva):hover {
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria);
+  }
+}
+
+.selo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--cor-acento);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.abaAtiva .selo {
+  background: #fff;
+  color: var(--cor-primaria);
+}
+
+@media (min-width: 900px) {
+  .barraGrupos {
+    grid-template-columns: repeat(4, minmax(0, 190px));
+    justify-content: center;
+    padding: 0 20px 12px;
+  }
+
+  .grupo {
+    flex-direction: row;
+    gap: 9px;
+    padding: 11px 14px;
+  }
+
+  .grupoRotulo {
+    font-size: 13.5px;
+  }
+
+  .barraAbas {
+    justify-content: center;
+    padding-top: 16px;
+  }
+}

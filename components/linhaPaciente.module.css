@@ -1,0 +1,64 @@
+.linha {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  background: var(--cor-superficie);
+  text-decoration: none;
+  color: inherit;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .linha:hover {
+    border-color: var(--cor-primaria);
+    background: rgba(31, 92, 87, 0.035);
+  }
+}
+
+.inicial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cor-acento-suave);
+  color: var(--cor-acento);
+  font-family: var(--fonte-titulo);
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.textos {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nome {
+  font-size: 14px;
+  color: var(--cor-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.proxima {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--cor-primaria);
+}
+
+.semSessao {
+  font-size: 11.5px;
+  color: var(--cor-texto-suave);
+}
+
+.seta {
+  color: var(--cor-texto-suave);
+  flex-shrink: 0;
+}
