@@ -19,19 +19,16 @@ import {
   IconeOlho,
   IconeMala,
 } from "@/components/perfil/SecaoPerfil";
-import {
-  ativarVisaoPaciente,
-  desativarVisaoPaciente,
-  atualizarWhatsappContato,
-} from "./actions";
+import { ativarVisaoPaciente, desativarVisaoPaciente } from "./actions";
 import { CampoWhatsApp } from "@/components/CampoWhatsApp";
+import { CampoWhatsappClinica } from "@/components/CampoWhatsappClinica";
 
 export const dynamic = "force-dynamic";
 
 export default async function PerfilPage({
   searchParams,
 }: {
-  searchParams: { indicar?: string };
+  searchParams: { indicar?: string; salvo?: string; erro?: string };
 }) {
   const supabase = createClient();
   const {
@@ -67,6 +64,24 @@ export default async function PerfilPage({
           opacidade={0.16}
           style={{ position: "absolute", top: 4, right: -6, zIndex: -1, pointerEvents: "none" }}
         />
+
+        {/* Salvar aqui não dava sinal nenhum de que deu certo — e quando
+            falhava calado, parecia que tinha salvado. */}
+        {(searchParams.salvo || searchParams.erro) && (
+          <p
+            style={{
+              margin: "0 0 14px",
+              padding: "10px 14px",
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              background: searchParams.erro ? "var(--cor-acento-suave)" : "#dff0e4",
+              color: searchParams.erro ? "var(--cor-acento)" : "#2f7a4f",
+            }}
+          >
+            {searchParams.erro ? `Não deu pra salvar: ${searchParams.erro}` : "Pronto, salvo!"}
+          </p>
+        )}
 
         {/* ---------- Identificação ---------- */}
         <div
@@ -141,13 +156,19 @@ export default async function PerfilPage({
 
         {/* ---------- Seus dados ---------- */}
         <SecaoPerfil titulo="Seus dados">
-          <CartaoPerfil
-            icone={<IconeTelefone />}
-            titulo="Seu WhatsApp"
-            descricao="Pra Beatriz falar com você sobre as sessões"
-          >
-            <CampoWhatsApp valorInicial={perfil?.whatsapp} />
-          </CartaoPerfil>
+          {/* "Seu WhatsApp" é o canal paciente→Beatriz. Pra própria Beatriz ele
+              não serve pra nada, e com os dois campos parecidos na mesma tela
+              era fácil cadastrar aqui o número da clínica e ficar sem entender
+              por que o botão das pacientes não aparecia. */}
+          {comoPaciente && (
+            <CartaoPerfil
+              icone={<IconeTelefone />}
+              titulo="Seu WhatsApp"
+              descricao="Pra Beatriz falar com você sobre as sessões"
+            >
+              <CampoWhatsApp valorInicial={perfil?.whatsapp} />
+            </CartaoPerfil>
+          )}
 
           <CartaoPerfil
             icone={<IconeSino />}
@@ -205,18 +226,11 @@ export default async function PerfilPage({
             {!vendoComoPaciente && (
               <CartaoPerfil
                 icone={<IconeMala />}
-                titulo="WhatsApp Business"
-                descricao="É o número do botão que as pacientes veem. Em branco, o botão fica escondido."
+                titulo="WhatsApp da clínica"
+                descricao="O número que as pacientes veem no botão de falar com você."
+                destaque={!configClinica?.whatsapp_contato}
               >
-                <form action={atualizarWhatsappContato} style={{ display: "flex", gap: 8 }}>
-                  <input
-                    name="whatsapp_contato"
-                    placeholder="(81) 9xxxx-xxxx"
-                    defaultValue={configClinica?.whatsapp_contato || ""}
-                    style={campoTexto}
-                  />
-                  <button type="submit" style={botaoSecundario}>Salvar</button>
-                </form>
+                <CampoWhatsappClinica valorInicial={configClinica?.whatsapp_contato} />
               </CartaoPerfil>
             )}
           </SecaoPerfil>

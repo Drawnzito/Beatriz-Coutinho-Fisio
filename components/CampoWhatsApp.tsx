@@ -2,24 +2,7 @@
 
 import { useState } from "react";
 import { atualizarMeuWhatsapp } from "@/app/perfil/actions";
-
-function formatarTelefone(valor: string) {
-  const digitos = valor.replace(/\D/g, "").slice(0, 11);
-  if (!digitos) return "";
-
-  const ddd = digitos.slice(0, 2);
-  const resto = digitos.slice(2);
-
-  let saida = `(${ddd}`;
-  if (digitos.length > 2) {
-    const quebraEm = digitos.length > 10 ? 5 : 4;
-    const parte1 = resto.slice(0, quebraEm);
-    const parte2 = resto.slice(quebraEm);
-    saida += `) ${parte1}`;
-    if (parte2) saida += `-${parte2}`;
-  }
-  return saida;
-}
+import { formatarTelefone } from "@/lib/telefone";
 
 export function CampoWhatsApp({ valorInicial }: { valorInicial: string | null | undefined }) {
   const [editando, setEditando] = useState(!valorInicial);
@@ -61,30 +44,34 @@ export function CampoWhatsApp({ valorInicial }: { valorInicial: string | null | 
 
 const campo: React.CSSProperties = {
   flex: 1,
-  padding: "9px 12px",
+  padding: "10px 12px",
   borderRadius: 8,
   border: "1px solid var(--cor-borda)",
   background: "var(--cor-superficie)",
-  fontSize: 13.5,
+  fontFamily: "var(--fonte-corpo)",
+  fontSize: 14,
 };
 
 const botaoSalvar: React.CSSProperties = {
-  padding: "10px 18px",
-  borderRadius: 999,
-  border: "1px solid var(--cor-borda)",
-  background: "var(--cor-superficie)",
-  color: "var(--cor-primaria-escura)",
+  padding: "10px 16px",
+  borderRadius: 8,
+  border: "none",
+  background: "var(--cor-primaria)",
+  color: "#fff",
+  fontFamily: "var(--fonte-corpo)",
   fontWeight: 600,
   fontSize: 13.5,
   cursor: "pointer",
 };
 
 const botaoLink: React.CSSProperties = {
-  background: "none",
   border: "none",
-  color: "var(--cor-acento)",
-  fontWeight: 600,
-  fontSize: 12.5,
-  cursor: "pointer",
+  background: "none",
   padding: 0,
+  color: "var(--cor-primaria)",
+  fontFamily: "var(--fonte-corpo)",
+  fontSize: 12.5,
+  fontWeight: 600,
+  textDecoration: "underline",
+  cursor: "pointer",
 };

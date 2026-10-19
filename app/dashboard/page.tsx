@@ -21,6 +21,7 @@ import { ResumoAvaliacoes } from "@/components/ResumoAvaliacoes";
 import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
 import { CampoEspecialidade } from "@/components/CampoEspecialidade";
 import { ChipEspecialidade } from "@/components/ChipEspecialidade";
+import { WhatsappDoPaciente } from "@/components/WhatsappDoPaciente";
 import { DIAS_SEMANA, rotuloDiaSemana } from "@/lib/diasSemana";
 import { UploadArquivo } from "@/components/UploadArquivo";
 import { EXTENSOES_MIDIA, EXTENSOES_IMAGEM, EXTENSOES_PASSO_A_PASSO } from "@/lib/tiposArquivo";
@@ -594,20 +595,16 @@ export default async function DashboardPage({
                             {pacienteDetalhe.email}
                             {pacienteDetalhe.idade ? ` · ${pacienteDetalhe.idade} anos` : ""}
                           </p>
-                          <p style={{ margin: "2px 0 0", fontSize: 13.5, color: "var(--cor-texto-suave)" }}>
-                            {pacienteDetalhe.whatsapp ? (
-                              <a
-                                href={`https://wa.me/${pacienteDetalhe.whatsapp.replace(/\D/g, "")}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ color: "#2f7a4f", fontWeight: 600, textDecoration: "none" }}
-                              >
-                                💬 {pacienteDetalhe.whatsapp}
-                              </a>
-                            ) : (
-                              "Sem WhatsApp cadastrado"
-                            )}
-                          </p>
+                          {/* Editável aqui de propósito: a paciente quase nunca
+                              preenche o próprio WhatsApp, e a Beatriz já tem o
+                              número no celular dela. Antes isto era só um texto
+                              "Sem WhatsApp cadastrado", sem saída. */}
+                          <div style={{ marginTop: 4 }}>
+                            <WhatsappDoPaciente
+                              pacienteId={pacienteDetalhe.id}
+                              valorInicial={pacienteDetalhe.whatsapp}
+                            />
+                          </div>
                           <p style={{ margin: "6px 0 0", fontSize: 12.5 }}>
                             {pacienteDetalhe.arquivado_em ? (
                               <span style={{ color: "#a2334a", fontWeight: 700 }}>

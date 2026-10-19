@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -69,14 +70,22 @@ export async function atualizarWhatsappContato(formData: FormData) {
   if (perfil?.papel !== "admin") return;
 
   const whatsapp = String(formData.get("whatsapp_contato") || "").trim();
-  await supabase
-    .from("configuracoes_clinica")
-    .update({ whatsapp_contato: whatsapp || null, atualizado_em: new Date().toISOString() })
-    .eq("id", "global");
+
+  // `upsert` com o cliente de serviço, e não `update` com o do usuário: se a
+  // linha 'global' não existir (banco restaurado, schema_13 rodado pela
+  // metade), um update não acerta linha nenhuma e o Supabase não reclama —
+  // ficaria parecendo que salvou. O papel de admin já foi conferido acima.
+  const admin = createAdminClient();
+  const { error } = await admin.from("configuracoes_clinica").upsert({
+    id: "global",
+    whatsapp_contato: whatsapp || null,
+    atualizado_em: new Date().toISOString(),
+  });
 
   revalidatePath("/perfil");
   revalidatePath("/inicio");
-  redirect("/perfil");
+  revalidatePath("/exercicios");
+  redirect(error ? `/perfil?erro=${encodeURIComponent(error.message)}` : "/perfil?salvo=1");
 }
 
 export async function enviarAvaliacaoApp(formData: FormData) {

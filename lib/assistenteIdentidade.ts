@@ -7,8 +7,10 @@
  * no carregamento inicial de /inicio e /exercicios à toa.
  */
 export const ASSISTENTE_IDENTIDADE = {
-  /** Deliberadamente diferente de "Beatriz" pra ninguém achar que fala com a fisioterapeuta. */
-  nome: "Lia",
-  papel: "assistente do app",
+  nome: "Bia",
+  /* O nome é trocadilho com Beatriz, e é de propósito. Em troca, o papel
+     aparece embaixo do nome em toda tela e a saudação abre dizendo que é
+     automática — ninguém pode achar que está escrevendo pra fisioterapeuta. */
+  papel: "assistente virtual",
   avatar: "/marca/assistente-avatar.png",
 } as const;

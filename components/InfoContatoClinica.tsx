@@ -1,8 +1,5 @@
 import { CLINICA } from "@/lib/clinica";
-
-function somenteDigitos(valor: string) {
-  return valor.replace(/\D/g, "");
-}
+import { linkWhatsapp, somenteDigitos } from "@/lib/telefone";
 
 export function InfoContatoClinica({
   whatsapp,
@@ -37,7 +34,7 @@ export function InfoContatoClinica({
         </a>
         {mostrarBotaoWhatsapp && numero && (
           <a
-            href={`https://wa.me/${numero}`}
+            href={linkWhatsapp(numero)}
             target="_blank"
             rel="noreferrer"
             style={{ ...botaoSecundario, background: "#25D366", color: "#fff", border: "1px solid #25D366" }}

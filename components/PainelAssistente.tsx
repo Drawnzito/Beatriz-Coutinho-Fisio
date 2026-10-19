@@ -9,6 +9,7 @@ import {
   acharPergunta,
   type AcaoAssistente,
 } from "@/lib/assistente";
+import { linkWhatsapp } from "@/lib/telefone";
 import styles from "./assistente.module.css";
 
 type Fala =
@@ -87,7 +88,7 @@ export function PainelAssistente({
       return;
     }
     if (acao.tipo === "whatsapp") {
-      window.open(`https://wa.me/${numeroWhatsapp}`, "_blank", "noopener");
+      window.open(linkWhatsapp(numeroWhatsapp), "_blank", "noopener");
       return;
     }
     if (acao.externo) {

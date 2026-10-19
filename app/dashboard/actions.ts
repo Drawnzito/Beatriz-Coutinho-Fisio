@@ -764,6 +764,26 @@ export async function removerConvitePaciente(id: string) {
   irComSucesso("Convite removido", "pacientes");
 }
 
+/**
+ * WhatsApp da paciente, cadastrado pela Beatriz na ficha.
+ *
+ * Vai pelo cliente de serviço porque `perfis` não tem policy de UPDATE pra
+ * ninguém — nem pra admin — e abrir uma seria deixar o papel e o arquivamento
+ * expostos. O papel de admin é conferido em `exigirAdmin`.
+ */
+export async function atualizarWhatsappPaciente(pacienteId: string, formData: FormData) {
+  await exigirAdmin();
+
+  const whatsapp = String(formData.get("whatsapp") || "").trim() || null;
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("perfis").update({ whatsapp }).eq("id", pacienteId);
+  if (error) irComErro(error.message, "pacientes", { verPaciente: pacienteId });
+
+  revalidatePath("/dashboard");
+  irComSucesso(whatsapp ? "WhatsApp salvo" : "WhatsApp removido", "pacientes", { verPaciente: pacienteId });
+}
+
 export async function arquivarPaciente(id: string) {
   await exigirAdmin();
   const admin = createAdminClient();
