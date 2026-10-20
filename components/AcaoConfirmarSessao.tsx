@@ -9,16 +9,19 @@ export function AcaoConfirmarSessao({
   sessaoId,
   status,
   motivoRecusa,
+  mostrarBadge = true,
 }: {
   sessaoId: string;
   status: string | null | undefined;
   motivoRecusa?: string | null;
+  /** Desligado onde o cartão já mostra a situação no topo, pra não repetir. */
+  mostrarBadge?: boolean;
 }) {
   const [recusando, setRecusando] = useState(false);
   const [motivo, setMotivo] = useState("");
 
   if (status !== "agendada") {
-    return <BadgeStatusSessao status={status} motivoRecusa={motivoRecusa} />;
+    return mostrarBadge ? <BadgeStatusSessao status={status} motivoRecusa={motivoRecusa} /> : null;
   }
 
   if (!recusando) {
@@ -107,7 +110,8 @@ const botaoConfirmar: React.CSSProperties = {
   padding: "7px 12px",
   borderRadius: 999,
   border: "none",
-  background: "#2f7a4f",
+  // Verde da marca, não um verde genérico de "sucesso".
+  background: "var(--cor-primaria)",
   color: "#fff",
   fontWeight: 700,
   fontSize: 12.5,
@@ -129,7 +133,7 @@ const botaoRecusarConfirmar: React.CSSProperties = {
   padding: "7px 12px",
   borderRadius: 8,
   border: "none",
-  background: "#a2334a",
+  background: "#9c4259",
   color: "#fff",
   fontWeight: 700,
   fontSize: 12.5,

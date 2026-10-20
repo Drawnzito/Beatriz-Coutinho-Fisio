@@ -1,5 +1,17 @@
-import { rotuloStatusSessao, corStatusSessao, corFundoStatusSessao } from "@/lib/statusSessao";
+import {
+  rotuloStatusSessao,
+  corStatusSessao,
+  corFundoStatusSessao,
+  corBordaStatusSessao,
+} from "@/lib/statusSessao";
 
+/**
+ * Selo de situação da sessão.
+ *
+ * O ponto colorido saiu: com o selo já inteiro na cor do status, ele era a
+ * terceira marca de cor no mesmo cartão. Ficou um contorno de 1px, que lê
+ * como etiqueta em vez de marca-texto.
+ */
 export function BadgeStatusSessao({
   status,
   motivoRecusa,
@@ -15,25 +27,17 @@ export function BadgeStatusSessao({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 5,
-        padding: "3px 9px",
+        padding: "3px 10px",
         borderRadius: 999,
-        fontSize: 11.5,
+        border: `1px solid ${corBordaStatusSessao(status)}`,
+        fontSize: 11,
         fontWeight: 700,
+        letterSpacing: 0.2,
         color: corStatusSessao(status),
         background: corFundoStatusSessao(status),
         whiteSpace: "nowrap",
       }}
     >
-      <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: corStatusSessao(status),
-          flexShrink: 0,
-        }}
-      />
       {rotuloStatusSessao(status, curto)}
     </span>
   );

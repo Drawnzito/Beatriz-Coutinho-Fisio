@@ -6,6 +6,7 @@ import { TopoPublico } from "@/components/TopoPublico";
 import { BottomNav } from "@/components/BottomNav";
 import { AcentoCadencia } from "@/components/Acentos";
 import { CLINICA, urlDoSite } from "@/lib/clinica";
+import { papelVisivel } from "@/lib/papelVisivel";
 
 export const dynamic = "force-dynamic";
 
@@ -55,15 +56,7 @@ export default async function PostPage({ params }: { params: { slug: string } })
   if (!post) notFound();
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let papel: "admin" | "paciente" | null = null;
-  if (user) {
-    const { data: perfil } = await supabase.from("perfis").select("papel").eq("id", user.id).single();
-    papel = perfil?.papel === "admin" ? "admin" : "paciente";
-  }
+  const papel = await papelVisivel(supabase);
 
   // O conteúdo é texto simples escrito pela Beatriz: cada linha em branco
   // separa um parágrafo. Renderizar como texto (e não como HTML) é

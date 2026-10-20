@@ -341,24 +341,30 @@ export default async function InicioPage({
                   </div>
                 </Link>
               ) : (
-              <div key={item.id} style={sessaoCartao}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
+              /* Hora em primeiro plano e situação no canto: a paciente abre o
+                 app pra saber que horas é e se está de pé. O que antes era uma
+                 linha só, em negrito, com tipo + nome da fisio + hora, virou
+                 uma hierarquia — e o nome da fisioterapeuta saiu, porque é
+                 sempre a mesma pessoa em todas as sessões. */
+              <div key={item.id} style={{ ...sessaoCartao, borderLeft: `3px solid ${corTipoSessao(item.tipo)}` }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                  <strong
                     style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: corTipoSessao(item.tipo),
-                      flexShrink: 0,
+                      fontFamily: "var(--fonte-titulo)",
+                      fontSize: 22,
+                      lineHeight: 1,
+                      color: "var(--cor-primaria)",
                     }}
-                  />
-                  <strong style={{ color: "var(--cor-primaria)", fontSize: 13 }}>
-                    {numerosSessao.has(item.id) ? `Sessão nº ${numerosSessao.get(item.id)} · ` : ""}
-                    {rotuloTipoSessao(item.tipo)}
-                    {nomeProfissional ? ` · ${nomeProfissional}` : ""}
-                    {item.hora ? ` · ${item.hora.slice(0, 5)}` : ""}
+                  >
+                    {item.hora ? item.hora.slice(0, 5) : "a combinar"}
                   </strong>
+                  <BadgeStatusSessao status={item.status} motivoRecusa={item.motivo_recusa} curto />
                 </div>
+
+                <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                  {rotuloTipoSessao(item.tipo)}
+                  {numerosSessao.has(item.id) ? ` · sessão nº ${numerosSessao.get(item.id)}` : ""}
+                </p>
 
                 {/* Especialidade vem antes do plano: e o dado que define o atendimento */}
                 {item.especialidade && (
@@ -367,8 +373,13 @@ export default async function InicioPage({
                   </div>
                 )}
 
-                <div style={{ marginTop: 8 }}>
-                  <AcaoConfirmarSessao sessaoId={item.id} status={item.status} motivoRecusa={item.motivo_recusa} />
+                <div style={{ marginTop: 10 }}>
+                  <AcaoConfirmarSessao
+                    sessaoId={item.id}
+                    status={item.status}
+                    motivoRecusa={item.motivo_recusa}
+                    mostrarBadge={false}
+                  />
                 </div>
 
                 {item.observacoes && (
