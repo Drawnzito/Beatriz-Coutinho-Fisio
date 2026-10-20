@@ -317,8 +317,10 @@ export default async function DashboardPage({
   let totalSessoesDetalhe = 0;
   let planosDetalhe: any[] = [];
   let evolucoesDetalhe: any[] = [];
+  let treinosFeitosDetalhe: any[] = [];
+  let totalTreinosFeitos = 0;
   if (verPacienteId) {
-    const [{ data: pd }, { data: sd, count: totalSd }, { data: pld }, { data: ed }] = await Promise.all([
+    const [{ data: pd }, { data: sd, count: totalSd }, { data: pld }, { data: ed }, { data: td, count: totalTd }] = await Promise.all([
       supabase.from("perfis").select("id, nome, email, idade, whatsapp, arquivado_em").eq("id", verPacienteId).maybeSingle(),
       supabase
         .from("sessoes")
@@ -328,12 +330,22 @@ export default async function DashboardPage({
         .range((paginaSessoesPaciente - 1) * TAMANHO_SESSOES_PACIENTE, paginaSessoesPaciente * TAMANHO_SESSOES_PACIENTE - 1),
       supabase.from("planos").select("id, titulo, ativo, validade").eq("paciente_id", verPacienteId).order("criado_em", { ascending: false }),
       supabase.from("evolucoes").select("id, data, texto").eq("paciente_id", verPacienteId).order("data", { ascending: false }),
+      // Os treinos que ela de fato fez em casa. Só os 8 últimos aparecem; o
+      // `count` é do total, que é o número que diz se ela está treinando.
+      supabase
+        .from("treinos_realizados")
+        .select("id, titulo_plano, exercicios_feitos, series_feitas, concluido_em", { count: "exact" })
+        .eq("paciente_id", verPacienteId)
+        .order("concluido_em", { ascending: false })
+        .limit(8),
     ]);
     pacienteDetalhe = pd;
     sessoesDetalhe = sd ?? [];
     totalSessoesDetalhe = totalSd ?? 0;
     planosDetalhe = pld ?? [];
     evolucoesDetalhe = ed ?? [];
+    treinosFeitosDetalhe = td ?? [];
+    totalTreinosFeitos = totalTd ?? 0;
   }
 
   function textoEvolucaoExpandivel(texto: string) {
@@ -892,6 +904,45 @@ export default async function DashboardPage({
                         ))}
                         {planosDetalhe.length === 0 && (
                           <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhum plano criado ainda.</p>
+                        )}
+                      </div>
+
+                      {/* Treinos feitos em casa, que é coisa diferente das
+                          sessões presenciais: é aqui que dá pra ver se o plano
+                          montado está mesmo sendo seguido entre uma sessão e
+                          outra. Ver supabase/schema_26_treinos_realizados.sql. */}
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                        Treinos feitos em casa ({totalTreinosFeitos})
+                      </p>
+                      <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
+                        {treinosFeitosDetalhe.map((t) => (
+                          <div key={t.id} style={cartao}>
+                            <div>
+                              <strong>{t.titulo_plano}</strong>
+                              <p style={{ margin: "4px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                                {new Date(t.concluido_em).toLocaleDateString("pt-BR")} às{" "}
+                                {new Date(t.concluido_em).toLocaleTimeString("pt-BR", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                                {" · "}
+                                {t.exercicios_feitos} exercício{t.exercicios_feitos === 1 ? "" : "s"}
+                                {" · "}
+                                {t.series_feitas} série{t.series_feitas === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                        {treinosFeitosDetalhe.length === 0 && (
+                          <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>
+                            Nenhum treino concluído pelo app ainda. O registro acontece quando ela termina um
+                            treino em "Iniciar treino" — treino feito fora do app não aparece aqui.
+                          </p>
+                        )}
+                        {totalTreinosFeitos > treinosFeitosDetalhe.length && (
+                          <p style={{ margin: 0, fontSize: 12, color: "var(--cor-texto-suave)" }}>
+                            Mostrando os {treinosFeitosDetalhe.length} mais recentes de {totalTreinosFeitos}.
+                          </p>
                         )}
                       </div>
 

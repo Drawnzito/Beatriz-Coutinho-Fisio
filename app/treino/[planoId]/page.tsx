@@ -36,5 +36,5 @@ export default async function TreinoPage({ params }: { params: { planoId: string
       repeticoes: (item.repeticoes ?? item.exercicios.repeticoes_padrao) as number | null,
     }));
 
-  return <TreinoExecucao tituloPlano={plano.titulo} itens={itens} />;
+  return <TreinoExecucao planoId={plano.id} tituloPlano={plano.titulo} itens={itens} />;
 }

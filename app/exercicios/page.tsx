@@ -67,6 +67,20 @@ export default async function ExerciciosPage({
     .eq("id", "global")
     .maybeSingle();
 
+  // Quantas vezes cada treino já foi concluído. Vem tudo numa query só e a
+  // contagem é feita aqui: são poucas linhas por paciente, e um `count` por
+  // plano seria uma ida ao banco por cartão na tela.
+  const { data: treinosFeitos } = await supabase
+    .from("treinos_realizados")
+    .select("plano_id")
+    .eq("paciente_id", user.id);
+
+  const vezesPorPlano = new Map<string, number>();
+  for (const t of treinosFeitos ?? []) {
+    if (!t.plano_id) continue;
+    vezesPorPlano.set(t.plano_id, (vezesPorPlano.get(t.plano_id) ?? 0) + 1);
+  }
+
   // Sem treino na URL, a tela mostra os treinos como cartões; com treino, só
   // ele, por inteiro. Antes a página abria direto na lista completa do
   // primeiro treino, o que dava uma coluna longa de linhas iguais e escondia
@@ -97,6 +111,7 @@ export default async function ExerciciosPage({
                 titulo={plano.titulo}
                 href={`/exercicios?treino=${plano.id}`}
                 hrefIniciar={`/treino/${plano.id}`}
+                vezesFeito={vezesPorPlano.get(plano.id) ?? 0}
                 itens={[...(plano.plano_exercicios ?? [])]
                   .sort((a: any, b: any) => a.ordem - b.ordem)
                   .map((item: any) => ({
@@ -233,6 +248,7 @@ export default async function ExerciciosPage({
                   titulo={plano.titulo}
                   href={`/exercicios?treino=${plano.id}`}
                   encerrado
+                  vezesFeito={vezesPorPlano.get(plano.id) ?? 0}
                   itens={[...(plano.plano_exercicios ?? [])]
                     .sort((a: any, b: any) => a.ordem - b.ordem)
                     .map((item: any) => ({

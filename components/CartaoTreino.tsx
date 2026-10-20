@@ -17,12 +17,15 @@ export function CartaoTreino({
   hrefIniciar,
   itens,
   encerrado = false,
+  vezesFeito = 0,
 }: {
   titulo: string;
   href: string;
   hrefIniciar?: string;
   itens: { id: string; video_url?: string | null; pdf_url?: string | null; titulo: string }[];
   encerrado?: boolean;
+  /** Quantas vezes a paciente já terminou este treino pelo app. */
+  vezesFeito?: number;
 }) {
   const principal = itens[0];
   const secundarios = itens.slice(1, 4);
@@ -69,6 +72,10 @@ export function CartaoTreino({
           <span className={styles.contagem}>
             {itens.length} exercício{itens.length === 1 ? "" : "s"}
             {encerrado ? " · encerrado" : ""}
+            {/* O treino concluído passou a ficar registrado: mostrar a conta
+                aqui é o que faz a paciente ver que o esforço dela não se
+                perdeu, e é o mesmo número que a Beatriz vê na ficha. */}
+            {vezesFeito > 0 ? ` · feito ${vezesFeito}×` : ""}
           </span>
         </div>
       </Link>

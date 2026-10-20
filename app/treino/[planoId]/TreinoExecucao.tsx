@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { PassoAPasso } from "@/components/PassoAPasso";
+import { registrarTreinoConcluido } from "./actions";
 
 type Item = {
   id: string;
@@ -41,7 +42,15 @@ function tocarSomConclusao() {
   }
 }
 
-export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; itens: Item[] }) {
+export function TreinoExecucao({
+  planoId,
+  tituloPlano,
+  itens,
+}: {
+  planoId: string;
+  tituloPlano: string;
+  itens: Item[];
+}) {
   const [indice, setIndice] = useState(0);
   const [serie, setSerie] = useState(1);
   const [fase, setFase] = useState<"exercicio" | "descanso" | "concluido">("exercicio");
@@ -62,11 +71,20 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
   const passosFeitos = itens.slice(0, indice).reduce((soma, it) => soma + seriesDe(it), 0) + (serie - 1);
   const progresso = totalPassos > 0 ? (passosFeitos / totalPassos) * 100 : 0;
 
+  // Trava de uma gravação só: o efeito reexecuta em remontagem (o modo estrito
+  // do React monta duas vezes em desenvolvimento), e cada passada viraria um
+  // treino a mais no histórico da paciente.
+  const jaRegistrou = useRef(false);
+
   useEffect(() => {
     if (fase !== "concluido") return;
     if (navigator.vibrate) navigator.vibrate([200, 80, 200, 80, 320]);
     tocarSomConclusao();
-  }, [fase]);
+
+    if (jaRegistrou.current) return;
+    jaRegistrou.current = true;
+    registrarTreinoConcluido(planoId);
+  }, [fase, planoId]);
 
   function avancar() {
     if (serie < totalSeries) {
