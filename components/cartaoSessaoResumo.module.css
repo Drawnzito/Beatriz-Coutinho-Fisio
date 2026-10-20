@@ -74,3 +74,36 @@
 .acao {
   margin-top: 8px;
 }
+
+/* Variante mais enxuta — sessões anteriores já perderam relevância do dia
+   a dia, não precisam do mesmo destaque das próximas. */
+.compacto {
+  padding: 6px 10px;
+}
+
+.compacto .dia {
+  font-size: 14px;
+}
+
+.compacto .diaSemana {
+  font-size: 10px;
+}
+
+.compacto .linha {
+  margin-top: 3px;
+  font-size: 11.5px;
+}
+
+.compacto .chip {
+  margin-top: 4px;
+}
+
+.compacto .acao {
+  margin-top: 5px;
+}
+
+.compacto .acao button,
+.compacto .acao a {
+  font-size: 11.5px;
+  padding: 5px 9px;
+}

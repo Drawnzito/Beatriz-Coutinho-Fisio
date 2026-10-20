@@ -478,7 +478,7 @@ export default async function InicioPage({
           // Cartão de resumo: data, hora, quem/o quê e o status. É uma lista
           // de consulta rápida — nome do plano e profissional saíram porque
           // repetiam em todas as linhas sem ajudar a distinguir uma da outra.
-          function cartaoOutraSessao(s: any) {
+          function cartaoOutraSessao(s: any, compacto?: boolean) {
             const podeAvaliar =
               !ehAdmin &&
               s.status === "confirmada" &&
@@ -490,6 +490,7 @@ export default async function InicioPage({
                 key={s.id}
                 sessao={s}
                 nomePaciente={ehAdmin ? s.perfis?.nome || s.perfis?.email || "—" : undefined}
+                compacto={compacto}
               >
                 {podeAvaliar && <AvaliarAtendimento sessaoId={s.id} />}
               </CartaoSessaoResumo>
@@ -501,7 +502,7 @@ export default async function InicioPage({
               {(proximasSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 36 }}>Próximas sessões</h2>
-                  <div className="grade-compacta">{(proximasSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <div className="grade-compacta">{(proximasSessoes ?? []).map((s) => cartaoOutraSessao(s))}</div>
                   <Paginacao
                     pagina={paginaProximas}
                     total={totalProximas ?? 0}
@@ -513,7 +514,9 @@ export default async function InicioPage({
               {(anterioresSessoes ?? []).length > 0 && (
                 <>
                   <h2 style={{ ...tituloSecao, marginTop: 28 }}>Sessões anteriores</h2>
-                  <div className="grade-compacta">{(anterioresSessoes ?? []).map(cartaoOutraSessao)}</div>
+                  <div className="grade-compacta">
+                    {(anterioresSessoes ?? []).map((s) => cartaoOutraSessao(s, true))}
+                  </div>
                   <Paginacao
                     pagina={paginaAnteriores}
                     total={totalAnteriores ?? 0}

@@ -17,12 +17,15 @@ export function CartaoSessaoResumo({
   /** Nome mostrado no lugar do tipo — usado no painel, onde importa quem é. */
   nomePaciente,
   detalhe,
+  /** Reduz ainda mais o cartão (fonte/padding) — pra listas onde cada linha já conta menos (ex: sessões anteriores). */
+  compacto,
   children,
 }: {
   sessao: any;
   nomePaciente?: string;
   /** Linha extra embaixo (plano, observações). */
   detalhe?: string;
+  compacto?: boolean;
   /** Ação no pé do cartão, como "Avaliar atendimento". */
   children?: React.ReactNode;
 }) {
@@ -30,7 +33,10 @@ export function CartaoSessaoResumo({
   const data = new Date(`${s.data}T00:00:00`);
 
   return (
-    <div className={styles.cartao} style={{ borderLeftColor: corTipoSessao(s.tipo) }}>
+    <div
+      className={`${styles.cartao} ${compacto ? styles.compacto : ""}`}
+      style={{ borderLeftColor: corTipoSessao(s.tipo) }}
+    >
       <div className={styles.topo}>
         <span className={styles.quando}>
           <strong className={styles.dia}>
