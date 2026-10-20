@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import type { ResultadoAcao } from "@/lib/resultadoAcao";
 
 export function FormularioAvaliacao({
   perguntas,
@@ -9,15 +11,19 @@ export function FormularioAvaliacao({
   rotuloBotao = "Enviar avaliação",
 }: {
   perguntas: string[];
-  action: (formData: FormData) => void | Promise<void>;
+  action: (anterior: ResultadoAcao, formData: FormData) => Promise<ResultadoAcao>;
   sessaoId?: string;
   rotuloBotao?: string;
 }) {
   const [notas, setNotas] = useState<number[]>(perguntas.map(() => 0));
   const [comentario, setComentario] = useState("");
-  const [enviado, setEnviado] = useState(false);
 
-  if (enviado) {
+  // O agradecimento vem da resposta do servidor. Antes era um useState ligado
+  // no onSubmit: aparecia no clique e ficava lá mesmo quando a avaliação não
+  // era gravada — a paciente achava que tinha mandado e a Beatriz nunca via.
+  const [estado, enviar] = useFormState(action, null);
+
+  if (estado?.ok) {
     return (
       <p style={{ fontSize: 13.5, color: "var(--cor-primaria)", fontWeight: 600, margin: 0 }}>
         Obrigado pela sua avaliação!
@@ -28,7 +34,9 @@ export function FormularioAvaliacao({
   const completo = notas.every((n) => n > 0);
 
   return (
-    <form action={action} onSubmit={() => setEnviado(true)} style={{ display: "grid", gap: 14 }}>
+    /* Sem o véu global de "Salvando…": esta ação não troca de tela, e o véu
+       só se desfaz quando a URL muda. O próprio botão mostra o progresso. */
+    <form action={enviar} data-sem-indicador="1" style={{ display: "grid", gap: 14 }}>
       {sessaoId && <input type="hidden" name="sessao_id" value={sessaoId} />}
       {perguntas.map((pergunta, i) => (
         <div key={i}>
@@ -74,23 +82,38 @@ export function FormularioAvaliacao({
         }}
       />
 
-      <button
-        type="submit"
-        disabled={!completo}
-        style={{
-          padding: "9px 16px",
-          borderRadius: 8,
-          border: "none",
-          background: completo ? "var(--cor-primaria)" : "var(--cor-borda)",
-          color: "#fff",
-          fontWeight: 700,
-          fontSize: 13.5,
-          cursor: completo ? "pointer" : "not-allowed",
-          justifySelf: "start",
-        }}
-      >
-        {rotuloBotao}
-      </button>
+      {estado && !estado.ok && (
+        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: "#a2334a" }}>{estado.erro}</p>
+      )}
+
+      <BotaoEnviar completo={completo} rotulo={rotuloBotao} />
     </form>
+  );
+}
+
+/** Componente à parte porque useFormStatus só lê o formulário acima dele. */
+function BotaoEnviar({ completo, rotulo }: { completo: boolean; rotulo: string }) {
+  const { pending } = useFormStatus();
+  const liberado = completo && !pending;
+
+  return (
+    <button
+      type="submit"
+      disabled={!liberado}
+      style={{
+        padding: "9px 16px",
+        borderRadius: 8,
+        border: "none",
+        background: completo ? "var(--cor-primaria)" : "var(--cor-borda)",
+        color: "#fff",
+        fontWeight: 700,
+        fontSize: 13.5,
+        cursor: liberado ? "pointer" : "not-allowed",
+        justifySelf: "start",
+        opacity: pending ? 0.7 : 1,
+      }}
+    >
+      {pending ? "Enviando…" : rotulo}
+    </button>
   );
 }

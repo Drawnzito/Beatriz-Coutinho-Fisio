@@ -8,6 +8,7 @@ import { rotuloTipoSessao } from "@/lib/tiposSessao";
 import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
 import { buscarVagas, verificarConflitoNaGrade, type VagaHorario } from "@/lib/disponibilidade";
 import { hojeIsoBrasil } from "@/lib/dataBrasil";
+import type { ResultadoAcao } from "@/lib/resultadoAcao";
 
 /**
  * Vagas do dia pro seletor de horario.
@@ -55,6 +56,16 @@ export async function responderSessao(formData: FormData) {
   if (error) {
     redirect(`/inicio?conflito=${encodeURIComponent(`Não consegui registrar sua resposta: ${error.message}`)}`);
   }
+
+  // Termina redirecionando mesmo quando dá tudo certo, por dois motivos: a
+  // paciente recebe a confirmação em texto, e o véu de "Salvando…" se desfaz
+  // (ele só sai quando a URL muda — com `revalidatePath` sozinho ficava na
+  // tela até a trava de 12s).
+  redirect(
+    `/inicio?sucesso=${encodeURIComponent(
+      novoStatus === "confirmada" ? "Presença confirmada" : "Avisamos que você não vai"
+    )}`
+  );
 }
 
 export async function solicitarSessao(formData: FormData) {
@@ -130,15 +141,18 @@ export async function solicitarSessao(formData: FormData) {
 
   revalidatePath("/inicio");
   revalidatePath("/dashboard");
-  redirect("/inicio");
+  redirect(`/inicio?sucesso=${encodeURIComponent("Pedido enviado — a Beatriz vai confirmar")}`);
 }
 
-export async function enviarAvaliacaoAtendimento(formData: FormData) {
+export async function enviarAvaliacaoAtendimento(
+  _anterior: ResultadoAcao,
+  formData: FormData
+): Promise<ResultadoAcao> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { ok: false, erro: "Sua sessão expirou. Entre de novo pra avaliar." };
 
   const sessaoId = String(formData.get("sessao_id") || "") || null;
   const nota1 = Number(formData.get("nota_1"));
@@ -150,9 +164,11 @@ export async function enviarAvaliacaoAtendimento(formData: FormData) {
   // outro: sem conferir a faixa aqui, uma nota 9 entraria e torceria a média
   // que a Beatriz vê na aba Avaliações.
   const notaValida = (n: number) => Number.isInteger(n) && n >= 1 && n <= 5;
-  if (!notaValida(nota1) || !notaValida(nota2) || !notaValida(nota3)) return;
+  if (!notaValida(nota1) || !notaValida(nota2) || !notaValida(nota3)) {
+    return { ok: false, erro: "Dê uma nota de 1 a 5 em cada pergunta." };
+  }
 
-  await supabase.from("avaliacoes_atendimento").insert({
+  const { error } = await supabase.from("avaliacoes_atendimento").insert({
     paciente_id: user.id,
     sessao_id: sessaoId,
     nota_1: nota1,
@@ -161,5 +177,8 @@ export async function enviarAvaliacaoAtendimento(formData: FormData) {
     comentario,
   });
 
+  if (error) return { ok: false, erro: "Não consegui enviar sua avaliação agora. Tenta de novo?" };
+
   revalidatePath("/inicio");
+  return { ok: true };
 }

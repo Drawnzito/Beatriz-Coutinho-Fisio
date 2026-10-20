@@ -6,7 +6,24 @@ import { envolverEmailComMarca } from "@/lib/emailTemplate";
  * de propósito: a margem evita que um pico no fim do mês gere cobrança.
  */
 export const LIMITE_MENSAL = 2900;
-const REMETENTE = process.env.RESEND_FROM || "Beatriz Coutinho Fisioterapia <onboarding@resend.dev>";
+
+const REMETENTE_SANDBOX = "Beatriz Coutinho Fisioterapia <onboarding@resend.dev>";
+const REMETENTE = process.env.RESEND_FROM || REMETENTE_SANDBOX;
+
+/**
+ * Se os e-mails estão saindo pelo remetente de teste do Resend.
+ *
+ * `onboarding@resend.dev` é o endereço de sandbox: ele só entrega para o
+ * e-mail do titular da conta Resend e **recusa todos os outros**. Ou seja,
+ * com ele configurado nada chega às pacientes — e a recusa só aparece no log
+ * da Vercel, que ninguém abre. Enquanto for o caso, o painel avisa.
+ *
+ * Para resolver: verificar um domínio no Resend e apontar `RESEND_FROM` pra
+ * um endereço desse domínio nas variáveis de ambiente da Vercel.
+ */
+export function usandoRemetenteDeTeste() {
+  return REMETENTE === REMETENTE_SANDBOX;
+}
 
 export async function enviarEmail({
   destinatario,

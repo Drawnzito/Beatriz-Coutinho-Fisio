@@ -90,6 +90,24 @@ export async function criarExercicio(formData: FormData) {
 
 export async function removerExercicio(id: string) {
   const { supabase } = await exigirAdmin();
+
+  // plano_exercicios aponta pra exercicios sem "on delete cascade" — de
+  // propósito, pra não apagar exercício de treino em uso sem querer. Sem esta
+  // checagem o banco recusa com o texto cru da constraint ("violates foreign
+  // key constraint..."), que não diz à Beatriz nem por que nem o que fazer.
+  const { count } = await supabase
+    .from("plano_exercicios")
+    .select("id", { count: "exact", head: true })
+    .eq("exercicio_id", id);
+
+  if ((count ?? 0) > 0) {
+    irComErro(
+      `Esse exercício está em ${count} treino${count === 1 ? "" : "s"}. Tire ele dos treinos antes de apagar da biblioteca.`,
+      "biblioteca"
+    );
+    return;
+  }
+
   const { error } = await supabase.from("exercicios").delete().eq("id", id);
   if (error) irComErro(error.message, "biblioteca");
   revalidatePath("/dashboard");
@@ -175,7 +193,12 @@ export async function criarPlano(formData: FormData) {
   const titulo = String(formData.get("titulo") || "");
   const exercicioIds = formData.getAll("exercicio_id") as string[];
 
-  if (!paciente_id || !titulo || exercicioIds.length === 0) return;
+  // Voltar calado aqui deixava a tela igualzinha à de um plano criado: a
+  // Beatriz apertava o botão, nada acontecia e não havia o que ler.
+  if (!paciente_id || !titulo || exercicioIds.length === 0) {
+    irComErro("escolha a paciente, dê um nome ao treino e inclua ao menos um exercício", "plano");
+    return;
+  }
 
   const { data: plano, error } = await supabase
     .from("planos")
@@ -194,7 +217,13 @@ export async function criarPlano(formData: FormData) {
   }));
 
   const { error: erroItens } = await supabase.from("plano_exercicios").insert(itens);
-  if (erroItens) irComErro(erroItens.message, "plano");
+  if (erroItens) {
+    // O plano já existe neste ponto. Sem desfazer, sobraria um treino vazio
+    // na lista da paciente, que é pior do que não ter criado nada.
+    await supabase.from("planos").delete().eq("id", plano.id);
+    irComErro(erroItens.message, "plano");
+    return;
+  }
 
   revalidatePath("/dashboard");
   irComSucesso("Plano criado com sucesso", "plano");
@@ -217,18 +246,14 @@ export async function atualizarPlano(id: string, formData: FormData) {
     return;
   }
 
-  const { error: erroRemover } = await supabase.from("plano_exercicios").delete().eq("plano_id", id);
-  if (erroRemover) {
-    irComErro(erroRemover.message, "plano");
-    return;
-  }
-
-  const itens = montarItensPlano(formData, exercicioIds).map((item) => ({
-    ...item,
-    plano_id: id,
-  }));
-
-  const { error: erroItens } = await supabase.from("plano_exercicios").insert(itens);
+  // Apagar e reinserir em duas chamadas deixava o plano sem exercicio nenhum
+  // quando a segunda falhava — a paciente perdia o treino. A funcao faz as
+  // duas coisas numa transacao: se o insert quebrar, o delete volta atras.
+  // Ver supabase/schema_25_itens_plano_atomico.sql.
+  const { error: erroItens } = await supabase.rpc("substituir_itens_plano", {
+    plano: id,
+    itens: montarItensPlano(formData, exercicioIds),
+  });
   if (erroItens) {
     irComErro(erroItens.message, "plano");
     return;
@@ -744,7 +769,10 @@ export async function criarConvitePaciente(formData: FormData) {
   const idade = idadeRaw ? Number(idadeRaw) : null;
   const whatsapp = String(formData.get("whatsapp") || "").trim() || null;
 
-  if (!nome || !email) return;
+  if (!nome || !email) {
+    irComErro("preencha o nome e o e-mail da paciente", "pacientes");
+    return;
+  }
 
   const { data: perfilExistente } = await supabase
     .from("perfis")

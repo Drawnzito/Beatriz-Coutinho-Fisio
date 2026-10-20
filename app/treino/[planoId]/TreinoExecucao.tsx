@@ -53,6 +53,15 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
   const ultimoExercicio = indice >= itens.length - 1;
   const ultimaAcao = serie >= totalSeries && ultimoExercicio;
 
+  // Progresso por série, não por exercício: contando exercício a barra ficava
+  // em 0% durante todo o primeiro (parecia que não tinha começado) e parava em
+  // (n-1)/n no último, sem nunca encher. Um treino de 3 exercícios × 3 séries
+  // são 9 passos, e a barra anda a cada um deles.
+  const seriesDe = (it: Item) => (it.series && it.series > 0 ? it.series : 1);
+  const totalPassos = itens.reduce((soma, it) => soma + seriesDe(it), 0);
+  const passosFeitos = itens.slice(0, indice).reduce((soma, it) => soma + seriesDe(it), 0) + (serie - 1);
+  const progresso = totalPassos > 0 ? (passosFeitos / totalPassos) * 100 : 0;
+
   useEffect(() => {
     if (fase !== "concluido") return;
     if (navigator.vibrate) navigator.vibrate([200, 80, 200, 80, 320]);
@@ -153,7 +162,7 @@ export function TreinoExecucao({ tituloPlano, itens }: { tituloPlano: string; it
         <div
           style={{
             height: 4,
-            width: `${(indice / itens.length) * 100}%`,
+            width: `${progresso}%`,
             background: "var(--cor-primaria)",
             borderRadius: 2,
             transition: "width .3s ease",

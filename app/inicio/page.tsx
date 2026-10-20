@@ -13,6 +13,7 @@ import { SolicitarSessaoForm } from "@/components/SolicitarSessaoForm";
 import { AcaoConfirmarSessao } from "@/components/AcaoConfirmarSessao";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
 import { CartaoSessaoResumo } from "@/components/CartaoSessaoResumo";
+import { Feedback } from "@/components/Feedback";
 import { Paginacao } from "@/components/Paginacao";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -39,6 +40,7 @@ export default async function InicioPage({
     paginaProximas?: string;
     paginaAnteriores?: string;
     conflito?: string;
+    sucesso?: string;
   };
 }) {
   const supabase = createClient();
@@ -182,6 +184,9 @@ export default async function InicioPage({
 
   return (
     <>
+      {/* Mesma tarja do painel: confirmar presença e pedir sessão não trocavam
+          de tela, e a paciente não tinha como saber se tinha dado certo. */}
+      <Feedback mensagem={searchParams.sucesso} />
       {vendoComoPaciente && <AvisoModoTeste />}
       <Header
         titulo={`Olá, ${perfil?.nome?.split(" ")[0] || "por aqui"}`}

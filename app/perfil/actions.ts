@@ -6,6 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { enviarEmail } from "@/lib/email";
+import type { ResultadoAcao } from "@/lib/resultadoAcao";
 
 export async function ativarVisaoPaciente() {
   cookies().set("ver_como_paciente", "1", { path: "/", maxAge: 60 * 60 * 4 });
@@ -88,12 +89,15 @@ export async function atualizarWhatsappContato(formData: FormData) {
   redirect(error ? `/perfil?erro=${encodeURIComponent(error.message)}` : "/perfil?salvo=1");
 }
 
-export async function enviarAvaliacaoApp(formData: FormData) {
+export async function enviarAvaliacaoApp(
+  _anterior: ResultadoAcao,
+  formData: FormData
+): Promise<ResultadoAcao> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { ok: false, erro: "Sua sessão expirou. Entre de novo pra avaliar." };
 
   const nota1 = Number(formData.get("nota_1"));
   const nota2 = Number(formData.get("nota_2"));
@@ -103,9 +107,11 @@ export async function enviarAvaliacaoApp(formData: FormData) {
   // Mesma conferência da avaliação de atendimento: nota fora de 1–5 entraria
   // e torceria a média mostrada no painel.
   const notaValida = (n: number) => Number.isInteger(n) && n >= 1 && n <= 5;
-  if (!notaValida(nota1) || !notaValida(nota2) || !notaValida(nota3)) return;
+  if (!notaValida(nota1) || !notaValida(nota2) || !notaValida(nota3)) {
+    return { ok: false, erro: "Dê uma nota de 1 a 5 em cada pergunta." };
+  }
 
-  await supabase.from("avaliacoes_app").insert({
+  const { error } = await supabase.from("avaliacoes_app").insert({
     paciente_id: user.id,
     nota_1: nota1,
     nota_2: nota2,
@@ -113,20 +119,28 @@ export async function enviarAvaliacaoApp(formData: FormData) {
     comentario,
   });
 
+  if (error) return { ok: false, erro: "Não consegui enviar sua avaliação agora. Tenta de novo?" };
+
   revalidatePath("/perfil");
+  return { ok: true };
 }
 
-export async function criarIndicacao(formData: FormData) {
+export async function criarIndicacao(
+  _anterior: ResultadoAcao,
+  formData: FormData
+): Promise<ResultadoAcao> {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { ok: false, erro: "Sua sessão expirou. Entre de novo pra indicar." };
 
   const nome = String(formData.get("nome_indicada") || "").trim();
   const contato = String(formData.get("contato_indicada") || "").trim();
 
-  if (!nome || !contato) return;
+  if (!nome || !contato) {
+    return { ok: false, erro: "Preencha o nome e o contato da sua amiga." };
+  }
 
   const { error } = await supabase.from("indicacoes").insert({
     paciente_id: user.id,
@@ -134,36 +148,39 @@ export async function criarIndicacao(formData: FormData) {
     contato_indicada: contato,
   });
 
+  if (error) {
+    return { ok: false, erro: "Não consegui registrar a indicação agora. Tenta de novo?" };
+  }
+
   // Avisa a Beatriz por e-mail: o contador na aba Indicações só resolve se ela
   // abrir o painel, e indicação some no meio de outras coisas.
-  if (!error) {
-    const { data: perfil } = await supabase
-      .from("perfis")
-      .select("nome, email")
-      .eq("id", user.id)
-      .single();
-    const { data: admins } = await supabase.from("perfis").select("email").eq("papel", "admin");
+  const { data: perfil } = await supabase
+    .from("perfis")
+    .select("nome, email")
+    .eq("id", user.id)
+    .single();
+  const { data: admins } = await supabase.from("perfis").select("email").eq("papel", "admin");
 
-    const quemIndicou = perfil?.nome || perfil?.email || "Uma paciente";
+  const quemIndicou = perfil?.nome || perfil?.email || "Uma paciente";
 
-    for (const admin of admins ?? []) {
-      if (!admin.email) continue;
-      await enviarEmail({
-        destinatario: admin.email,
-        assunto: `Nova indicação — ${nome}`,
-        html: `
-          <p><strong>${quemIndicou}</strong> indicou alguém para a fisioterapia pélvica domiciliar.</p>
-          <p>Nome: <strong>${nome}</strong></p>
-          <p>Contato: <strong>${contato}</strong></p>
-          <p>A indicada tem 50% de desconto na primeira sessão. Marque como usada no painel,
-          na aba Indicações, quando aplicar o desconto.</p>
-        `,
-      });
-    }
+  for (const admin of admins ?? []) {
+    if (!admin.email) continue;
+    await enviarEmail({
+      destinatario: admin.email,
+      assunto: `Nova indicação — ${nome}`,
+      html: `
+        <p><strong>${quemIndicou}</strong> indicou alguém para a fisioterapia pélvica domiciliar.</p>
+        <p>Nome: <strong>${nome}</strong></p>
+        <p>Contato: <strong>${contato}</strong></p>
+        <p>A indicada tem 50% de desconto na primeira sessão. Marque como usada no painel,
+        na aba Indicações, quando aplicar o desconto.</p>
+      `,
+    });
   }
 
   revalidatePath("/perfil");
   revalidatePath("/dashboard");
+  return { ok: true };
 }
 
 export async function marcarGuiaVisto() {

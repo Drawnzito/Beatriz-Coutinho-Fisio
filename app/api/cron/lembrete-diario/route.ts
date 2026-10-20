@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hojeIsoBrasil } from "@/lib/dataBrasil";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,11 @@ export async function GET(request: Request) {
   );
 
   const supabase = createAdminClient();
-  const hoje = new Date().toISOString().slice(0, 10);
+
+  // Data de Brasília, não a do servidor: a Vercel roda em UTC, e com o cron às
+  // 11h UTC (8h daqui) as duas coincidem hoje — mas mudar o horário do
+  // vercel.json pra depois das 21h faria o lembrete perguntar pelo dia errado.
+  const hoje = hojeIsoBrasil();
 
   // Só sessões que de fato vão acontecer. Sem este filtro, quem avisou que
   // não ia ("recusada"), quem teve o pedido negado ("rejeitada") e quem ainda

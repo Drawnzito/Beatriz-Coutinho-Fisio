@@ -1,4 +1,5 @@
 import type { UsoEmails } from "@/lib/usoEmails";
+import { usandoRemetenteDeTeste } from "@/lib/email";
 
 /**
  * Quanto do envio de e-mails do mês já foi usado.
@@ -12,6 +13,29 @@ export function MedidorEmails({ uso }: { uso: UsoEmails }) {
 
   return (
     <div style={{ display: "grid", gap: 8 }}>
+      {/* Contar envio não é o mesmo que entregar: com o remetente de teste o
+          Resend aceita a chamada e recusa a entrega pra qualquer endereço que
+          não seja o da conta. O medidor subiria normalmente com ninguém
+          recebendo nada, então o aviso vem antes do número. */}
+      {usandoRemetenteDeTeste() && (
+        <p
+          style={{
+            margin: 0,
+            padding: "10px 12px",
+            borderRadius: 10,
+            background: "#f7e4e8",
+            color: "#8c2f45",
+            fontSize: 12,
+            fontWeight: 600,
+            lineHeight: 1.45,
+          }}
+        >
+          Os e-mails estão saindo pelo remetente de teste do Resend, que só entrega pro e-mail do dono da
+          conta — as pacientes não estão recebendo nada. Pra resolver: verifique um domínio no Resend e
+          preencha a variável <code>RESEND_FROM</code> na Vercel com um endereço desse domínio.
+        </p>
+      )}
+
       <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
         <strong style={{ fontFamily: "var(--fonte-titulo)", fontSize: 20, color: cor }}>
           {uso.enviados.toLocaleString("pt-BR")}

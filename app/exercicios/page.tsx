@@ -265,7 +265,14 @@ async function VisaoAdmin({
   const supabase = createClient();
 
   const [{ data: pacientes }, { data: biblioteca }] = await Promise.all([
-    supabase.from("perfis").select("id, nome, email").eq("papel", "paciente").order("nome"),
+    // Sem o filtro de arquivado, quem já teve alta continuava no seletor —
+    // o painel filtra, essa tela não filtrava.
+    supabase
+      .from("perfis")
+      .select("id, nome, email")
+      .eq("papel", "paciente")
+      .is("arquivado_em", null)
+      .order("nome"),
     supabase.from("exercicios").select("id, titulo").order("titulo"),
   ]);
 
