@@ -1,0 +1,60 @@
+.cartao {
+  padding: 10px 12px;
+  border: 1px solid var(--cor-borda);
+  border-left: 3px solid var(--cor-primaria);
+  border-radius: 0 10px 10px 0;
+  background: var(--cor-superficie);
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.quando {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dia {
+  font-family: var(--fonte-titulo);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--cor-primaria);
+}
+
+.diaSemana {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.linha {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--cor-texto);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip {
+  margin-top: 6px;
+}
+
+.detalhe {
+  margin: 5px 0 0;
+  font-size: 11.5px;
+  color: var(--cor-texto-suave);
+  line-height: 1.4;
+}
+
+.acao {
+  margin-top: 8px;
+}

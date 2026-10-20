@@ -16,6 +16,7 @@ import {
 } from "@/components/IconesPainel";
 import { SecaoRecolhivel } from "@/components/SecaoRecolhivel";
 import { CartaoSessaoAgenda } from "@/components/CartaoSessaoAgenda";
+import { CartaoSessaoResumo } from "@/components/CartaoSessaoResumo";
 import { LinhaPaciente } from "@/components/LinhaPaciente";
 import { MontarPlano } from "@/components/MontarPlano";
 import { CampoCategoria } from "@/components/CampoCategoria";
@@ -820,27 +821,15 @@ export default async function DashboardPage({
                       </p>
                       <div className="grade-auto grade-auto--2">
                         {sessoesDetalhe.map((s) => (
-                          <div key={s.id} style={{ ...cartao, borderLeft: `3px solid ${corTipoSessao(s.tipo)}`, borderRadius: "0 10px 10px 0" }}>
-                            <div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                                <strong style={{ fontSize: 13 }}>
-                                  {new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}
-                                  {s.hora ? ` às ${s.hora.slice(0, 5)}` : ""}
-                                </strong>
-                                <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
-                              </div>
-                              {s.especialidade && (
-                                <div style={{ margin: "6px 0 0" }}>
-                                  <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} tamanho="pequeno" />
-                                </div>
-                              )}
-                              <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                                {rotuloTipoSessao(s.tipo)}
-                                {s.planos?.titulo ? ` · plano: ${s.planos.titulo}` : ""}
-                              </p>
-                              {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
-                            </div>
-                          </div>
+                          <CartaoSessaoResumo
+                            key={s.id}
+                            sessao={s}
+                            detalhe={
+                              [s.planos?.titulo ? `Plano: ${s.planos.titulo}` : null, s.observacoes]
+                                .filter(Boolean)
+                                .join(" · ") || undefined
+                            }
+                          />
                         ))}
                         {sessoesDetalhe.length === 0 && (
                           <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhuma sessão registrada ainda.</p>

@@ -12,6 +12,7 @@ import { InfoContatoClinica } from "@/components/InfoContatoClinica";
 import { SolicitarSessaoForm } from "@/components/SolicitarSessaoForm";
 import { AcaoConfirmarSessao } from "@/components/AcaoConfirmarSessao";
 import { BadgeStatusSessao } from "@/components/BadgeStatusSessao";
+import { CartaoSessaoResumo } from "@/components/CartaoSessaoResumo";
 import { Paginacao } from "@/components/Paginacao";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -454,7 +455,6 @@ export default async function InicioPage({
           // de consulta rápida — nome do plano e profissional saíram porque
           // repetiam em todas as linhas sem ajudar a distinguir uma da outra.
           function cartaoOutraSessao(s: any) {
-            const data = new Date(`${s.data}T00:00:00`);
             const podeAvaliar =
               !ehAdmin &&
               s.status === "confirmada" &&
@@ -462,42 +462,13 @@ export default async function InicioPage({
               !sessoesJaAvaliadas.has(s.id);
 
             return (
-              <div
+              <CartaoSessaoResumo
                 key={s.id}
-                style={{
-                  ...outraSessaoCartao,
-                  padding: "9px 11px",
-                  borderLeftColor: corTipoSessao(s.tipo),
-                }}
+                sessao={s}
+                nomePaciente={ehAdmin ? s.perfis?.nome || s.perfis?.email || "—" : undefined}
               >
-                <strong style={{ display: "block", fontSize: 12.5, textTransform: "capitalize" }}>
-                  {data.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")},{" "}
-                  {data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-                  {s.hora ? ` · ${s.hora.slice(0, 5)}` : ""}
-                </strong>
-
-                <span
-                  style={{
-                    display: "block",
-                    marginTop: 2,
-                    fontSize: 11,
-                    color: "var(--cor-texto-suave)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {ehAdmin
-                    ? s.perfis?.nome || s.perfis?.email || "—"
-                    : rotuloEspecialidade(s.especialidade) || rotuloTipoSessao(s.tipo)}
-                </span>
-
-                <div style={{ marginTop: 5 }}>
-                  <BadgeStatusSessao status={s.status} motivoRecusa={s.motivo_recusa} curto />
-                </div>
-
                 {podeAvaliar && <AvaliarAtendimento sessaoId={s.id} />}
-              </div>
+              </CartaoSessaoResumo>
             );
           }
 
