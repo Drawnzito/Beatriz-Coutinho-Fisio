@@ -1,0 +1,43 @@
+.marca {
+  display: block;
+  overflow: visible;
+}
+
+.traco {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: desenhaEApaga 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Desenha até o fim, segura um instante e recolhe pelo mesmo lado — o traço
+   nunca "pisca", ele vai e volta como um gesto. */
+@keyframes desenhaEApaga {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  55% {
+    stroke-dashoffset: 0;
+  }
+  75% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -1;
+  }
+}
+
+.ponto {
+  opacity: 0.95;
+}
+
+/* Quem pediu menos movimento vê a marca parada, inteira. */
+@media (prefers-reduced-motion: reduce) {
+  .traco {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+
+  .ponto {
+    display: none;
+  }
+}

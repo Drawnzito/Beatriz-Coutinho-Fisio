@@ -1,0 +1,39 @@
+.selo {
+  position: fixed;
+  /* Abaixo da navegação de topo no computador, e bem longe da barra de baixo
+     no celular — o selo não pode cobrir o botão que a pessoa acabou de tocar. */
+  top: calc(var(--altura-nav, 0px) + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 8px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--cor-primaria-escura), var(--cor-primaria));
+  color: #fff;
+  font-family: var(--fonte-corpo);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 12px 30px -12px rgba(22, 63, 60, 0.9);
+  animation: entra 0.2s ease-out;
+  pointer-events: none;
+}
+
+@keyframes entra {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selo {
+    animation: none;
+  }
+}

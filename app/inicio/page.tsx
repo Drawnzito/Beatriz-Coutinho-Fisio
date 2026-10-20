@@ -348,7 +348,16 @@ export default async function InicioPage({
                  uma hierarquia — e o nome da fisioterapeuta saiu, porque é
                  sempre a mesma pessoa em todas as sessões. */
               <div key={item.id} style={{ ...sessaoCartao, borderLeft: `3px solid ${corTipoSessao(item.tipo)}` }}>
-                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    justifyContent: "space-between",
+                    gap: "4px 10px",
+                    // Em cartão estreito o selo desce em vez de brigar com a hora.
+                    flexWrap: "wrap",
+                  }}
+                >
                   <strong
                     style={{
                       fontFamily: "var(--fonte-titulo)",

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Montserrat } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
 import { AvisoCookies } from "@/components/AvisoCookies";
+import { IndicadorSalvando } from "@/components/IndicadorSalvando";
 
 const fonteTitulo = Playfair_Display({
   subsets: ["latin"],
@@ -43,6 +45,11 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${fonteTitulo.variable} ${fonteCorpo.variable}`}>
       <body>
         {children}
+        {/* Suspense porque o indicador lê os parâmetros da URL: sem ele, as
+            páginas estáticas (login, política) não conseguem ser geradas. */}
+        <Suspense fallback={null}>
+          <IndicadorSalvando />
+        </Suspense>
         <AvisoCookies />
       </body>
     </html>

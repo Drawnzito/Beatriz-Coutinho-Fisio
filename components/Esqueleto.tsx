@@ -1,4 +1,5 @@
 import styles from "./esqueleto.module.css";
+import { MarcaCarregando } from "./MarcaCarregando";
 
 /**
  * Tela provisória mostrada enquanto o servidor monta a página.
@@ -37,6 +38,12 @@ export function Esqueleto({
       )}
 
       <main className="conteudo" aria-busy="true" aria-label="Carregando">
+        {/* A marca desenhando-se dá um sinal de vida no primeiro instante —
+            as barras cinzas sozinhas pareciam tela quebrada. */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
+          <MarcaCarregando tamanho={74} />
+        </div>
+
         <div style={{ display: "grid", gap: 14 }}>
           <div className={styles.pulso} style={{ width: 150, height: 18, borderRadius: 7, background: "var(--cor-borda)" }} />
           {Array.from({ length: linhas }).map((_, i) => (
