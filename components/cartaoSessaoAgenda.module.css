@@ -4,6 +4,9 @@
   border-radius: 10px;
   background: var(--cor-superficie);
   overflow: hidden;
+  /* Nome de paciente é texto sem quebra: sem min-width a coluna da grade
+     estica além da tela em vez de cortar. */
+  min-width: 0;
 }
 
 .resumo {

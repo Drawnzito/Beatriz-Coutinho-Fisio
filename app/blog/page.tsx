@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TopoPublico } from "@/components/TopoPublico";
 import { BottomNav } from "@/components/BottomNav";
-import { CLINICA, urlDoSite } from "@/lib/clinica";
+import { CLINICA, urlDoSite, IMAGEM_COMPARTILHAMENTO } from "@/lib/clinica";
 import { papelVisivel } from "@/lib/papelVisivel";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     siteName: CLINICA.nome,
     title: `Blog — ${CLINICA.nome}`,
     description: "Produção científica e conteúdo sobre fisioterapia.",
+    images: [IMAGEM_COMPARTILHAMENTO],
   },
 };
 

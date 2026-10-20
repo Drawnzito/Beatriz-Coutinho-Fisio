@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TopoPublico } from "@/components/TopoPublico";
 import { BottomNav } from "@/components/BottomNav";
 import { AcentoCadencia } from "@/components/Acentos";
-import { CLINICA, urlDoSite } from "@/lib/clinica";
+import { CLINICA, urlDoSite, IMAGEM_COMPARTILHAMENTO } from "@/lib/clinica";
 import { papelVisivel } from "@/lib/papelVisivel";
 
 export const dynamic = "force-dynamic";
@@ -44,9 +44,7 @@ export async function generateMetadata({
       title: post.titulo,
       description: descricao,
       publishedTime: post.publicado_em ?? undefined,
-      images: post.capa_url
-        ? [{ url: post.capa_url }]
-        : [{ url: "/marca/logo-com-nome-cartao.png", width: 1200, height: 630 }],
+      images: post.capa_url ? [{ url: post.capa_url }] : [IMAGEM_COMPARTILHAMENTO],
     },
   };
 }

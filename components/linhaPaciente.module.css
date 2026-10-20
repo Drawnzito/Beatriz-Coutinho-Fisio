@@ -2,6 +2,10 @@
   display: flex;
   align-items: center;
   gap: 11px;
+  /* Mesmo motivo do cartão de sessão: o nome não quebra, e sem min-width a
+     coluna da grade cresce em vez de cortar o texto. */
+  min-width: 0;
+  overflow: hidden;
   padding: 10px 12px;
   border: 1px solid var(--cor-borda);
   border-radius: 10px;

@@ -64,11 +64,15 @@ button {
   margin: 0 auto;
 }
 
-/* Grade que vira 1 coluna no celular e N colunas no computador. */
+/* Grade que vira 1 coluna no celular e N colunas no computador.
+   `minmax(0, 1fr)` e não `1fr`: por padrão a coluna de uma grade não encolhe
+   abaixo do conteúdo, então um cartão com texto que não quebra (um nome, uma
+   data) estica a coluna, a grade passa da largura da tela e a página inteira
+   ganha rolagem lateral — parecendo que o conteúdo encostou à esquerda. */
 .grade-auto {
   display: grid;
   gap: 12px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* Grade de cartões de leitura rápida: já nasce em duas colunas no celular.
@@ -76,12 +80,12 @@ button {
 .grade-compacta {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (min-width: 900px) {
   .grade-compacta {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
   }
 }
@@ -262,11 +266,11 @@ button {
   }
 
   .grade-auto--2 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .grade-auto--3 {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

@@ -4,6 +4,12 @@
   border-left: 3px solid var(--cor-primaria);
   border-radius: 0 10px 10px 0;
   background: var(--cor-superficie);
+  /* Sem isto a coluna da grade cresce até caber o texto que não quebra
+     (nome da paciente, dia da semana) em vez de cortá-lo: a grade passa da
+     largura da tela, a página ganha rolagem lateral e o conteúdo inteiro
+     parece ter encostado à esquerda. */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .topo {
@@ -11,6 +17,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
 }
 
 .quando {

@@ -39,6 +39,7 @@ import { ChipEspecialidade } from "@/components/ChipEspecialidade";
 import { WhatsappDoPaciente } from "@/components/WhatsappDoPaciente";
 import { DIAS_SEMANA, rotuloDiaSemana } from "@/lib/diasSemana";
 import { UploadArquivo } from "@/components/UploadArquivo";
+import { UploadImagemRecortada } from "@/components/UploadImagemRecortada";
 import { EXTENSOES_MIDIA, EXTENSOES_IMAGEM, EXTENSOES_PASSO_A_PASSO } from "@/lib/tiposArquivo";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -1408,12 +1409,11 @@ export default async function DashboardPage({
                   <form action={criarDestaque} style={{ display: "grid", gap: 10, marginBottom: 24 }}>
                     <input name="titulo" placeholder="Título (ex: Curso Cuidados com o bebê)" required style={campo} />
                     <textarea name="subtitulo" placeholder="Texto menor, embaixo do título (opcional)" rows={2} style={campo} />
-                    <UploadArquivo
+                    <UploadImagemRecortada
                       nome="imagem_arquivo_url"
                       bucket="destaques"
                       rotulo="Foto — envie um arquivo:"
-                      ajuda="Melhor resultado com imagem deitada (paisagem), até 50 MB."
-                      extensoes={EXTENSOES_IMAGEM}
+                      ajuda="Depois de escolher, dá pra enquadrar: o cartão usa o formato que você recortar."
                     />
                     <div style={{ display: "grid", gap: 4 }}>
                       <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>
@@ -1432,12 +1432,12 @@ export default async function DashboardPage({
                           <form action={atualizarDestaque.bind(null, d.id)} style={{ display: "grid", gap: 10 }}>
                             <input name="titulo" defaultValue={d.titulo} required style={campo} />
                             <textarea name="subtitulo" defaultValue={d.subtitulo ?? ""} rows={2} style={campo} />
-                            <UploadArquivo
+                            <UploadImagemRecortada
                               nome="imagem_arquivo_url"
                               bucket="destaques"
                               rotulo="Trocar foto — envie um novo arquivo:"
                               ajuda="Deixe em branco pra manter a atual."
-                              extensoes={EXTENSOES_IMAGEM}
+                              urlAtual={d.imagem_url}
                             />
                             <div style={{ display: "grid", gap: 4 }}>
                               <label style={{ fontSize: 13, color: "var(--cor-texto-suave)" }}>

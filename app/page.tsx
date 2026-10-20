@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Marca } from "@/components/Marca";
 import { AcentoArabesque, AcentoCadencia } from "@/components/Acentos";
-import { CLINICA, ESPECIALIDADES_SITE, urlDoSite } from "@/lib/clinica";
+import { CLINICA, ESPECIALIDADES_SITE, urlDoSite, IMAGEM_COMPARTILHAMENTO } from "@/lib/clinica";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     siteName: CLINICA.nome,
     title: `${CLINICA.nome} — ${CLINICA.chamada}`,
     description: CLINICA.descricao,
-    images: [{ url: "/marca/logo-com-nome-cartao.png", width: 1200, height: 630 }],
+    images: [IMAGEM_COMPARTILHAMENTO],
   },
 };
 

@@ -24,6 +24,20 @@ export const CLINICA = {
 } as const;
 
 /**
+ * Imagem que aparece quando alguém manda o link do site no WhatsApp.
+ *
+ * Antes era o logo-cartão, que tem 2400x675 — uma tira bem comprida. O
+ * WhatsApp encaixa a imagem num quadro pequeno e quase quadrado, então a
+ * marca saía minúscula e borrada. Esta é 1200x630 de verdade, com a marca
+ * grande o suficiente pra ser lida em miniatura.
+ */
+export const IMAGEM_COMPARTILHAMENTO = {
+  url: "/marca/og-capa.png",
+  width: 1200,
+  height: 630,
+} as const;
+
+/**
  * Endereço do site. Usado nos metadados de compartilhamento e no sitemap,
  * que precisam de URL absoluta. A Vercel preenche VERCEL_URL sozinha nos
  * deploys de prévia; em produção vale o valor fixo.
