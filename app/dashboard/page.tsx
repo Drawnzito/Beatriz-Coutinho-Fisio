@@ -154,7 +154,15 @@ export default async function DashboardPage({
     .from("exercicios")
     .select("*", { count: "exact" })
     .order("titulo", { ascending: ordem === "asc" });
-  if (categoriaFiltro) consultaExercicios = consultaExercicios.eq("categoria", categoriaFiltro);
+  // `ilike` sem curinga, e não `eq`: a grade de categorias agrupa tudo em
+  // minúsculas, mas exercícios cadastrados antes da normalização ainda estão
+  // gravados como "Mobilidade". Com `eq`, clicar na categoria não trazia
+  // nenhum deles. O escape evita que % ou _ no nome virem curinga.
+  if (categoriaFiltro === "sem categoria") {
+    consultaExercicios = consultaExercicios.or("categoria.is.null,categoria.eq.");
+  } else if (categoriaFiltro) {
+    consultaExercicios = consultaExercicios.ilike("categoria", categoriaFiltro.replace(/[%_]/g, "\\$&"));
+  }
   if (buscaFiltro) consultaExercicios = consultaExercicios.ilike("titulo", `%${buscaFiltro}%`);
   consultaExercicios = consultaExercicios.range(
     (paginaExercicios - 1) * TAMANHO_EXERCICIOS,
