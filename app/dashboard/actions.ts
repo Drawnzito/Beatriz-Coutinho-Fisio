@@ -780,23 +780,86 @@ export async function removerConvitePaciente(id: string) {
 }
 
 /**
- * WhatsApp da paciente, cadastrado pela Beatriz na ficha.
+ * Dados cadastrais da paciente, editados pela Beatriz na ficha.
  *
  * Vai pelo cliente de serviço porque `perfis` não tem policy de UPDATE pra
  * ninguém — nem pra admin — e abrir uma seria deixar o papel e o arquivamento
- * expostos. O papel de admin é conferido em `exigirAdmin`.
+ * expostos a qualquer chamada direta à API. O papel de admin é conferido em
+ * `exigirAdmin`.
+ *
+ * O e-mail fica de fora de propósito: ele vem da conta Google usada pra
+ * entrar, e trocar aqui só criaria divergência entre o perfil e o login.
  */
-export async function atualizarWhatsappPaciente(pacienteId: string, formData: FormData) {
+export async function atualizarDadosPaciente(pacienteId: string, formData: FormData) {
   await exigirAdmin();
 
+  const nome = String(formData.get("nome") || "").trim();
+  const idadeRaw = String(formData.get("idade") || "").trim();
   const whatsapp = String(formData.get("whatsapp") || "").trim() || null;
 
+  if (!nome) {
+    irComErro("o nome não pode ficar em branco", "pacientes", { verPaciente: pacienteId });
+    return;
+  }
+
+  const idade = idadeRaw ? Number(idadeRaw) : null;
+  if (idade !== null && (!Number.isFinite(idade) || idade < 0 || idade > 120)) {
+    irComErro("idade inválida", "pacientes", { verPaciente: pacienteId });
+    return;
+  }
+
   const admin = createAdminClient();
-  const { error } = await admin.from("perfis").update({ whatsapp }).eq("id", pacienteId);
+  const { error } = await admin.from("perfis").update({ nome, idade, whatsapp }).eq("id", pacienteId);
   if (error) irComErro(error.message, "pacientes", { verPaciente: pacienteId });
 
   revalidatePath("/dashboard");
-  irComSucesso(whatsapp ? "WhatsApp salvo" : "WhatsApp removido", "pacientes", { verPaciente: pacienteId });
+  revalidatePath("/inicio");
+  irComSucesso("Dados atualizados", "pacientes", { verPaciente: pacienteId });
+}
+
+/**
+ * Dá ou tira acesso de fisioterapeuta.
+ *
+ * Existe pra quando entrar outra profissional no consultório. Duas travas:
+ * ninguém mexe no próprio papel (seria fácil se rebaixar sem querer e perder
+ * o painel) e a última fisioterapeuta não pode ser rebaixada, senão o app
+ * fica sem nenhum acesso de administração.
+ */
+export async function alternarPapelUsuario(usuarioId: string, formData: FormData) {
+  const { user } = await exigirAdmin();
+
+  if (usuarioId === user.id) {
+    irComErro("você não pode mudar o seu próprio acesso", "pacientes");
+    return;
+  }
+
+  const virarAdmin = String(formData.get("virar_admin") || "") === "1";
+  const admin = createAdminClient();
+
+  if (!virarAdmin) {
+    const { count } = await admin
+      .from("perfis")
+      .select("id", { count: "exact", head: true })
+      .eq("papel", "admin");
+
+    if ((count ?? 0) <= 1) {
+      irComErro("precisa existir pelo menos uma fisioterapeuta com acesso", "pacientes");
+      return;
+    }
+  }
+
+  const { error } = await admin
+    .from("perfis")
+    .update({ papel: virarAdmin ? "admin" : "paciente" })
+    .eq("id", usuarioId);
+  if (error) irComErro(error.message, "pacientes");
+
+  revalidatePath("/dashboard");
+  revalidatePath("/inicio");
+  irComSucesso(
+    virarAdmin ? "Acesso de fisioterapeuta concedido" : "Acesso de fisioterapeuta removido",
+    "pacientes"
+  );
 }
 
 export async function arquivarPaciente(id: string) {

@@ -36,7 +36,7 @@ import { ResumoAvaliacoes } from "@/components/ResumoAvaliacoes";
 import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
 import { CampoEspecialidade } from "@/components/CampoEspecialidade";
 import { ChipEspecialidade } from "@/components/ChipEspecialidade";
-import { WhatsappDoPaciente } from "@/components/WhatsappDoPaciente";
+import { linkWhatsapp } from "@/lib/telefone";
 import { DIAS_SEMANA, rotuloDiaSemana } from "@/lib/diasSemana";
 import { UploadArquivo } from "@/components/UploadArquivo";
 import { UploadImagemRecortada } from "@/components/UploadImagemRecortada";
@@ -78,6 +78,8 @@ import {
   arquivarPaciente,
   desarquivarPaciente,
   removerPaciente,
+  atualizarDadosPaciente,
+  alternarPapelUsuario,
   criarEvolucao,
   removerEvolucao,
 } from "./actions";
@@ -217,6 +219,7 @@ export default async function DashboardPage({
     { data: indicacoes },
     { data: horariosAtendimento },
     { data: posts },
+    { data: administradores },
   ] = await Promise.all([
     consultaExercicios,
     supabase.from("perfis").select("id, nome, email, idade").eq("papel", "paciente").is("arquivado_em", null).order("nome"),
@@ -269,6 +272,7 @@ export default async function DashboardPage({
       .from("posts")
       .select("id, slug, titulo, resumo, conteudo, capa_url, link_externo, publicado, publicado_em")
       .order("criado_em", { ascending: false }),
+    supabase.from("perfis").select("id, nome, email").eq("papel", "admin").order("nome"),
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
@@ -674,16 +678,24 @@ export default async function DashboardPage({
                             {pacienteDetalhe.email}
                             {pacienteDetalhe.idade ? ` · ${pacienteDetalhe.idade} anos` : ""}
                           </p>
-                          {/* Editável aqui de propósito: a paciente quase nunca
-                              preenche o próprio WhatsApp, e a Beatriz já tem o
-                              número no celular dela. Antes isto era só um texto
-                              "Sem WhatsApp cadastrado", sem saída. */}
-                          <div style={{ marginTop: 4 }}>
-                            <WhatsappDoPaciente
-                              pacienteId={pacienteDetalhe.id}
-                              valorInicial={pacienteDetalhe.whatsapp}
-                            />
-                          </div>
+                          {/* Só o atalho pra conversa: editar o número é em
+                              "Dados cadastrais", logo abaixo, junto com nome e
+                              idade — dois campos pro mesmo dado na mesma tela
+                              só levantam a dúvida de qual vale. */}
+                          <p style={{ margin: "4px 0 0", fontSize: 13.5 }}>
+                            {pacienteDetalhe.whatsapp ? (
+                              <a
+                                href={linkWhatsapp(pacienteDetalhe.whatsapp)}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ color: "#2f7a4f", fontWeight: 600, textDecoration: "none" }}
+                              >
+                                💬 {pacienteDetalhe.whatsapp}
+                              </a>
+                            ) : (
+                              <span style={{ color: "var(--cor-texto-suave)" }}>Sem WhatsApp cadastrado</span>
+                            )}
+                          </p>
                           <p style={{ margin: "6px 0 0", fontSize: 12.5 }}>
                             {pacienteDetalhe.arquivado_em ? (
                               <span style={{ color: "#a2334a", fontWeight: 700 }}>
@@ -696,7 +708,7 @@ export default async function DashboardPage({
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
                         {pacienteDetalhe.arquivado_em ? (
                           <form action={desarquivarPaciente.bind(null, pacienteDetalhe.id)}>
                             <button type="submit" style={botaoPrimario}>Reativar paciente</button>
@@ -715,6 +727,80 @@ export default async function DashboardPage({
                           </BotaoPerigo>
                         </form>
                       </div>
+
+                      {/* Nome e idade vinham do pré-cadastro ou do Google e
+                          não tinham como ser corrigidos depois: nome
+                          abreviado, idade desatualizada, erro de digitação. */}
+                      <SecaoRecolhivel
+                        titulo="Dados cadastrais"
+                        descricao="Corrigir nome, idade e WhatsApp"
+                        icone={<IconePacientes />}
+                      >
+                        <form
+                          action={atualizarDadosPaciente.bind(null, pacienteDetalhe.id)}
+                          style={{ display: "grid", gap: 10 }}
+                        >
+                          <div style={{ display: "grid", gap: 4 }}>
+                            <label style={rotuloCampo}>Nome</label>
+                            <input name="nome" defaultValue={pacienteDetalhe.nome ?? ""} required style={campo} />
+                          </div>
+
+                          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                            <div style={{ display: "grid", gap: 4, flex: 1, minWidth: 110 }}>
+                              <label style={rotuloCampo}>Idade</label>
+                              <input
+                                name="idade"
+                                type="number"
+                                min={0}
+                                max={120}
+                                defaultValue={pacienteDetalhe.idade ?? ""}
+                                style={campo}
+                              />
+                            </div>
+                            <div style={{ display: "grid", gap: 4, flex: 2, minWidth: 160 }}>
+                              <label style={rotuloCampo}>WhatsApp</label>
+                              <input
+                                name="whatsapp"
+                                defaultValue={pacienteDetalhe.whatsapp ?? ""}
+                                placeholder="(81) 99999-9999"
+                                style={campo}
+                              />
+                            </div>
+                          </div>
+
+                          <p style={{ margin: 0, fontSize: 11.5, color: "var(--cor-texto-suave)" }}>
+                            O e-mail ({pacienteDetalhe.email}) vem da conta Google usada pra entrar e não muda por aqui.
+                          </p>
+
+                          <button type="submit" style={{ ...botaoPrimario, justifySelf: "start" }}>
+                            Salvar dados
+                          </button>
+                        </form>
+                      </SecaoRecolhivel>
+
+                      <SecaoRecolhivel
+                        titulo="Acesso de fisioterapeuta"
+                        descricao="Deixa esta pessoa usar o painel"
+                        icone={<IconeCadeado />}
+                      >
+                        <p style={{ margin: "0 0 12px", fontSize: 12.5, color: "var(--cor-texto-suave)", lineHeight: 1.45 }}>
+                          Com acesso de fisioterapeuta, ela passa a ver a agenda de todas as pacientes, as fichas, as
+                          evoluções e a biblioteca — tudo o que você vê. Use só pra quem atende no consultório.
+                        </p>
+                        <form action={alternarPapelUsuario.bind(null, pacienteDetalhe.id)}>
+                          <input type="hidden" name="virar_admin" value="1" />
+                          <BotaoPerigo
+                            style={botaoSecundario}
+                            mensagemConfirmacao={
+                              `Dar acesso de fisioterapeuta a ${pacienteDetalhe.nome || pacienteDetalhe.email}?\n\n` +
+                              `Ela vai ver a agenda, as fichas e as evoluções de TODAS as pacientes.\n\n` +
+                              `Dá pra tirar depois, em Pacientes › Acesso ao painel.`
+                            }
+                          >
+                            Dar acesso de fisioterapeuta
+                          </BotaoPerigo>
+                        </form>
+                      </SecaoRecolhivel>
 
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 10 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: 0 }}>
@@ -903,6 +989,48 @@ export default async function DashboardPage({
                         tamanhoPagina={TAMANHO_PACIENTES}
                         hrefPagina={hrefPacientesPagina}
                       />
+
+                      {/* Quem enxerga o painel. Existe pra quando entrar outra
+                          profissional no consultório — e pra ninguém descobrir
+                          tarde demais que alguém tem acesso de administração. */}
+                      <div style={{ marginTop: 24 }}>
+                        <SecaoRecolhivel
+                          titulo="Acesso ao painel"
+                          descricao="Quem entra como fisioterapeuta"
+                          contador={(administradores ?? []).length}
+                          icone={<IconeCadeado />}
+                        >
+                          <div style={{ display: "grid", gap: 8 }}>
+                            {(administradores ?? []).map((a: any) => (
+                              <div key={a.id} style={{ ...cartao, alignItems: "center" }}>
+                                <div style={{ minWidth: 0 }}>
+                                  <strong style={{ fontSize: 13.5 }}>{a.nome || a.email}</strong>
+                                  <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--cor-texto-suave)" }}>
+                                    {a.email}
+                                    {a.id === user.id ? " · você" : ""}
+                                  </p>
+                                </div>
+                                {a.id !== user.id && (
+                                  <form action={alternarPapelUsuario.bind(null, a.id)}>
+                                    <input type="hidden" name="virar_admin" value="0" />
+                                    <BotaoPerigo
+                                      style={{ ...botaoTexto, color: "#9c4259", fontWeight: 600 }}
+                                      mensagemConfirmacao={`Tirar o acesso de fisioterapeuta de ${a.nome || a.email}?\n\nEla passa a ver o app como paciente. Dá pra devolver depois.`}
+                                    >
+                                      tirar acesso
+                                    </BotaoPerigo>
+                                  </form>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          <p style={{ margin: "14px 0 8px", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                            Pra dar acesso a alguém, abra a ficha da pessoa e use “Dar acesso de fisioterapeuta”.
+                            Ela precisa já ter entrado no app uma vez.
+                          </p>
+                        </SecaoRecolhivel>
+                      </div>
                     </>
                   )}
                 </div>
@@ -1752,6 +1880,12 @@ const botaoPerigo: React.CSSProperties = {
   fontWeight: 600,
   fontSize: 14,
   cursor: "pointer",
+};
+
+const rotuloCampo: React.CSSProperties = {
+  fontSize: 12.5,
+  fontWeight: 600,
+  color: "var(--cor-texto-suave)",
 };
 
 const botaoTexto: React.CSSProperties = {
