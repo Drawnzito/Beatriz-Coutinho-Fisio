@@ -17,6 +17,8 @@ import {
 import { SecaoRecolhivel } from "@/components/SecaoRecolhivel";
 import { CartaoSessaoAgenda } from "@/components/CartaoSessaoAgenda";
 import { LinhaPaciente } from "@/components/LinhaPaciente";
+import { MontarPlano } from "@/components/MontarPlano";
+import { CampoCategoria } from "@/components/CampoCategoria";
 import { SeletorPaciente } from "@/components/SeletorPaciente";
 import { SeletorOpcao } from "@/components/SeletorOpcao";
 import { TiraSemana } from "@/components/TiraSemana";
@@ -218,7 +220,7 @@ export default async function DashboardPage({
     supabase.from("avisos").select("*").order("criado_em", { ascending: false }),
     supabase
       .from("planos")
-      .select("id, titulo, ativo, paciente_id, perfis!paciente_id(nome, email), plano_exercicios(exercicio_id, series, repeticoes)")
+      .select("id, titulo, ativo, paciente_id, perfis!paciente_id(nome, email), plano_exercicios(exercicio_id, series, repeticoes, ordem)")
       .order("criado_em", { ascending: false }),
     listaSessoes,
     contagemSemana,
@@ -230,7 +232,10 @@ export default async function DashboardPage({
       .eq("status", "solicitada")
       .order("data", { ascending: true }),
     supabase.from("exercicios").select("categoria"),
-    supabase.from("exercicios").select("id, titulo, series_padrao, repeticoes_padrao").order("titulo", { ascending: true }),
+    supabase
+      .from("exercicios")
+      .select("id, titulo, categoria, series_padrao, repeticoes_padrao")
+      .order("titulo", { ascending: true }),
     supabase
       .from("avaliacoes_atendimento")
       .select("nota_1, nota_2, nota_3, comentario, criado_em, perfis!paciente_id(nome, email)")
@@ -384,11 +389,33 @@ export default async function DashboardPage({
   const categoriasDisponiveis = [...new Set((categoriasTodas ?? []).map((e) => e.categoria))].sort();
   const exerciciosFiltrados = exercicios ?? [];
 
+  // Quantos exercícios tem cada categoria, pra Biblioteca abrir mostrando as
+  // categorias em vez de uma lista alfabética única — era nela que a Beatriz
+  // precisava rolar tudo pra achar um exercício de uma região do corpo.
+  const totalPorCategoria = new Map<string, number>();
+  for (const e of categoriasTodas ?? []) {
+    const chave = (e.categoria || "sem categoria").trim().toLowerCase();
+    totalPorCategoria.set(chave, (totalPorCategoria.get(chave) ?? 0) + 1);
+  }
+  const categoriasOrdenadas = [...totalPorCategoria.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+
+  // Em quantos treinos cada exercício é usado: ajuda a reconhecer o que é
+  // base do atendimento e o que foi cadastrado e nunca usado.
+  const usoPorExercicio = new Map<string, number>();
+  for (const pl of planos ?? []) {
+    for (const pe of (pl as any).plano_exercicios ?? []) {
+      usoPorExercicio.set(pe.exercicio_id, (usoPorExercicio.get(pe.exercicio_id) ?? 0) + 1);
+    }
+  }
+
   const editandoId = searchParams.editar || undefined;
   const editarPlanoId = searchParams.editarPlano || undefined;
   const editandoDestaqueId = searchParams.editarDestaque || undefined;
   const hrefDestaques = (editar?: string) =>
     editar ? `/dashboard?aba=destaques&editarDestaque=${editar}` : "/dashboard?aba=destaques";
+
+  /** Biblioteca sem filtro nenhum abre na escolha de categoria. */
+  const mostrandoCategorias = !categoriaFiltro && !buscaFiltro && !editandoId;
 
   const editandoPostId = searchParams.editarPost || undefined;
   const hrefBlog = ({ editarPost }: { editarPost?: string }) =>
@@ -466,13 +493,15 @@ export default async function DashboardPage({
               rotulo: "Biblioteca",
               conteudo: (
                 <div style={{ padding: "24px 20px 0" }}>
-                  <details style={{ marginBottom: 24 }}>
-                    <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
-                      <span style={{ ...botaoPrimario, display: "inline-block" }}>+ Adicionar novo exercício</span>
-                    </summary>
-                  <form action={criarExercicio} style={{ display: "grid", gap: 10, marginTop: 14 }}>
+                  <SecaoRecolhivel
+                    titulo="Adicionar exercício"
+                    descricao="Entra na biblioteca e fica disponível pra qualquer treino"
+                    icone={<IconeMais />}
+                    tom="acao"
+                  >
+                  <form action={criarExercicio} style={{ display: "grid", gap: 10 }}>
                     <input name="titulo" placeholder="Nome do exercício" required style={campo} />
-                    <input name="categoria" placeholder="Categoria (ex: mobilidade, fortalecimento)" style={campo} />
+                    <CampoCategoria existentes={categoriasDisponiveis as string[]} estilo={campo} />
                     <textarea name="descricao" placeholder="Descrição / como executar" rows={3} style={campo} />
                     <UploadArquivo
                       nome="video_arquivo_url"
@@ -494,7 +523,7 @@ export default async function DashboardPage({
                     </div>
                     <button type="submit" style={botaoPrimario}>Adicionar à biblioteca</button>
                   </form>
-                  </details>
+                  </SecaoRecolhivel>
 
                   <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                     <input type="hidden" name="aba" value="biblioteca" />
@@ -514,26 +543,43 @@ export default async function DashboardPage({
                     )}
                   </form>
 
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14 }}>
-                    {categoriasDisponiveis.length > 1 && (
-                      <div style={{ flex: 1 }}>
-                        <SeletorOpcao
-                          opcoes={categoriasDisponiveis.map((c) => ({ valor: c, rotulo: c }))}
-                          selecionado={categoriaFiltro}
-                          nomeParam="categoria"
-                          baseHref="/dashboard"
-                          manterParams={{ aba: "biblioteca", busca: buscaFiltro, ordem: ordem !== "asc" ? ordem : undefined }}
-                          placeholder="Todas as categorias"
-                        />
-                      </div>
+                  {mostrandoCategorias ? (
+                    /* Entrada por categoria: é assim que ela procura um
+                       exercício — pela região ou pelo objetivo, não pela
+                       letra inicial. */
+                    <div className="grade-auto grade-auto--2">
+                      {categoriasOrdenadas.map(([nome, quantos]) => (
+                        <Link key={nome} href={hrefBiblioteca({ categoria: nome })} className="cartao-categoria">
+                          <span className="cartao-categoria__nome">{nome}</span>
+                          <span className="cartao-categoria__contagem">
+                            {quantos} exercício{quantos === 1 ? "" : "s"}
+                          </span>
+                        </Link>
+                      ))}
+                      {categoriasOrdenadas.length === 0 && (
+                        <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                          Nenhum exercício cadastrado ainda.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                  <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+                    <Link href={hrefBiblioteca({ categoria: "", busca: "", editar: "" })} style={botaoTextoPrimario}>
+                      ← todas as categorias
+                    </Link>
+                    {categoriaFiltro && (
+                      <strong style={{ fontSize: 14, textTransform: "capitalize", color: "var(--cor-primaria)" }}>
+                        {categoriaFiltro}
+                      </strong>
                     )}
-                    <Link href={hrefBiblioteca({ ordem: ordem === "asc" ? "desc" : "asc" })} style={botaoTexto}>
+                    <Link href={hrefBiblioteca({ ordem: ordem === "asc" ? "desc" : "asc" })} style={{ ...botaoTexto, marginLeft: "auto" }}>
                       {ordem === "asc" ? "A → Z" : "Z → A"}
                     </Link>
                   </div>
 
                   <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                    {totalExercicios ?? 0} exercício{(totalExercicios ?? 0) === 1 ? "" : "s"} · ordem alfabética
+                    {totalExercicios ?? 0} exercício{(totalExercicios ?? 0) === 1 ? "" : "s"}
                   </p>
 
                   <div style={{ display: "grid", gap: 10 }}>
@@ -542,7 +588,11 @@ export default async function DashboardPage({
                         <div key={ex.id} style={{ ...cartao, display: "block" }}>
                           <form action={atualizarExercicio.bind(null, ex.id)} style={{ display: "grid", gap: 10 }}>
                             <input name="titulo" defaultValue={ex.titulo} required style={campo} />
-                            <input name="categoria" defaultValue={ex.categoria} style={campo} />
+                            <CampoCategoria
+                              existentes={categoriasDisponiveis as string[]}
+                              valorInicial={ex.categoria}
+                              estilo={campo}
+                            />
                             <textarea name="descricao" defaultValue={ex.descricao ?? ""} rows={3} style={campo} />
                             <UploadArquivo
                               nome="video_arquivo_url"
@@ -591,6 +641,10 @@ export default async function DashboardPage({
                             <span style={{ fontSize: 12, color: "var(--cor-acento)" }}>{ex.categoria}</span>
                             <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--cor-texto-suave)" }}>
                               {ex.series_padrao ?? "-"}x{ex.repeticoes_padrao ?? "-"} rep
+                              {" · "}
+                              {usoPorExercicio.get(ex.id)
+                                ? `em ${usoPorExercicio.get(ex.id)} treino${usoPorExercicio.get(ex.id) === 1 ? "" : "s"}`
+                                : "nunca usado"}
                             </p>
                             {ex.video_url && (
                               <div style={{ marginTop: 8, maxWidth: 220 }}>
@@ -622,6 +676,8 @@ export default async function DashboardPage({
                     tamanhoPagina={TAMANHO_EXERCICIOS}
                     hrefPagina={hrefBibliotecaPagina}
                   />
+                    </>
+                  )}
                 </div>
               ),
             },
@@ -901,95 +957,43 @@ export default async function DashboardPage({
                       Nenhum paciente logou ainda — peça pra ele entrar com Google uma vez no app.
                     </p>
                   ) : (
-                    <form action={criarPlano} style={{ display: "grid", gap: 10 }}>
-                      <select name="paciente_id" required style={campo}>
-                        <option value="">Selecione o paciente</option>
-                        {opcoesAtribuicao.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nome || p.email}
-                          </option>
-                        ))}
-                      </select>
-                      <input name="titulo" placeholder="Título do plano (ex: Treino A)" required style={campo} />
-
-                      <div style={{ display: "grid", gap: 8 }}>
-                        <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
-                          Selecione os exercícios deste plano (séries/repetições em branco = usa o padrão do exercício):
-                        </p>
-                        {(exerciciosTodos ?? []).map((ex: any) => (
-                          <div key={ex.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                            <label style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center", flex: 1 }}>
-                              <input type="checkbox" name="exercicio_id" value={ex.id} />
-                              {ex.titulo}
-                            </label>
-                            <input
-                              name={`series_${ex.id}`}
-                              type="number"
-                              placeholder={ex.series_padrao ? String(ex.series_padrao) : "séries"}
-                              style={campoNumeroPequeno}
-                            />
-                            <input
-                              name={`repeticoes_${ex.id}`}
-                              type="number"
-                              placeholder={ex.repeticoes_padrao ? String(ex.repeticoes_padrao) : "reps"}
-                              style={campoNumeroPequeno}
-                            />
-                          </div>
-                        ))}
-                      </div>
-
-                      <button type="submit" style={botaoPrimario}>Criar plano</button>
-                    </form>
+                    <SecaoRecolhivel
+                      titulo="Montar novo treino"
+                      descricao="Escolher os exercícios, a ordem e as repetições"
+                      icone={<IconeMais />}
+                      tom="acao"
+                      comecarAberta={!editarPlanoId}
+                    >
+                      <MontarPlano
+                        acao={criarPlano}
+                        pacientes={opcoesAtribuicao}
+                        exercicios={(exerciciosTodos ?? []) as any}
+                        rotuloBotao="Criar treino"
+                      />
+                    </SecaoRecolhivel>
                   )}
 
                   <div style={{ display: "grid", gap: 10, marginTop: 20 }}>
                     {(planos ?? []).map((pl: any) =>
                       pl.id === editarPlanoId ? (
                         <div key={pl.id} style={{ ...cartao, display: "block" }}>
-                          <form action={atualizarPlano.bind(null, pl.id)} style={{ display: "grid", gap: 10 }}>
-                            <input name="titulo" defaultValue={pl.titulo} required style={campo} />
-                            <div style={{ display: "grid", gap: 8 }}>
-                              <p style={{ fontSize: 13, color: "var(--cor-texto-suave)", margin: 0 }}>
-                                Exercícios deste plano (séries/repetições em branco = usa o padrão do exercício):
-                              </p>
-                              {(exerciciosTodos ?? []).map((ex: any) => {
-                                const itemAtual = (pl.plano_exercicios ?? []).find((pe: any) => pe.exercicio_id === ex.id);
-                                return (
-                                  <div key={ex.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                                    <label style={{ fontSize: 14, display: "flex", gap: 8, alignItems: "center", flex: 1 }}>
-                                      <input
-                                        type="checkbox"
-                                        name="exercicio_id"
-                                        value={ex.id}
-                                        defaultChecked={!!itemAtual}
-                                      />
-                                      {ex.titulo}
-                                    </label>
-                                    <input
-                                      name={`series_${ex.id}`}
-                                      type="number"
-                                      defaultValue={itemAtual?.series ?? ""}
-                                      placeholder={ex.series_padrao ? String(ex.series_padrao) : "séries"}
-                                      style={campoNumeroPequeno}
-                                    />
-                                    <input
-                                      name={`repeticoes_${ex.id}`}
-                                      type="number"
-                                      defaultValue={itemAtual?.repeticoes ?? ""}
-                                      placeholder={ex.repeticoes_padrao ? String(ex.repeticoes_padrao) : "reps"}
-                                      style={campoNumeroPequeno}
-                                    />
-                                  </div>
-                                );
-                              })}
-                            </div>
-                            <div style={{ display: "flex", gap: 10 }}>
-                              <button type="submit" style={botaoPrimario}>Salvar alterações</button>
-                              <Link href="/dashboard?aba=plano" style={{ ...botaoTexto, alignSelf: "center" }}>
-                                cancelar
-                              </Link>
-                            </div>
-                          </form>
+                          <p style={{ margin: "0 0 12px", fontSize: 12.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--cor-primaria-escura)" }}>
+                            Editando · {pl.perfis?.nome || pl.perfis?.email}
+                          </p>
+                          <MontarPlano
+                            acao={atualizarPlano.bind(null, pl.id)}
+                            exercicios={(exerciciosTodos ?? []) as any}
+                            tituloInicial={pl.titulo}
+                            itensIniciais={[...(pl.plano_exercicios ?? [])]
+                              .sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0))
+                              .map((pe: any) => ({
+                                exercicio_id: pe.exercicio_id,
+                                series: pe.series,
+                                repeticoes: pe.repeticoes,
+                              }))}
+                            rotuloBotao="Salvar alterações"
+                            cancelarHref="/dashboard?aba=plano"
+                          />
                         </div>
                       ) : (
                       // Empilhado em vez de lado a lado: com quatro ações, a

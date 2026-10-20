@@ -43,6 +43,18 @@ async function exigirAdmin() {
   return { supabase, user };
 }
 
+/**
+ * Categoria sempre em minúsculas e sem espaço sobrando.
+ *
+ * O campo era texto livre, e bastava digitar "Mobilidade" uma vez pra
+ * aparecer um grupo novo ao lado de "mobilidade" na Biblioteca. Normalizar na
+ * gravação resolve daqui pra frente sem precisar mexer no banco.
+ */
+function normalizarCategoria(valor: FormDataEntryValue | null) {
+  const texto = String(valor || "").trim().toLowerCase();
+  return texto || "geral";
+}
+
 export async function criarExercicio(formData: FormData) {
   const { supabase, user } = await exigirAdmin();
 
@@ -61,7 +73,7 @@ export async function criarExercicio(formData: FormData) {
 
   const { error } = await supabase.from("exercicios").insert({
     titulo: String(formData.get("titulo") || ""),
-    categoria: String(formData.get("categoria") || "geral"),
+    categoria: normalizarCategoria(formData.get("categoria")),
     descricao: String(formData.get("descricao") || ""),
     video_url: videoUrl,
     pdf_url: pdfUrl,
@@ -89,7 +101,7 @@ export async function atualizarExercicio(id: string, formData: FormData) {
 
   const atualizacao: Record<string, unknown> = {
     titulo: String(formData.get("titulo") || ""),
-    categoria: String(formData.get("categoria") || "geral"),
+    categoria: normalizarCategoria(formData.get("categoria")),
     descricao: String(formData.get("descricao") || ""),
     series_padrao: Number(formData.get("series_padrao")) || null,
     repeticoes_padrao: Number(formData.get("repeticoes_padrao")) || null,
