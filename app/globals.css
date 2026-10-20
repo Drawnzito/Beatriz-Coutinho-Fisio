@@ -110,37 +110,6 @@ button {
   display: none;
 }
 
-/* Entrada da Biblioteca: escolher a categoria antes da lista. */
-.cartao-categoria {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 15px 16px;
-  border: 1px solid var(--cor-borda);
-  border-radius: 12px;
-  background: var(--cor-superficie);
-  text-decoration: none;
-}
-
-.cartao-categoria__nome {
-  font-family: var(--fonte-titulo);
-  font-size: 16px;
-  color: var(--cor-primaria);
-  text-transform: capitalize;
-}
-
-.cartao-categoria__contagem {
-  font-size: 12px;
-  color: var(--cor-texto-suave);
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .cartao-categoria:hover {
-    border-color: var(--cor-primaria);
-    background: rgba(31, 92, 87, 0.035);
-  }
-}
-
 .destaque-slide {
   position: relative;
   flex: 0 0 100%;

@@ -140,35 +140,29 @@ export default async function DashboardPage({
 
   const verArquivados = searchParams.arquivados === "1";
   const buscaPacienteFiltro = (searchParams.buscaPaciente || "").trim();
-  const categoriaFiltro = searchParams.categoria || undefined;
   const buscaFiltro = searchParams.busca || undefined;
   const ordem = searchParams.ordem === "desc" ? "desc" : "asc";
 
   const TAMANHO_PACIENTES = 15;
-  const TAMANHO_EXERCICIOS = 15;
   const TAMANHO_SESSOES_PACIENTE = 10;
   const paginaPacientes = Math.max(1, parseInt(searchParams.paginaPacientes ?? "1", 10) || 1);
-  const paginaExercicios = Math.max(1, parseInt(searchParams.paginaExercicios ?? "1", 10) || 1);
   const paginaSessoesPaciente = Math.max(1, parseInt(searchParams.paginaSessoesPaciente ?? "1", 10) || 1);
 
+  // A Biblioteca agrupa por categoria aqui no servidor, em memória, e não
+  // com um filtro por categoria no banco.
+  //
+  // Filtrar no banco exigia que o nome da categoria no link batesse exatamente
+  // com o que está gravado — e não bate: a grade agrupa em minúsculas e sem
+  // espaço nas pontas, enquanto no banco ainda há "Mobilidade" e "Exercício "
+  // de antes da normalização. Nessas, clicar na categoria devolvia zero. Em
+  // memória vale a mesma normalização dos dois lados, que é como "montar
+  // treino" sempre funcionou.
   let consultaExercicios = supabase
     .from("exercicios")
     .select("*", { count: "exact" })
-    .order("titulo", { ascending: ordem === "asc" });
-  // `ilike` sem curinga, e não `eq`: a grade de categorias agrupa tudo em
-  // minúsculas, mas exercícios cadastrados antes da normalização ainda estão
-  // gravados como "Mobilidade". Com `eq`, clicar na categoria não trazia
-  // nenhum deles. O escape evita que % ou _ no nome virem curinga.
-  if (categoriaFiltro === "sem categoria") {
-    consultaExercicios = consultaExercicios.or("categoria.is.null,categoria.eq.");
-  } else if (categoriaFiltro) {
-    consultaExercicios = consultaExercicios.ilike("categoria", categoriaFiltro.replace(/[%_]/g, "\\$&"));
-  }
+    .order("titulo", { ascending: ordem === "asc" })
+    .limit(500);
   if (buscaFiltro) consultaExercicios = consultaExercicios.ilike("titulo", `%${buscaFiltro}%`);
-  consultaExercicios = consultaExercicios.range(
-    (paginaExercicios - 1) * TAMANHO_EXERCICIOS,
-    paginaExercicios * TAMANHO_EXERCICIOS - 1
-  );
 
   let consultaPacientesLista = supabase
     .from("perfis")
@@ -398,15 +392,18 @@ export default async function DashboardPage({
   const categoriasDisponiveis = [...new Set((categoriasTodas ?? []).map((e) => e.categoria))].sort();
   const exerciciosFiltrados = exercicios ?? [];
 
-  // Quantos exercícios tem cada categoria, pra Biblioteca abrir mostrando as
-  // categorias em vez de uma lista alfabética única — era nela que a Beatriz
-  // precisava rolar tudo pra achar um exercício de uma região do corpo.
-  const totalPorCategoria = new Map<string, number>();
-  for (const e of categoriasTodas ?? []) {
-    const chave = (e.categoria || "sem categoria").trim().toLowerCase();
-    totalPorCategoria.set(chave, (totalPorCategoria.get(chave) ?? 0) + 1);
+  // Exercícios agrupados por categoria, pra Biblioteca abrir por grupo em vez
+  // de uma lista alfabética única — era nela que a Beatriz precisava rolar
+  // tudo pra achar um exercício de uma região do corpo.
+  const exerciciosPorCategoria = new Map<string, any[]>();
+  for (const ex of exerciciosFiltrados) {
+    const chave = (ex.categoria || "sem categoria").trim().toLowerCase();
+    if (!exerciciosPorCategoria.has(chave)) exerciciosPorCategoria.set(chave, []);
+    exerciciosPorCategoria.get(chave)!.push(ex);
   }
-  const categoriasOrdenadas = [...totalPorCategoria.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  const categoriasOrdenadas = [...exerciciosPorCategoria.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0], "pt-BR")
+  );
 
   // Em quantos treinos cada exercício é usado: ajuda a reconhecer o que é
   // base do atendimento e o que foi cadastrado e nunca usado.
@@ -423,32 +420,18 @@ export default async function DashboardPage({
   const hrefDestaques = (editar?: string) =>
     editar ? `/dashboard?aba=destaques&editarDestaque=${editar}` : "/dashboard?aba=destaques";
 
-  /** Biblioteca sem filtro nenhum abre na escolha de categoria. */
-  const mostrandoCategorias = !categoriaFiltro && !buscaFiltro && !editandoId;
-
   const editandoPostId = searchParams.editarPost || undefined;
   const hrefBlog = ({ editarPost }: { editarPost?: string }) =>
     editarPost ? `/dashboard?aba=blog&editarPost=${editarPost}` : "/dashboard?aba=blog";
 
-  function hrefBiblioteca(overrides: { categoria?: string; editar?: string; busca?: string; ordem?: string }) {
+  function hrefBiblioteca(overrides: { editar?: string; busca?: string; ordem?: string }) {
     const params = new URLSearchParams({ aba: "biblioteca" });
-    const categoria = "categoria" in overrides ? overrides.categoria : categoriaFiltro;
     const editar = "editar" in overrides ? overrides.editar : editandoId;
     const busca = "busca" in overrides ? overrides.busca : buscaFiltro;
     const ordemAtual = "ordem" in overrides ? overrides.ordem : ordem;
-    if (categoria) params.set("categoria", categoria);
     if (editar) params.set("editar", editar);
     if (busca) params.set("busca", busca);
     if (ordemAtual && ordemAtual !== "asc") params.set("ordem", ordemAtual);
-    return `/dashboard?${params.toString()}`;
-  }
-
-  function hrefBibliotecaPagina(p: number) {
-    const params = new URLSearchParams({ aba: "biblioteca" });
-    if (categoriaFiltro) params.set("categoria", categoriaFiltro);
-    if (buscaFiltro) params.set("busca", buscaFiltro);
-    if (ordem !== "asc") params.set("ordem", ordem);
-    if (p > 1) params.set("paginaExercicios", String(p));
     return `/dashboard?${params.toString()}`;
   }
 
@@ -536,7 +519,6 @@ export default async function DashboardPage({
 
                   <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 10 }}>
                     <input type="hidden" name="aba" value="biblioteca" />
-                    {categoriaFiltro && <input type="hidden" name="categoria" value={categoriaFiltro} />}
                     {ordem !== "asc" && <input type="hidden" name="ordem" value={ordem} />}
                     <input
                       name="busca"
@@ -552,47 +534,34 @@ export default async function DashboardPage({
                     )}
                   </form>
 
-                  {mostrandoCategorias ? (
-                    /* Entrada por categoria: é assim que ela procura um
-                       exercício — pela região ou pelo objetivo, não pela
-                       letra inicial. */
-                    <div className="grade-auto grade-auto--2">
-                      {categoriasOrdenadas.map(([nome, quantos]) => (
-                        <Link key={nome} href={hrefBiblioteca({ categoria: nome })} className="cartao-categoria">
-                          <span className="cartao-categoria__nome">{nome}</span>
-                          <span className="cartao-categoria__contagem">
-                            {quantos} exercício{quantos === 1 ? "" : "s"}
-                          </span>
-                        </Link>
-                      ))}
-                      {categoriasOrdenadas.length === 0 && (
-                        <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                          Nenhum exercício cadastrado ainda.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <>
                   <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-                    <Link href={hrefBiblioteca({ categoria: "", busca: "", editar: "" })} style={botaoTextoPrimario}>
-                      ← todas as categorias
-                    </Link>
-                    {categoriaFiltro && (
-                      <strong style={{ fontSize: 14, textTransform: "capitalize", color: "var(--cor-primaria)" }}>
-                        {categoriaFiltro}
-                      </strong>
-                    )}
+                    <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: 0 }}>
+                      {exerciciosFiltrados.length} exercício{exerciciosFiltrados.length === 1 ? "" : "s"}
+                      {buscaFiltro ? ` encontrado${exerciciosFiltrados.length === 1 ? "" : "s"}` : ""}
+                      {" em "}
+                      {categoriasOrdenadas.length} categoria{categoriasOrdenadas.length === 1 ? "" : "s"}
+                    </p>
                     <Link href={hrefBiblioteca({ ordem: ordem === "asc" ? "desc" : "asc" })} style={{ ...botaoTexto, marginLeft: "auto" }}>
                       {ordem === "asc" ? "A → Z" : "Z → A"}
                     </Link>
                   </div>
 
-                  <p style={{ fontSize: 12.5, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                    {totalExercicios ?? 0} exercício{(totalExercicios ?? 0) === 1 ? "" : "s"}
-                  </p>
-
+                  {/* Cada categoria abre e fecha no lugar, sem trocar de tela.
+                      Com busca ativa, ou editando um exercício, a categoria
+                      correspondente já vem aberta. */}
+                  {categoriasOrdenadas.map(([nomeCategoria, lista]) => (
+                    <SecaoRecolhivel
+                      key={nomeCategoria}
+                      titulo={nomeCategoria}
+                      contador={lista.length}
+                      comecarAberta={
+                        Boolean(buscaFiltro) ||
+                        categoriasOrdenadas.length === 1 ||
+                        lista.some((ex: any) => ex.id === editandoId)
+                      }
+                    >
                   <div style={{ display: "grid", gap: 10 }}>
-                    {exerciciosFiltrados.map((ex) =>
+                    {lista.map((ex: any) =>
                       ex.id === editandoId ? (
                         <div key={ex.id} style={{ ...cartao, display: "block" }}>
                           <form action={atualizarExercicio.bind(null, ex.id)} style={{ display: "grid", gap: 10 }}>
@@ -672,20 +641,14 @@ export default async function DashboardPage({
                         </div>
                       )
                     )}
-                    {exerciciosFiltrados.length === 0 && (
-                      <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                        Nenhum exercício {categoriaFiltro ? "nessa categoria" : "cadastrado ainda"}.
-                      </p>
-                    )}
                   </div>
+                    </SecaoRecolhivel>
+                  ))}
 
-                  <Paginacao
-                    pagina={paginaExercicios}
-                    total={totalExercicios ?? 0}
-                    tamanhoPagina={TAMANHO_EXERCICIOS}
-                    hrefPagina={hrefBibliotecaPagina}
-                  />
-                    </>
+                  {exerciciosFiltrados.length === 0 && (
+                    <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                      {buscaFiltro ? "Nenhum exercício com esse nome." : "Nenhum exercício cadastrado ainda."}
+                    </p>
                   )}
                 </div>
               ),
