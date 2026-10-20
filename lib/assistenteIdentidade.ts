@@ -14,5 +14,5 @@ export const ASSISTENTE_IDENTIDADE = {
   papel: "assistente virtual",
   avatar: "/marca/assistente-avatar.png",
   /** Balãozinho que ela "fala" sozinha ao lado da bolha, uma vez por visita. */
-  chamada: "Oi! Eu sou a Bia 👋 Posso ajudar com a agenda, os exercícios ou falar com a Beatriz.",
+  chamada: "Oi! Eu sou a Bia 💚 Toca aqui se precisar de ajuda com a agenda ou os exercícios.",
 } as const;

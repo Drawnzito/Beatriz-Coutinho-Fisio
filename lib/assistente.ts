@@ -16,10 +16,10 @@ import { ASSISTENTE_IDENTIDADE } from "./assistenteIdentidade";
 export const ASSISTENTE = {
   ...ASSISTENTE_IDENTIDADE,
   saudacao:
-    `Oi! Eu sou a ${ASSISTENTE_IDENTIDADE.nome}, a assistente virtual do app. ` +
-    "Respondo na hora as dúvidas mais comuns — sou automática, não sou a Beatriz. " +
+    `Oi, eu sou a ${ASSISTENTE_IDENTIDADE.nome} 💚 Sou automática — não sou a Beatriz, ` +
+    "mas conheço bem o app e resolvo na hora as dúvidas mais comuns sobre agenda e exercícios. " +
     "Escolhe uma pergunta aí embaixo:",
-  rodape: "Não achou o que queria? A Beatriz responde pelo WhatsApp.",
+  rodape: "Não achou o que queria? A Beatriz responde direto no WhatsApp.",
 } as const;
 
 export type AcaoAssistente =

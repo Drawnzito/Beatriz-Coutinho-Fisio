@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { extensaoDe, TAMANHO_MAXIMO_MB } from "@/lib/tiposArquivo";
+import { extensaoDe, inferirContentType, TAMANHO_MAXIMO_MB } from "@/lib/tiposArquivo";
 import styles from "./uploadImagemRecortada.module.css";
 
 type Estado = "ocioso" | "recortando" | "enviando" | "pronto" | "erro";
@@ -64,6 +64,9 @@ export function UploadImagemRecortada({
   const [pos, setPos] = useState({ x: 0, y: 0 });
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const hiddenRef = useRef<HTMLInputElement>(null);
+  const estadoRef = useRef(estado);
+  estadoRef.current = estado;
   const molduraRef = useRef<HTMLDivElement>(null);
   const [largura, setLargura] = useState(0);
   const arrasto = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
@@ -84,6 +87,25 @@ export function UploadImagemRecortada({
     window.addEventListener("resize", medir);
     return () => window.removeEventListener("resize", medir);
   }, [estado]);
+
+  // Travar o envio do formulário enquanto a imagem ainda está sendo recortada
+  // ou enviada: sem isso, salvar cedo demais manda o formulário sem a foto
+  // (o hidden input ainda está vazio) e tudo que a pessoa escolheu se perde.
+  useEffect(() => {
+    function aoSubmeter(evento: Event) {
+      const formulario = evento.target as HTMLFormElement;
+      if (!hiddenRef.current || !formulario.contains(hiddenRef.current)) return;
+      if (estadoRef.current === "recortando") {
+        evento.preventDefault();
+        window.alert('Termine o recorte da imagem (botão "Usar este recorte") antes de salvar.');
+      } else if (estadoRef.current === "enviando") {
+        evento.preventDefault();
+        window.alert("Espere a imagem terminar de enviar antes de salvar.");
+      }
+    }
+    document.addEventListener("submit", aoSubmeter, true);
+    return () => document.removeEventListener("submit", aoSubmeter, true);
+  }, []);
 
   const altura = largura / proporcao;
   const escalaBase =
@@ -227,7 +249,7 @@ export function UploadImagemRecortada({
       const extensao = extensaoDe(paraEnviar.name, paraEnviar.type) || "jpg";
       const caminho = `${user.id}/${identificadorUnico()}.${extensao}`;
       const { error } = await supabase.storage.from(bucket).upload(caminho, paraEnviar, {
-        contentType: paraEnviar.type || "image/jpeg",
+        contentType: inferirContentType(paraEnviar.name, paraEnviar.type) || "image/jpeg",
         upsert: false,
       });
 
@@ -277,7 +299,7 @@ export function UploadImagemRecortada({
       )}
 
       {/* O que o Server Action realmente lê */}
-      <input type="hidden" name={nome} value={url} />
+      <input ref={hiddenRef} type="hidden" name={nome} value={url} />
 
       {estado === "recortando" && imagem && (
         <div className={styles.editor}>

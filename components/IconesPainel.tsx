@@ -68,6 +68,14 @@ export function IconeMais() {
   );
 }
 
+export function IconeEvolucao() {
+  return (
+    <svg {...base} width={19} height={19} aria-hidden="true">
+      <path d="M3 13h3.3l1.9-5.5 3 10 2.1-7.5H21" />
+    </svg>
+  );
+}
+
 export function IconeConteudo() {
   return (
     <svg {...base} aria-hidden="true">

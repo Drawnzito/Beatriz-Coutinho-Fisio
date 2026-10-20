@@ -13,6 +13,7 @@ import {
   IconeRelogio,
   IconeCadeado,
   IconeMais,
+  IconeEvolucao,
 } from "@/components/IconesPainel";
 import { SecaoRecolhivel } from "@/components/SecaoRecolhivel";
 import { CartaoSessaoAgenda } from "@/components/CartaoSessaoAgenda";
@@ -769,6 +770,60 @@ export default async function DashboardPage({
                         </form>
                       </div>
 
+                      {/* Fica logo no topo da ficha, antes até dos dados
+                          cadastrais: é a parte clínica que mais importa pra
+                          Beatriz, não devia ficar enterrada embaixo de
+                          seções administrativas. */}
+                      <SecaoRecolhivel
+                        titulo="Evolução clínica"
+                        descricao="Anotações privadas de cada sessão — só você vê"
+                        contador={evolucoesDetalhe.length}
+                        icone={<IconeEvolucao />}
+                        tom="acao"
+                        comecarAberta
+                      >
+                        {evolucoesDetalhe.length > 0 && (
+                          <div style={{ marginBottom: 12 }}>
+                            <BotoesPdfEvolucao pacienteId={pacienteDetalhe.id} nomePaciente={pacienteDetalhe.nome || pacienteDetalhe.email} />
+                          </div>
+                        )}
+
+                        <form action={criarEvolucao} style={{ display: "grid", gap: 8, marginBottom: 16 }}>
+                          <input type="hidden" name="paciente_id" value={pacienteDetalhe.id} />
+                          <input name="data" type="date" defaultValue={hojeIso} style={campo} />
+                          <textarea
+                            name="texto"
+                            placeholder="Como foi a sessão? Houve melhora? Observações relevantes..."
+                            rows={3}
+                            required
+                            style={campo}
+                          />
+                          <button type="submit" style={{ ...botaoPrimario, justifySelf: "start" }}>
+                            Registrar evolução
+                          </button>
+                        </form>
+
+                        <div style={{ display: "grid", gap: 8 }}>
+                          {evolucoesDetalhe.map((e) => (
+                            <div key={e.id} style={{ ...cartao, alignItems: "flex-start" }}>
+                              <div style={{ minWidth: 0, flex: 1 }}>
+                                <strong style={{ fontSize: 13 }}>
+                                  {new Date(`${e.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                                </strong>
+                                {textoEvolucaoExpandivel(e.texto)}
+                              </div>
+                              <form action={removerEvolucao.bind(null, e.id)}>
+                                <input type="hidden" name="_paciente_id" value={pacienteDetalhe.id} />
+                                <button type="submit" style={botaoTexto}>remover</button>
+                              </form>
+                            </div>
+                          ))}
+                          {evolucoesDetalhe.length === 0 && (
+                            <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhuma evolução registrada ainda.</p>
+                          )}
+                        </div>
+                      </SecaoRecolhivel>
+
                       {/* Nome e idade vinham do pré-cadastro ou do Google e
                           não tinham como ser corrigidos depois: nome
                           abreviado, idade desatualizada, erro de digitação. */}
@@ -842,50 +897,6 @@ export default async function DashboardPage({
                           </BotaoPerigo>
                         </form>
                       </SecaoRecolhivel>
-
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 10 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: 0 }}>
-                          Evolução ({evolucoesDetalhe.length})
-                        </p>
-                        {evolucoesDetalhe.length > 0 && (
-                          <BotoesPdfEvolucao pacienteId={pacienteDetalhe.id} nomePaciente={pacienteDetalhe.nome || pacienteDetalhe.email} />
-                        )}
-                      </div>
-
-                      <form action={criarEvolucao} style={{ display: "grid", gap: 8, marginBottom: 16 }}>
-                        <input type="hidden" name="paciente_id" value={pacienteDetalhe.id} />
-                        <input name="data" type="date" defaultValue={hojeIso} style={campo} />
-                        <textarea
-                          name="texto"
-                          placeholder="Como foi a sessão? Houve melhora? Observações relevantes..."
-                          rows={3}
-                          required
-                          style={campo}
-                        />
-                        <button type="submit" style={{ ...botaoPrimario, justifySelf: "start" }}>
-                          Registrar evolução
-                        </button>
-                      </form>
-
-                      <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
-                        {evolucoesDetalhe.map((e) => (
-                          <div key={e.id} style={{ ...cartao, alignItems: "flex-start" }}>
-                            <div style={{ minWidth: 0, flex: 1 }}>
-                              <strong style={{ fontSize: 13 }}>
-                                {new Date(`${e.data}T00:00:00`).toLocaleDateString("pt-BR")}
-                              </strong>
-                              {textoEvolucaoExpandivel(e.texto)}
-                            </div>
-                            <form action={removerEvolucao.bind(null, e.id)}>
-                              <input type="hidden" name="_paciente_id" value={pacienteDetalhe.id} />
-                              <button type="submit" style={botaoTexto}>remover</button>
-                            </form>
-                          </div>
-                        ))}
-                        {evolucoesDetalhe.length === 0 && (
-                          <p style={{ color: "var(--cor-texto-suave)", fontSize: 13.5 }}>Nenhuma evolução registrada ainda.</p>
-                        )}
-                      </div>
 
                       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
                         Planos ({planosDetalhe.length})
@@ -1287,6 +1298,51 @@ export default async function DashboardPage({
                     )}
                   </div>
 
+                  {(solicitacoes ?? []).length > 0 && (
+                    <div style={{ marginBottom: 24 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
+                        Solicitações pendentes ({solicitacoes!.length})
+                      </p>
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {solicitacoes!.map((s: any) => (
+                          <div key={s.id} style={{ ...cartao, alignItems: "flex-start", borderColor: "#d8c276" }}>
+                            <div>
+                              <strong>
+                                {new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}
+                                {s.hora ? ` às ${s.hora.slice(0, 5)}` : " · sem horário definido"}
+                              </strong>
+                              <p style={{ margin: "6px 0 0", fontSize: 13.5, fontWeight: 700 }}>
+                                {s.perfis?.nome || s.perfis?.email}
+                              </p>
+                              {s.especialidade && (
+                                <div style={{ margin: "6px 0 0" }}>
+                                  <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} />
+                                </div>
+                              )}
+                              <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
+                                {rotuloTipoSessao(s.tipo)}
+                              </p>
+                              {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
+
+                              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                                <form action={aprovarSolicitacaoSessao.bind(null, s.id)} style={{ display: "flex", gap: 6 }}>
+                                  {!s.hora && <input name="hora" type="time" style={{ ...campo, padding: "6px 8px", fontSize: 12.5 }} />}
+                                  <button type="submit" style={{ ...botaoPrimario, padding: "7px 12px", fontSize: 12.5 }}>
+                                    Aprovar
+                                  </button>
+                                </form>
+                                <form action={recusarSolicitacaoSessao.bind(null, s.id)} style={{ display: "flex", gap: 6 }}>
+                                  <input name="motivo" placeholder="Motivo (opcional)" style={{ ...campo, padding: "6px 8px", fontSize: 12.5, width: 160 }} />
+                                  <button type="submit" style={botaoTexto}>Recusar</button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <SecaoRecolhivel
                     titulo="Horários de atendimento"
                     descricao="As vagas que as pacientes veem ao pedir uma sessão"
@@ -1428,51 +1484,6 @@ export default async function DashboardPage({
                       </div>
                     )}
                   </SecaoRecolhivel>
-
-                  {(solicitacoes ?? []).length > 0 && (
-                    <div style={{ marginBottom: 24 }}>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
-                        Solicitações pendentes ({solicitacoes!.length})
-                      </p>
-                      <div style={{ display: "grid", gap: 10 }}>
-                        {solicitacoes!.map((s: any) => (
-                          <div key={s.id} style={{ ...cartao, alignItems: "flex-start", borderColor: "#d8c276" }}>
-                            <div>
-                              <strong>
-                                {new Date(`${s.data}T00:00:00`).toLocaleDateString("pt-BR")}
-                                {s.hora ? ` às ${s.hora.slice(0, 5)}` : " · sem horário definido"}
-                              </strong>
-                              <p style={{ margin: "6px 0 0", fontSize: 13.5, fontWeight: 700 }}>
-                                {s.perfis?.nome || s.perfis?.email}
-                              </p>
-                              {s.especialidade && (
-                                <div style={{ margin: "6px 0 0" }}>
-                                  <ChipEspecialidade especialidade={s.especialidade} modalidade={s.modalidade} />
-                                </div>
-                              )}
-                              <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                                {rotuloTipoSessao(s.tipo)}
-                              </p>
-                              {s.observacoes && <p style={{ margin: "4px 0 0", fontSize: 13 }}>{s.observacoes}</p>}
-
-                              <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                                <form action={aprovarSolicitacaoSessao.bind(null, s.id)} style={{ display: "flex", gap: 6 }}>
-                                  {!s.hora && <input name="hora" type="time" style={{ ...campo, padding: "6px 8px", fontSize: 12.5 }} />}
-                                  <button type="submit" style={{ ...botaoPrimario, padding: "7px 12px", fontSize: 12.5 }}>
-                                    Aprovar
-                                  </button>
-                                </form>
-                                <form action={recusarSolicitacaoSessao.bind(null, s.id)} style={{ display: "flex", gap: 6 }}>
-                                  <input name="motivo" placeholder="Motivo (opcional)" style={{ ...campo, padding: "6px 8px", fontSize: 12.5, width: 160 }} />
-                                  <button type="submit" style={botaoTexto}>Recusar</button>
-                                </form>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
                   {/* Recolhido: o formulário inteiro antes das sessões do dia
                       empurrava a agenda pra fora da tela, e marcar sessão é
