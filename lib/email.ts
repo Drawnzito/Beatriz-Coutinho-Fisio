@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { envolverEmailComMarca } from "@/lib/emailTemplate";
 
-const LIMITE_MENSAL = 2900;
+/**
+ * Teto de envios por mês. Fica abaixo dos 3.000 do plano gratuito do Resend
+ * de propósito: a margem evita que um pico no fim do mês gere cobrança.
+ */
+export const LIMITE_MENSAL = 2900;
 const REMETENTE = process.env.RESEND_FROM || "Beatriz Coutinho Fisioterapia <onboarding@resend.dev>";
 
 export async function enviarEmail({

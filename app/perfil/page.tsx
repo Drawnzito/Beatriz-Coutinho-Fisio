@@ -22,6 +22,8 @@ import {
 import { ativarVisaoPaciente, desativarVisaoPaciente } from "./actions";
 import { CampoWhatsApp } from "@/components/CampoWhatsApp";
 import { CampoWhatsappClinica } from "@/components/CampoWhatsappClinica";
+import { MedidorEmails } from "@/components/MedidorEmails";
+import { buscarUsoEmails } from "@/lib/usoEmails";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +54,8 @@ export default async function PerfilPage({
     .maybeSingle();
 
   const papel = perfil?.papel === "admin" ? "admin" : "paciente";
+  // Só a fisioterapeuta vê o consumo de e-mails — e só ela pode ler a tabela.
+  const usoEmails = papel === "admin" ? await buscarUsoEmails() : null;
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
   const vendoComoPaciente = cookies().get("ver_como_paciente")?.value === "1";
   const comoPaciente = papel !== "admin" || vendoComoPaciente;
@@ -224,14 +228,25 @@ export default async function PerfilPage({
             </CartaoPerfil>
 
             {!vendoComoPaciente && (
-              <CartaoPerfil
-                icone={<IconeMala />}
-                titulo="WhatsApp da clínica"
-                descricao="O número que as pacientes veem no botão de falar com você."
-                destaque={!configClinica?.whatsapp_contato}
-              >
-                <CampoWhatsappClinica valorInicial={configClinica?.whatsapp_contato} />
-              </CartaoPerfil>
+              <>
+                <CartaoPerfil
+                  icone={<IconeSino />}
+                  titulo="Avisos por e-mail"
+                  descricao="Solicitação de sessão, aprovação e recusa"
+                  destaque={usoEmails?.atencao}
+                >
+                  {usoEmails && <MedidorEmails uso={usoEmails} />}
+                </CartaoPerfil>
+
+                <CartaoPerfil
+                  icone={<IconeMala />}
+                  titulo="WhatsApp da clínica"
+                  descricao="O número que as pacientes veem no botão de falar com você."
+                  destaque={!configClinica?.whatsapp_contato}
+                >
+                  <CampoWhatsappClinica valorInicial={configClinica?.whatsapp_contato} />
+                </CartaoPerfil>
+              </>
             )}
           </SecaoPerfil>
         )}

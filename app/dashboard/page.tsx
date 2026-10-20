@@ -37,6 +37,7 @@ import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
 import { CampoEspecialidade } from "@/components/CampoEspecialidade";
 import { ChipEspecialidade } from "@/components/ChipEspecialidade";
 import { linkWhatsapp } from "@/lib/telefone";
+import { buscarUsoEmails } from "@/lib/usoEmails";
 import { DIAS_SEMANA, rotuloDiaSemana } from "@/lib/diasSemana";
 import { UploadArquivo } from "@/components/UploadArquivo";
 import { UploadImagemRecortada } from "@/components/UploadImagemRecortada";
@@ -276,6 +277,7 @@ export default async function DashboardPage({
   ]);
 
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
+  const usoEmails = await buscarUsoEmails();
 
   // Próxima sessão de cada paciente da página — é o que a Beatriz procura ao
   // bater o olho na lista, e sem isso ela precisava abrir ficha por ficha.
@@ -466,6 +468,33 @@ export default async function DashboardPage({
 
       {/* Sem padding lateral: as abas precisam encostar nas bordas. */}
       <main className="conteudo" style={{ padding: "24px 0 100px" }}>
+        {/* O envio de e-mail para sozinho ao chegar no teto do mês, e parava
+            calado: do lado de cá parecia que a paciente tinha sido avisada.
+            Só aparece perto do limite — no resto do mês não é assunto. */}
+        {usoEmails.atencao && (
+          <div
+            style={{
+              margin: "0 20px 16px",
+              padding: "12px 14px",
+              borderRadius: 10,
+              border: `1px solid ${usoEmails.esgotado ? "#edd3da" : "#e8dac6"}`,
+              background: usoEmails.esgotado ? "#f8ebee" : "#f7f1e8",
+              color: usoEmails.esgotado ? "#9c4259" : "#8a6a42",
+              fontSize: 12.5,
+              lineHeight: 1.5,
+            }}
+          >
+            <strong style={{ display: "block", marginBottom: 2 }}>
+              {usoEmails.esgotado
+                ? "Os avisos por e-mail estão pausados até o mês virar"
+                : `Os avisos por e-mail estão perto do limite do mês (${usoEmails.porcentagem}%)`}
+            </strong>
+            {usoEmails.esgotado
+              ? "Combine as sessões pelo WhatsApp até lá — a aprovação continua funcionando normalmente aqui."
+              : `Restam ${usoEmails.restantes.toLocaleString("pt-BR")} envios. Ao chegar no teto eles param sozinhos, sem gerar custo.`}
+          </div>
+        )}
+
         <PainelNavegacao
           inicial={searchParams.aba}
           grupos={[
