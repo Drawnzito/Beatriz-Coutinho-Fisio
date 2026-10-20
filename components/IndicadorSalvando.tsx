@@ -57,9 +57,11 @@ export function IndicadorSalvando() {
   if (!ativo) return null;
 
   return (
-    <div className={styles.selo} role="status" aria-live="polite">
-      <MarcaCarregando tamanho={38} claro />
-      <span>Salvando…</span>
+    <div className={styles.fundo} role="status" aria-live="polite">
+      <div className={styles.selo}>
+        <MarcaCarregando tamanho={170} />
+        <span>Salvando…</span>
+      </div>
     </div>
   );
 }

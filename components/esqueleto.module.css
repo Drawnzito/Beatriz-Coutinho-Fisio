@@ -1,3 +1,13 @@
+.palco {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Altura suficiente pra marca cair no meio da área visível, sem empurrar
+     o esqueleto todo pra baixo da dobra. */
+  min-height: min(38vh, 300px);
+  margin-bottom: 10px;
+}
+
 .pulso {
   animation: respira 1.3s ease-in-out infinite;
 }

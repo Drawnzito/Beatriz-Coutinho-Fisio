@@ -38,13 +38,15 @@ export function Esqueleto({
       )}
 
       <main className="conteudo" aria-busy="true" aria-label="Carregando">
-        {/* A marca desenhando-se dá um sinal de vida no primeiro instante —
-            as barras cinzas sozinhas pareciam tela quebrada. */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}>
-          <MarcaCarregando tamanho={74} />
+        {/* A marca vem grande e no meio da tela: é um instante em que não há
+            nada pra fazer mesmo, então ela ocupa o lugar em vez de pedir
+            licença num canto. As barras ficam embaixo, discretas, só pra
+            dizer que a página está vindo. */}
+        <div className={styles.palco}>
+          <MarcaCarregando tamanho={190} />
         </div>
 
-        <div style={{ display: "grid", gap: 14 }}>
+        <div style={{ display: "grid", gap: 14, opacity: 0.55 }}>
           <div className={styles.pulso} style={{ width: 150, height: 18, borderRadius: 7, background: "var(--cor-borda)" }} />
           {Array.from({ length: linhas }).map((_, i) => (
             <div

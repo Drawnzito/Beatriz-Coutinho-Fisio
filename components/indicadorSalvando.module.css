@@ -1,39 +1,39 @@
-.selo {
+/* Cobre a tela de propósito: enquanto a resposta não volta não há nada pra
+   fazer, e o véu evita o segundo toque no mesmo botão — que criava sessão
+   repetida em conexão lenta. */
+.fundo {
   position: fixed;
-  /* Abaixo da navegação de topo no computador, e bem longe da barra de baixo
-     no celular — o selo não pode cobrir o botão que a pessoa acabou de tocar. */
-  top: calc(var(--altura-nav, 0px) + 14px);
-  left: 50%;
-  transform: translateX(-50%);
+  inset: 0;
   z-index: 120;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px 8px 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--cor-primaria-escura), var(--cor-primaria));
-  color: #fff;
-  font-family: var(--fonte-corpo);
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 12px 30px -12px rgba(22, 63, 60, 0.9);
-  animation: entra 0.2s ease-out;
-  pointer-events: none;
+  justify-content: center;
+  background: rgba(250, 248, 245, 0.82);
+  backdrop-filter: blur(2px);
+  animation: surge 0.15s ease-out;
 }
 
-@keyframes entra {
+.selo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--cor-primaria-escura);
+  font-family: var(--fonte-corpo);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+@keyframes surge {
   from {
     opacity: 0;
-    transform: translate(-50%, -8px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .selo {
+  .fundo {
     animation: none;
+    backdrop-filter: none;
   }
 }
