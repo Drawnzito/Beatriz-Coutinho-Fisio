@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Assistente } from "@/components/Assistente";
+import { CartaoTreino } from "@/components/CartaoTreino";
 import { MidiaExercicio } from "@/components/MidiaExercicio";
 import { MiniaturaExercicio } from "@/components/MiniaturaExercicio";
 import { AtalhoPassoAPasso } from "@/components/PassoAPasso";
@@ -66,11 +67,14 @@ export default async function ExerciciosPage({
     .eq("id", "global")
     .maybeSingle();
 
-  // Antes todos os treinos eram <details> sem seta, com so o primeiro aberto:
-  // quem tinha mais de um nao percebia que havia outros. Agora e uma selecao
-  // explicita, com o treino escolhido na URL.
-  const planoSelecionado =
-    planos.find((p) => p.id === searchParams.treino) ?? planos[0] ?? null;
+  // Sem treino na URL, a tela mostra os treinos como cartões; com treino, só
+  // ele, por inteiro. Antes a página abria direto na lista completa do
+  // primeiro treino, o que dava uma coluna longa de linhas iguais e escondia
+  // os outros treinos atrás de pílulas de seleção.
+  const todosOsTreinos = [...planos, ...planosAnteriores];
+  const planoSelecionado = searchParams.treino
+    ? todosOsTreinos.find((p) => p.id === searchParams.treino) ?? null
+    : null;
 
   return (
     <>
@@ -84,44 +88,45 @@ export default async function ExerciciosPage({
           </p>
         )}
 
-        {planos.length > 1 && (
-          <div style={{ marginBottom: 18 }}>
-            <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)" }}>
-              Você tem {planos.length} treinos — escolha qual quer ver:
-            </p>
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-              {planos.map((plano: any) => {
-                const ativo = plano.id === planoSelecionado?.id;
-                return (
-                  <Link
-                    key={plano.id}
-                    href={`/exercicios?treino=${plano.id}`}
-                    scroll={false}
-                    style={{
-                      flexShrink: 0,
-                      padding: "8px 14px",
-                      borderRadius: 999,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      textDecoration: "none",
-                      border: `1px solid ${ativo ? "var(--cor-primaria)" : "var(--cor-borda)"}`,
-                      background: ativo ? "var(--cor-primaria)" : "var(--cor-superficie)",
-                      color: ativo ? "#fff" : "var(--cor-texto-suave)",
-                    }}
-                  >
-                    {plano.titulo}
-                    <span style={{ marginLeft: 6, fontWeight: 500, opacity: 0.8 }}>
-                      ({(plano.plano_exercicios ?? []).length})
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
+        {/* ---------- Os treinos, como cartões ---------- */}
+        {!planoSelecionado && planos.length > 0 && (
+          <div className="grade-auto grade-auto--2" style={{ marginBottom: 8 }}>
+            {planos.map((plano: any) => (
+              <CartaoTreino
+                key={plano.id}
+                titulo={plano.titulo}
+                href={`/exercicios?treino=${plano.id}`}
+                hrefIniciar={`/treino/${plano.id}`}
+                itens={[...(plano.plano_exercicios ?? [])]
+                  .sort((a: any, b: any) => a.ordem - b.ordem)
+                  .map((item: any) => ({
+                    id: item.id,
+                    titulo: item.exercicios.titulo,
+                    video_url: item.exercicios.video_url,
+                    pdf_url: item.exercicios.pdf_url,
+                  }))}
+              />
+            ))}
           </div>
         )}
 
+        {/* ---------- Um treino aberto ---------- */}
         {planoSelecionado && (
           <section style={{ marginBottom: 14 }}>
+            <Link
+              href="/exercicios"
+              style={{
+                display: "inline-block",
+                marginBottom: 14,
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--cor-primaria)",
+                textDecoration: "none",
+              }}
+            >
+              ← todos os treinos
+            </Link>
+
             <div
               style={{
                 display: "flex",
@@ -132,14 +137,15 @@ export default async function ExerciciosPage({
                 flexWrap: "wrap",
               }}
             >
-              <h3 style={{ fontSize: 16, color: "var(--cor-primaria)", margin: 0, fontFamily: "var(--fonte-titulo)" }}>
+              <h3 style={{ fontSize: 18, color: "var(--cor-primaria)", margin: 0, fontFamily: "var(--fonte-titulo)" }}>
                 {planoSelecionado.titulo}
                 <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400, color: "var(--cor-texto-suave)" }}>
                   {(planoSelecionado.plano_exercicios ?? []).length} exercício
                   {(planoSelecionado.plano_exercicios ?? []).length === 1 ? "" : "s"}
+                  {!planoSelecionado.ativo ? " · encerrado" : ""}
                 </span>
               </h3>
-              {(planoSelecionado.plano_exercicios ?? []).length > 0 && (
+              {planoSelecionado.ativo && (planoSelecionado.plano_exercicios ?? []).length > 0 && (
                 <Link
                   href={`/treino/${planoSelecionado.id}`}
                   style={{
@@ -209,52 +215,35 @@ export default async function ExerciciosPage({
           </section>
         )}
 
-        {planosAnteriores.length > 0 && (
-          <details style={{ marginTop: 20 }}>
-            <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+        {/* Treinos encerrados: mesmos cartões, apagados e recolhidos. Antes
+            eram <details> dentro de <details>, dois cliques pra ver uma lista
+            que ninguém procura com frequência. */}
+        {!planoSelecionado && planosAnteriores.length > 0 && (
+          <details style={{ marginTop: 24 }}>
+            <summary style={{ cursor: "pointer", listStyle: "none", marginBottom: 12 }}>
               <h3 style={{ display: "inline", fontSize: 14, color: "var(--cor-texto-suave)", margin: 0 }}>
-                Treinos anteriores ({planosAnteriores.length})
+                Treinos anteriores ({planosAnteriores.length}) ›
               </h3>
             </summary>
 
-            {planosAnteriores.map((plano: any) => (
-              <details key={plano.id} style={{ marginBottom: 14 }}>
-                <summary style={{ marginBottom: 10, cursor: "pointer", listStyle: "none" }}>
-                  <h3 style={{ fontSize: 15, color: "var(--cor-texto-suave)", margin: 0, display: "inline" }}>
-                    {plano.titulo}
-                    <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 400 }}>
-                      {(plano.plano_exercicios ?? []).length} exercício{(plano.plano_exercicios ?? []).length === 1 ? "" : "s"} · encerrado
-                    </span>
-                  </h3>
-                </summary>
-
-                <div className="grade-auto grade-auto--2">
-                  {(plano.plano_exercicios ?? [])
+            <div className="grade-auto grade-auto--2">
+              {planosAnteriores.map((plano: any) => (
+                <CartaoTreino
+                  key={plano.id}
+                  titulo={plano.titulo}
+                  href={`/exercicios?treino=${plano.id}`}
+                  encerrado
+                  itens={[...(plano.plano_exercicios ?? [])]
                     .sort((a: any, b: any) => a.ordem - b.ordem)
-                    .map((item: any) => {
-                      const ex = item.exercicios;
-                      return (
-                        <div key={item.id} style={{ ...exercicioCartao, display: "flex", gap: 12 }}>
-                          <div style={{ flexShrink: 0 }}>
-                            <MiniaturaExercicio
-                              videoUrl={ex.video_url}
-                              pdfUrl={ex.pdf_url}
-                              titulo={ex.titulo}
-                            />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <strong style={{ fontSize: 14.5 }}>{ex.titulo}</strong>
-                            <p style={{ margin: "5px 0 0", fontSize: 12.5, color: "var(--cor-texto-suave)" }}>
-                              {item.series ?? ex.series_padrao ?? "-"} ×{" "}
-                              {item.repeticoes ?? ex.repeticoes_padrao ?? "-"} repetições
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </details>
-            ))}
+                    .map((item: any) => ({
+                      id: item.id,
+                      titulo: item.exercicios.titulo,
+                      video_url: item.exercicios.video_url,
+                      pdf_url: item.exercicios.pdf_url,
+                    }))}
+                />
+              ))}
+            </div>
           </details>
         )}
       </main>
