@@ -1,86 +1,47 @@
-<!--
-  Arte da promoção de indicação.
-
-  Canvas 4:3 (1200x900), que é a proporção do cartão de destaque no celular.
-  No computador o cartão vira 16:9 e o navegador corta topo e base — por isso
-  TODO o conteúdo fica dentro da faixa y=150..750 (a "área segura"), que é o
-  que sobra depois desse corte. Fora dela só existe fundo.
--->
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
   <defs>
     <linearGradient id="fundo" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#1f5c57"/>
-      <stop offset="70%" stop-color="#163f3c"/>
-      <stop offset="100%" stop-color="#11302e"/>
-    </linearGradient>
-
-    <radialGradient id="brilho" cx="18%" cy="10%" r="68%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.14"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
-    </radialGradient>
-
-    <linearGradient id="selo" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#c25a71"/>
-      <stop offset="100%" stop-color="#a2465a"/>
+      <stop offset="55%" stop-color="#1a4f4a"/>
+      <stop offset="100%" stop-color="#143d3a"/>
     </linearGradient>
   </defs>
 
-  <rect width="1200" height="900" fill="url(#fundo)"/>
-  <rect width="1200" height="900" fill="url(#brilho)"/>
+  <rect width="1200" height="800" fill="url(#fundo)"/>
 
-  <!-- Arabesque da marca, ampliado, no canto direito -->
-  <g transform="translate(720 190) scale(2.3)" opacity="0.13">
-    <path d="M 210 20 C 150 20, 130 70, 150 105 C 165 130, 205 128, 215 150 C 222 165, 210 172, 195 170"
-          fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+  <!-- Arabesco como textura discreta, sangrando pela direita -->
+  <g stroke="#2a6760" stroke-width="7" fill="none" opacity="0.5">
+    <path d="M1040 -60 C1230 130, 1225 340, 1060 440 C940 510, 935 620, 1040 700 C1100 745, 1160 765, 1230 772"/>
+    <path d="M1150 70 C1255 210, 1245 345, 1155 425"/>
   </g>
 
-  <!-- ===== área segura: y 150 a 750 ===== -->
+  <!-- Faixa terracota da marca -->
+  <rect x="0" y="0" width="20" height="800" fill="#a2465a"/>
 
-  <!-- Marca BC -->
-  <g transform="translate(96 162) scale(0.42)">
-    <path d="M 46 205 C 30 150, 60 60, 150 40 C 205 28, 245 45, 272 18"
-          fill="none" stroke="#f1d9df" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
-    <circle cx="150" cy="40" r="12" fill="#f1d9df" opacity="0.9"/>
-    <text x="18" y="188" font-family="Georgia, 'Times New Roman', serif" font-weight="700"
-          font-size="160" fill="#ffffff">B</text>
-    <text x="128" y="188" font-family="Georgia, 'Times New Roman', serif" font-weight="700"
-          font-size="160" fill="#f1d9df">C</text>
+  <!-- Marca -->
+  <g transform="translate(92, 86)">
+    <path d="M16 -16 C54 -44, 96 -54, 134 -62" stroke="#e9b8c4" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <circle cx="26" cy="-24" r="11" fill="#e9b8c4"/>
+    <text x="0" y="48" font-family="Georgia, 'Times New Roman', serif" font-size="74" font-weight="700" fill="#faf8f5">B</text>
+    <text x="48" y="48" font-family="Georgia, 'Times New Roman', serif" font-size="74" font-weight="700" fill="#dfe6e2">C</text>
+    <text x="134" y="24" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="4.5" fill="#cfdbd6">BEATRIZ COUTINHO</text>
+    <text x="134" y="54" font-family="'Segoe UI', Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="4.5" fill="#9fb8b1">FISIOTERAPIA</text>
   </g>
 
-  <text x="96" y="302" font-family="Montserrat, 'Segoe UI', Arial, sans-serif" font-size="21"
-        font-weight="600" letter-spacing="5.5" fill="#ffffff" opacity="0.72">
-    BEATRIZ COUTINHO FISIOTERAPIA
-  </text>
+  <!-- Chamada -->
+  <text x="92" y="330" font-family="Georgia, 'Times New Roman', serif" font-size="90" font-weight="700" fill="#ffffff">Indique uma amiga</text>
 
-  <g transform="translate(96 332) scale(0.95)" opacity="0.5">
-    <path d="M 4 18 C 22 4, 38 24, 60 12 C 82 -2, 98 22, 120 10 C 142 -2, 158 20, 180 8 C 202 -4, 220 18, 242 6 C 262 -4, 282 14, 304 4"
-          fill="none" stroke="#f1d9df" stroke-width="2.4" stroke-linecap="round"/>
+  <text x="96" y="392" font-family="'Segoe UI', Arial, sans-serif" font-size="36" fill="#d8e4df">e ela ganha desconto na primeira sessão</text>
+
+  <!-- Selo do desconto -->
+  <g transform="translate(96, 452)">
+    <rect x="0" y="0" width="610" height="138" rx="69" fill="#a2465a"/>
+    <text x="54" y="92" font-family="Georgia, 'Times New Roman', serif" font-size="72" font-weight="700" fill="#ffffff">50% OFF</text>
+    <rect x="390" y="36" width="3" height="66" fill="#e9b8c4" opacity="0.6"/>
+    <text x="422" y="68" font-family="'Segoe UI', Arial, sans-serif" font-size="27" font-weight="600" fill="#ffffff">na primeira</text>
+    <text x="422" y="102" font-family="'Segoe UI', Arial, sans-serif" font-size="27" font-weight="600" fill="#ffffff">sessão</text>
   </g>
 
-  <text x="96" y="444" font-family="Georgia, 'Times New Roman', serif" font-weight="700"
-        font-size="82" fill="#ffffff">Indique uma amiga</text>
-
-  <text x="96" y="512" font-family="Montserrat, 'Segoe UI', Arial, sans-serif"
-        font-size="29" fill="#ffffff" opacity="0.88">
-    e ela ganha desconto na primeira sessão
-  </text>
-
-  <g transform="translate(96 558)">
-    <rect width="446" height="92" rx="46" fill="url(#selo)"/>
-    <text x="42" y="62" font-family="Georgia, 'Times New Roman', serif" font-weight="700"
-          font-size="52" fill="#ffffff">50% OFF</text>
-    <line x1="286" y1="26" x2="286" y2="66" stroke="#ffffff" stroke-width="1.5" opacity="0.4"/>
-    <text x="312" y="48" font-family="Montserrat, 'Segoe UI', Arial, sans-serif"
-          font-size="17" font-weight="600" fill="#ffffff" opacity="0.95">na primeira</text>
-    <text x="312" y="70" font-family="Montserrat, 'Segoe UI', Arial, sans-serif"
-          font-size="17" font-weight="600" fill="#ffffff" opacity="0.95">sessão</text>
-  </g>
-
-  <text x="96" y="710" font-family="Montserrat, 'Segoe UI', Arial, sans-serif" font-size="20"
-        fill="#f1d9df" opacity="0.8">
-    Válido para fisioterapia pélvica domiciliar
-  </text>
-
-  <!-- Marcador terracota na borda esquerda -->
-  <rect x="0" y="0" width="14" height="900" fill="#a2465a"/>
+  <!-- Rodapé -->
+  <text x="96" y="688" font-family="'Segoe UI', Arial, sans-serif" font-size="28" fill="#a9c0ba">Válido para fisioterapia pélvica domiciliar</text>
 </svg>
