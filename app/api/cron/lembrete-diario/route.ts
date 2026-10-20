@@ -21,10 +21,15 @@ export async function GET(request: Request) {
   const supabase = createAdminClient();
   const hoje = new Date().toISOString().slice(0, 10);
 
+  // Só sessões que de fato vão acontecer. Sem este filtro, quem avisou que
+  // não ia ("recusada"), quem teve o pedido negado ("rejeitada") e quem ainda
+  // espera aprovação ("solicitada") recebiam "Você tem sessão hoje" do mesmo
+  // jeito — e a contagem da agenda da Beatriz vinha inflada por elas.
   const { data: sessoesHoje } = await supabase
     .from("sessoes")
     .select("paciente_id, hora")
-    .eq("data", hoje);
+    .eq("data", hoje)
+    .in("status", ["agendada", "confirmada"]);
 
   const { data: admins } = await supabase.from("perfis").select("id").eq("papel", "admin");
 

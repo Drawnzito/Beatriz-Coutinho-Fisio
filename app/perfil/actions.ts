@@ -100,7 +100,10 @@ export async function enviarAvaliacaoApp(formData: FormData) {
   const nota3 = Number(formData.get("nota_3"));
   const comentario = String(formData.get("comentario") || "").trim() || null;
 
-  if (!nota1 || !nota2 || !nota3) return;
+  // Mesma conferência da avaliação de atendimento: nota fora de 1–5 entraria
+  // e torceria a média mostrada no painel.
+  const notaValida = (n: number) => Number.isInteger(n) && n >= 1 && n <= 5;
+  if (!notaValida(nota1) || !notaValida(nota2) || !notaValida(nota3)) return;
 
   await supabase.from("avaliacoes_app").insert({
     paciente_id: user.id,

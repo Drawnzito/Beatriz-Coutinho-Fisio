@@ -57,8 +57,10 @@ export async function middleware(request: NextRequest) {
     pathname === "/sitemap.xml" ||
     // Arquivo de verificação do Google Search Console. Precisa responder o
     // conteúdo cru pro robô — se cair no redirecionamento do login, o Google
-    // não consegue confirmar a propriedade do site.
-    pathname.startsWith("/google") ||
+    // não consegue confirmar a propriedade do site. O padrão é estreito de
+    // propósito: `startsWith("/google")` abriria qualquer rota futura que
+    // começasse com essas seis letras.
+    /^\/google[0-9a-f]+\.html$/.test(pathname) ||
     pathname === "/politica-de-privacidade";
 
   if (!user && !rotaPublica) {

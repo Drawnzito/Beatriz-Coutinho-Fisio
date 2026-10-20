@@ -347,7 +347,17 @@ export default async function InicioPage({
                  linha só, em negrito, com tipo + nome da fisio + hora, virou
                  uma hierarquia — e o nome da fisioterapeuta saiu, porque é
                  sempre a mesma pessoa em todas as sessões. */
-              <div key={item.id} style={{ ...sessaoCartao, borderLeft: `3px solid ${corTipoSessao(item.tipo)}` }}>
+              /* Canto reto do lado da borda grossa: com os 10px de raio nos
+                 quatro cantos, a passagem de 3px pra 1px vira uma curva torta
+                 na quina. Mesmo tratamento dos cartões de histórico. */
+              <div
+                key={item.id}
+                style={{
+                  ...sessaoCartao,
+                  borderLeft: `3px solid ${corTipoSessao(item.tipo)}`,
+                  borderRadius: "0 10px 10px 0",
+                }}
+              >
                 <div
                   style={{
                     display: "flex",
@@ -542,14 +552,6 @@ const sessaoCartao: React.CSSProperties = {
   border: "1px solid var(--cor-borda)",
   borderRadius: 10,
   padding: "12px 14px",
-};
-
-const outraSessaoCartao: React.CSSProperties = {
-  background: "var(--cor-superficie)",
-  border: "1px solid var(--cor-borda)",
-  borderLeft: "3px solid var(--cor-primaria)",
-  borderRadius: "0 10px 10px 0",
-  padding: "10px 14px",
 };
 
 const exercicioMiniCartao: React.CSSProperties = {

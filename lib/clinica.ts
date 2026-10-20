@@ -37,16 +37,25 @@ export const IMAGEM_COMPARTILHAMENTO = {
   height: 630,
 } as const;
 
+const URL_PRODUCAO = "https://beatriz-coutinho-fisio.vercel.app";
+
 /**
  * Endereço do site. Usado nos metadados de compartilhamento e no sitemap,
- * que precisam de URL absoluta. A Vercel preenche VERCEL_URL sozinha nos
- * deploys de prévia; em produção vale o valor fixo.
+ * que precisam de URL absoluta.
+ *
+ * A ordem importa: em produção vale sempre o endereço fixo, e `VERCEL_URL`
+ * só serve pras prévias. Antes o `VERCEL_URL` vinha primeiro, e em produção
+ * ele é o endereço daquele deploy específico (muda a cada publicação) — ou
+ * seja, a imagem do link apontava pra um endereço diferente a cada deploy, e
+ * o WhatsApp, que guarda o preview por endereço, tinha que buscar tudo de
+ * novo toda vez. Quando a busca falhava, o link aparecia sem imagem nenhuma.
  */
 export function urlDoSite(): string {
   const configurada = process.env.NEXT_PUBLIC_SITE_URL;
   if (configurada) return configurada.replace(/\/$/, "");
+  if (process.env.VERCEL_ENV === "production") return URL_PRODUCAO;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "https://beatriz-coutinho-fisio.vercel.app";
+  return URL_PRODUCAO;
 }
 
 export const ESPECIALIDADES_SITE = [

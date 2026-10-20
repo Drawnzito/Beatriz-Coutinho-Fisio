@@ -7,6 +7,7 @@ import { enviarEmail } from "@/lib/email";
 import { rotuloTipoSessao } from "@/lib/tiposSessao";
 import { rotuloEspecialidade, rotuloModalidade } from "@/lib/especialidades";
 import { buscarVagas, verificarConflitoNaGrade, type VagaHorario } from "@/lib/disponibilidade";
+import { hojeIsoBrasil } from "@/lib/dataBrasil";
 
 /**
  * Vagas do dia pro seletor de horario.
@@ -40,7 +41,7 @@ export async function responderSessao(formData: FormData) {
 
   if (!sessaoId || (novoStatus !== "confirmada" && novoStatus !== "recusada")) return;
 
-  await supabase.rpc("responder_sessao", {
+  const { error } = await supabase.rpc("responder_sessao", {
     sessao_id: sessaoId,
     novo_status: novoStatus,
     motivo,
@@ -48,6 +49,12 @@ export async function responderSessao(formData: FormData) {
 
   revalidatePath("/inicio");
   revalidatePath("/dashboard");
+
+  // Falhar calado aqui é pior do que parece: o cartão volta com o mesmo
+  // botão, e a paciente acha que confirmou presença sem ter confirmado.
+  if (error) {
+    redirect(`/inicio?conflito=${encodeURIComponent(`Não consegui registrar sua resposta: ${error.message}`)}`);
+  }
 }
 
 export async function solicitarSessao(formData: FormData) {
@@ -64,7 +71,15 @@ export async function solicitarSessao(formData: FormData) {
   const modalidade = especialidade === "pelvica" ? String(formData.get("modalidade") || "presencial") : null;
   const observacoes = String(formData.get("observacoes") || "").trim() || null;
 
-  if (!data || !especialidade) return;
+  if (!data || !especialidade) {
+    redirect(`/inicio?conflito=${encodeURIComponent("Escolha a data e a especialidade.")}`);
+  }
+
+  // Data no passado: o seletor do navegador não impede digitar, e o pedido
+  // chegava pra Beatriz marcado pra ontem.
+  if (data < hojeIsoBrasil()) {
+    redirect(`/inicio?conflito=${encodeURIComponent("Essa data já passou. Escolha um dia a partir de hoje.")}`);
+  }
 
   // Revalida no servidor mesmo com a grade na tela: entre carregar os
   // horarios e enviar o formulario, outra paciente pode ter ficado com a vaga.
@@ -84,28 +99,33 @@ export async function solicitarSessao(formData: FormData) {
     modalidade_sessao: modalidade,
   });
 
-  if (!error) {
-    const { data: perfil } = await supabase.from("perfis").select("nome, email").eq("id", user.id).single();
-    const { data: admins } = await supabase.from("perfis").select("email").eq("papel", "admin");
+  // Antes o erro era ignorado: a tela voltava igual à de um pedido aceito, e
+  // a paciente ficava esperando uma resposta que nunca vinha porque o pedido
+  // nem tinha sido criado.
+  if (error) {
+    redirect(`/inicio?conflito=${encodeURIComponent(`Não consegui registrar o pedido: ${error.message}`)}`);
+  }
 
-    const dataFormatada = new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR");
-    const nomePaciente = perfil?.nome || perfil?.email || "um paciente";
+  const { data: perfil } = await supabase.from("perfis").select("nome, email").eq("id", user.id).single();
+  const { data: admins } = await supabase.from("perfis").select("email").eq("papel", "admin");
 
-    for (const admin of admins ?? []) {
-      if (!admin.email) continue;
-      await enviarEmail({
-        destinatario: admin.email,
-        assunto: `Nova solicitação de sessão — ${nomePaciente}`,
-        html: `
-          <p><strong>${nomePaciente}</strong> solicitou uma sessão.</p>
-          <p>Data: ${dataFormatada}${hora ? ` às ${hora}` : ""}</p>
-          <p>Tipo: ${rotuloTipoSessao(tipo)}</p>
-          <p>Especialidade: ${rotuloEspecialidade(especialidade) || especialidade}${modalidade ? ` (${rotuloModalidade(modalidade)})` : ""}</p>
-          ${observacoes ? `<p>Observações: ${observacoes}</p>` : ""}
-          <p>Entre no painel pra aprovar ou recusar.</p>
-        `,
-      });
-    }
+  const dataFormatada = new Date(`${data}T00:00:00`).toLocaleDateString("pt-BR");
+  const nomePaciente = perfil?.nome || perfil?.email || "um paciente";
+
+  for (const admin of admins ?? []) {
+    if (!admin.email) continue;
+    await enviarEmail({
+      destinatario: admin.email,
+      assunto: `Nova solicitação de sessão — ${nomePaciente}`,
+      html: `
+        <p><strong>${nomePaciente}</strong> solicitou uma sessão.</p>
+        <p>Data: ${dataFormatada}${hora ? ` às ${hora}` : ""}</p>
+        <p>Tipo: ${rotuloTipoSessao(tipo)}</p>
+        <p>Especialidade: ${rotuloEspecialidade(especialidade) || especialidade}${modalidade ? ` (${rotuloModalidade(modalidade)})` : ""}</p>
+        ${observacoes ? `<p>Observações: ${observacoes}</p>` : ""}
+        <p>Entre no painel pra aprovar ou recusar.</p>
+      `,
+    });
   }
 
   revalidatePath("/inicio");
@@ -126,7 +146,11 @@ export async function enviarAvaliacaoAtendimento(formData: FormData) {
   const nota3 = Number(formData.get("nota_3"));
   const comentario = String(formData.get("comentario") || "").trim() || null;
 
-  if (!nota1 || !nota2 || !nota3) return;
+  // As notas vêm de estrelas na tela, mas o formulário é texto como qualquer
+  // outro: sem conferir a faixa aqui, uma nota 9 entraria e torceria a média
+  // que a Beatriz vê na aba Avaliações.
+  const notaValida = (n: number) => Number.isInteger(n) && n >= 1 && n <= 5;
+  if (!notaValida(nota1) || !notaValida(nota2) || !notaValida(nota3)) return;
 
   await supabase.from("avaliacoes_atendimento").insert({
     paciente_id: user.id,
