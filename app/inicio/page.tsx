@@ -533,8 +533,14 @@ export default async function InicioPage({
       {/* Assistente: sempre à vista, mas dispensável no X. Aparece também pra
           Beatriz — ela precisa conseguir abrir e conferir o que a Bia anda
           respondendo pras pacientes. O antigo atalho "Primeiros passos" virou
-          uma das perguntas dela. */}
-      <Assistente whatsapp={configClinica?.whatsapp_contato} />
+          uma das perguntas dela.
+
+          tourEmAndamento: nessa mesma carga, o Guia de primeiros passos acima
+          (automático, tela cheia) pode estar ativo — a bolha fica escondida
+          atrás dele, mas sem isso o balãozinho de boas-vindas "uma vez por
+          visita" dispararia e se gastaria escondido, e a paciente nunca veria
+          a Bia se apresentar. */}
+      <Assistente whatsapp={configClinica?.whatsapp_contato} tourEmAndamento={!ehAdmin && !perfil?.guia_visto_em} />
 
       <BottomNav papel={ehAdmin ? "admin" : "paciente"} />
     </>

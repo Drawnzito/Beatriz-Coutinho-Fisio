@@ -28,7 +28,14 @@ const CHAVE_CHAMADA_VISTA = "assistente-chamada-vista";
  * Substituiu o antigo atalho "Primeiros passos", que disputava o mesmo canto
  * da tela — o tour agora é uma das perguntas daqui.
  */
-export function Assistente({ whatsapp }: { whatsapp?: string | null }) {
+export function Assistente({
+  whatsapp,
+  tourEmAndamento = false,
+}: {
+  whatsapp?: string | null;
+  /** O Guia de primeiros passos (automático, tela cheia) está ativo nesta mesma carga. */
+  tourEmAndamento?: boolean;
+}) {
   const [estado, setEstado] = useState<"carregando" | "visivel" | "oculto">("carregando");
   const [aberto, setAberto] = useState(false);
   const [tourAberto, setTourAberto] = useState(false);
@@ -47,6 +54,10 @@ export function Assistente({ whatsapp }: { whatsapp?: string | null }) {
   // falar com ela não fica com um balão plantado na tela.
   useEffect(() => {
     if (estado !== "visivel") return;
+    // O Guia de primeiros passos (overlay de tela cheia) está cobrindo a
+    // bolha agora — não gasta a chamada de uma vez por visita escondida
+    // atrás dele. Ela aparece normalmente na próxima tela que a pessoa abrir.
+    if (tourEmAndamento) return;
 
     let jaViu = false;
     try {
