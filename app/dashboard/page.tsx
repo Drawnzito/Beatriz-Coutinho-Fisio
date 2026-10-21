@@ -14,8 +14,6 @@ import {
   IconeCadeado,
   IconeMais,
   IconeEvolucao,
-  IconeGrade,
-  IconeLista,
 } from "@/components/IconesPainel";
 import { SecaoRecolhivel } from "@/components/SecaoRecolhivel";
 import { CartaoSessaoAgenda } from "@/components/CartaoSessaoAgenda";
@@ -35,8 +33,9 @@ import { BotaoPerigo } from "@/components/BotaoPerigo";
 import { BotoesPdfEvolucao } from "@/components/BotoesPdfEvolucao";
 import { Paginacao } from "@/components/Paginacao";
 import { buscarNumerosSessao } from "@/lib/numeroSessao";
-import { buscarVagas, type VagaHorario } from "@/lib/disponibilidade";
+import { buscarGradeSemanal } from "@/lib/gradeSemanal";
 import { GradeSemanalAgenda } from "@/components/GradeSemanalAgenda";
+import { AlternadorAgendaGrade } from "@/components/AlternadorAgendaGrade";
 import { ResumoAvaliacoes } from "@/components/ResumoAvaliacoes";
 import { PERGUNTAS_ATENDIMENTO, PERGUNTAS_APP } from "@/lib/avaliacoes";
 import { CampoEspecialidade } from "@/components/CampoEspecialidade";
@@ -106,7 +105,6 @@ export default async function DashboardPage({
     ordem?: string;
     editarDestaque?: string;
     semana?: string;
-    visaoAgenda?: string;
     verPaciente?: string;
     buscaPaciente?: string;
     arquivados?: string;
@@ -147,7 +145,6 @@ export default async function DashboardPage({
     ? hojeIso
     : dias[0].iso;
   const diaInfo = dias.find((d) => d.iso === diaFiltro)!;
-  const visaoGrade = searchParams.visaoAgenda === "grade";
 
   const verArquivados = searchParams.arquivados === "1";
   const buscaPacienteFiltro = (searchParams.buscaPaciente || "").trim();
@@ -286,36 +283,10 @@ export default async function DashboardPage({
   const numerosSessao = await buscarNumerosSessao(supabase, (sessoes ?? []).map((s: any) => s.id));
   const usoEmails = await buscarUsoEmails();
 
-  // Grade semanal (visão alternativa da Agenda): só busca quando é pra
-  // mostrar — são 7 chamadas extras (uma por dia) que o resto do painel não
-  // usa. `buscarVagas` já resolve bloqueio/ocupado/livre por horário
-  // (mesma RPC do lado da paciente); aqui só reaproveitamos e completamos
-  // com o nome de quem ocupa cada horário, que a RPC esconde de propósito
-  // pra paciente mas a fisio pode ver.
-  let vagasPorDia: { iso: string; vagas: VagaHorario[] }[] = [];
-  let sessoesPorSlot = new Map<string, { nome: string; tipo: string; status: string; sessaoId: string }>();
-  if (visaoGrade) {
-    vagasPorDia = await Promise.all(
-      dias.map(async (d) => ({ iso: d.iso, vagas: await buscarVagas(supabase, d.iso) }))
-    );
-
-    const { data: sessoesDaSemana } = await supabase
-      .from("sessoes")
-      .select("id, data, hora, status, tipo, perfis!paciente_id(nome, email)")
-      .gte("data", dias[0].iso)
-      .lte("data", dias[6].iso)
-      .in("status", ["agendada", "confirmada", "solicitada"]);
-
-    for (const s of (sessoesDaSemana ?? []) as any[]) {
-      if (!s.hora) continue;
-      sessoesPorSlot.set(`${s.data}|${s.hora.slice(0, 5)}`, {
-        nome: s.perfis?.nome || s.perfis?.email || "—",
-        tipo: s.tipo,
-        status: s.status,
-        sessaoId: s.id,
-      });
-    }
-  }
+  // Grade semanal (visão alternativa da Agenda, alternada no cliente sem
+  // navegar — ver AlternadorAgendaGrade) — busca junto com o resto do
+  // painel, na mesma carga.
+  const { vagasPorDia, sessoesPorSlot } = await buscarGradeSemanal(supabase, dias);
 
   // Próxima sessão de cada paciente da página — é o que a Beatriz procura ao
   // bater o olho na lista, e sem isso ela precisava abrir ficha por ficha.
@@ -492,16 +463,14 @@ export default async function DashboardPage({
     return `/dashboard?${params.toString()}`;
   }
 
-  function hrefAgenda(overrides: { paciente?: string; dia?: string; semana?: string; visao?: string }) {
+  function hrefAgenda(overrides: { paciente?: string; dia?: string; semana?: string }) {
     const params = new URLSearchParams({ aba: "agenda" });
     const paciente = "paciente" in overrides ? overrides.paciente : pacienteFiltro;
     const dia = "dia" in overrides ? overrides.dia : diaFiltro;
     const semana = "semana" in overrides ? overrides.semana : semanaOffset ? String(semanaOffset) : undefined;
-    const visao = "visao" in overrides ? overrides.visao : searchParams.visaoAgenda;
     if (paciente) params.set("paciente", paciente);
     if (dia) params.set("dia", dia);
     if (semana && semana !== "0") params.set("semana", semana);
-    if (visao === "grade") params.set("visaoAgenda", "grade");
     return `/dashboard?${params.toString()}`;
   }
 
@@ -1351,35 +1320,14 @@ export default async function DashboardPage({
                         voltar pra hoje
                       </a>
                     )}
-
-                    <a
-                      href={hrefAgenda({ visao: visaoGrade ? "" : "grade" })}
-                      style={{
-                        justifySelf: "start",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 7,
-                        padding: "8px 14px",
-                        borderRadius: 999,
-                        border: "1px solid var(--cor-primaria)",
-                        background: visaoGrade ? "var(--cor-primaria)" : "var(--cor-acento-suave)",
-                        color: visaoGrade ? "#fff" : "var(--cor-primaria-escura)",
-                        fontSize: 12.5,
-                        fontWeight: 700,
-                        textDecoration: "none",
-                      }}
-                    >
-                      {visaoGrade ? <IconeLista /> : <IconeGrade />}
-                      {visaoGrade ? "Ver por dia" : "Ver semana em grade"}
-                    </a>
                   </div>
 
-                  {visaoGrade && (
-                    <GradeSemanalAgenda dias={dias} vagasPorDia={vagasPorDia} sessoesPorSlot={sessoesPorSlot} hrefDia={(iso) => hrefAgenda({ dia: iso, visao: "" })} />
-                  )}
-
-                  {!visaoGrade && (
-                  <>
+                  <AlternadorAgendaGrade
+                    visaoGrade={
+                      <GradeSemanalAgenda dias={dias} vagasPorDia={vagasPorDia} sessoesPorSlot={sessoesPorSlot} hrefDia={(iso) => hrefAgenda({ dia: iso })} />
+                    }
+                    visaoDia={
+                      <>
                   {(solicitacoes ?? []).length > 0 && (
                     <div style={{ marginBottom: 24 }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: "0 0 10px" }}>
@@ -1656,8 +1604,9 @@ export default async function DashboardPage({
                       />
                     )}
                   </div>
-                  </>
-                  )}
+                      </>
+                    }
+                  />
                 </div>
               ),
             },

@@ -17,6 +17,9 @@ import { Feedback } from "@/components/Feedback";
 import { Paginacao } from "@/components/Paginacao";
 import Link from "next/link";
 import { IconeGrade } from "@/components/IconesPainel";
+import { SecaoRecolhivel } from "@/components/SecaoRecolhivel";
+import { GradeSemanalAgenda } from "@/components/GradeSemanalAgenda";
+import { buscarGradeSemanal } from "@/lib/gradeSemanal";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -149,6 +152,10 @@ export default async function InicioPage({
   const numerosSessao = await buscarNumerosSessao(supabase, idsSessoesDoDia);
   const sessoesJaAvaliadas = new Set((avaliacoesFeitas ?? []).map((a: any) => a.sessao_id));
 
+  // Grade semanal pro admin ver aqui mesmo, sem precisar abrir o Painel —
+  // só busca pra quem é admin de verdade (não conta no "ver como paciente").
+  const gradeSemanal = ehAdmin ? await buscarGradeSemanal(supabase, dias) : null;
+
   const contagens: Record<string, number> = {};
   const porDia: Record<string, any[]> = {};
   for (const s of (sessoesSemana ?? []) as any[]) {
@@ -236,27 +243,17 @@ export default async function InicioPage({
             : `Você tem ${totalSemana} ${totalSemana > 1 ? "sessões" : "sessão"} agendada${totalSemana > 1 ? "s" : ""} essa semana.`}
         </p>
 
-        {ehAdmin && (
-          <Link
-            href="/dashboard?aba=agenda&visaoAgenda=grade"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              padding: "8px 14px",
-              marginBottom: 18,
-              borderRadius: 999,
-              border: "1px solid var(--cor-primaria)",
-              background: "var(--cor-acento-suave)",
-              color: "var(--cor-primaria-escura)",
-              fontSize: 12.5,
-              fontWeight: 700,
-              textDecoration: "none",
-            }}
-          >
-            <IconeGrade />
-            Ver semana em grade
-          </Link>
+        {ehAdmin && gradeSemanal && (
+          <div style={{ marginBottom: 18 }}>
+            <SecaoRecolhivel titulo="Ver semana em grade" icone={<IconeGrade />}>
+              <GradeSemanalAgenda
+                dias={dias}
+                vagasPorDia={gradeSemanal.vagasPorDia}
+                sessoesPorSlot={gradeSemanal.sessoesPorSlot}
+                hrefDia={(iso) => `/dashboard?aba=agenda&dia=${iso}`}
+              />
+            </SecaoRecolhivel>
+          </div>
         )}
 
         {!ehAdmin && (
