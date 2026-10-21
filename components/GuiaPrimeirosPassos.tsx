@@ -31,28 +31,31 @@ export function GuiaPrimeirosPassos({ onFechar }: { onFechar?: () => void | Prom
   const [visivel, setVisivel] = useState(true);
   const [passo, setPasso] = useState(0);
   const [retangulo, setRetangulo] = useState<Retangulo | null>(null);
+  // null = ainda não filtrou; lista vazia depois de filtrar = fecha sozinho.
+  const [passos, setPassos] = useState<typeof PASSOS | null>(null);
 
   async function fechar() {
     setVisivel(false);
     await onFechar?.();
   }
 
+  // Nem toda etapa existe em toda tela ("agenda"/"solicitar" só existem em
+  // /inicio; o guia também abre a partir da Bia em /exercicios e do botão em
+  // /perfil). Filtrar tudo de uma vez ANTES do primeiro render evita o bug
+  // de pular etapa por etapa em tempo real — cada pulo era um frame real na
+  // tela com o fundo escurecido e nada destacado, parecendo quebrado.
   useEffect(() => {
-    if (!visivel) return;
+    const validos = PASSOS.filter((p) => document.querySelector(`[data-tour="${p.alvo}"]`));
+    setPassos(validos);
+    if (validos.length === 0) fechar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const elemento = document.querySelector(`[data-tour="${PASSOS[passo].alvo}"]`);
+  useEffect(() => {
+    if (!visivel || !passos || passos.length === 0) return;
 
-    // Essa etapa não existe na tela atual (ex: "agenda"/"solicitar" quando o
-    // guia é reaberto a partir do Perfil) — pula direto pra próxima em vez de
-    // mostrar uma etapa sem nada pra destacar.
-    if (!elemento) {
-      if (passo + 1 >= PASSOS.length) {
-        fechar();
-      } else {
-        setPasso(passo + 1);
-      }
-      return;
-    }
+    const elemento = document.querySelector(`[data-tour="${passos[passo].alvo}"]`);
+    if (!elemento) return;
 
     elemento.scrollIntoView({ block: "center", behavior: "smooth" });
 
@@ -61,7 +64,7 @@ export function GuiaPrimeirosPassos({ onFechar }: { onFechar?: () => void | Prom
 
     function medir() {
       if (!ativo) return;
-      const el = document.querySelector(`[data-tour="${PASSOS[passo].alvo}"]`);
+      const el = document.querySelector(`[data-tour="${passos![passo].alvo}"]`);
       if (el) {
         const rect = el.getBoundingClientRect();
         setRetangulo({
@@ -81,12 +84,12 @@ export function GuiaPrimeirosPassos({ onFechar }: { onFechar?: () => void | Prom
       cancelAnimationFrame(quadro);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [passo, visivel]);
+  }, [passo, visivel, passos]);
 
-  if (!visivel) return null;
+  if (!visivel || !passos || passos.length === 0) return null;
 
-  const ultimo = passo === PASSOS.length - 1;
-  const atual = PASSOS[passo];
+  const ultimo = passo === passos.length - 1;
+  const atual = passos[passo];
 
   const tooltipEmbaixo = retangulo ? retangulo.top < window.innerHeight / 2 : true;
 
@@ -137,7 +140,7 @@ export function GuiaPrimeirosPassos({ onFechar }: { onFechar?: () => void | Prom
         }}
       >
         <div style={{ display: "flex", gap: 5 }}>
-          {PASSOS.map((_, i) => (
+          {passos.map((_, i) => (
             <span
               key={i}
               style={{
