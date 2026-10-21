@@ -65,9 +65,9 @@ export function GradeSemanalAgenda({
 
                   if (v.situacao === "bloqueado") {
                     return (
-                      <div key={v.hora} className={styles.slotBloqueado}>
-                        <span>{v.hora}</span>
-                        <small>{ROTULO_SITUACAO.bloqueado}</small>
+                      <div key={v.hora} className={styles.slotBloqueado} title={`${v.hora} · ${ROTULO_SITUACAO.bloqueado}`}>
+                        <span className={styles.hora}>{v.hora}</span>
+                        <span className={styles.bloqueadoTexto}>bloqueado</span>
                       </div>
                     );
                   }
@@ -78,11 +78,14 @@ export function GradeSemanalAgenda({
                       key={v.hora}
                       href={hrefDia(dia.iso)}
                       className={styles.slotOcupado}
-                      style={{ borderLeftColor: info ? corTipoSessao(info.tipo) : "var(--cor-borda)" }}
+                      title={info ? `${v.hora} · ${info.nome} · ${rotuloTipoSessao(info.tipo)}` : v.hora}
                     >
+                      <span className={styles.ponto} style={{ background: info ? corTipoSessao(info.tipo) : "var(--cor-borda)" }} />
                       <span className={styles.hora}>{v.hora}</span>
-                      <strong className={styles.paciente}>{info?.nome ?? "—"}</strong>
-                      <small>{v.situacao === "solicitado" ? "a confirmar" : rotuloTipoSessao(info?.tipo)}</small>
+                      <span className={styles.paciente}>
+                        {info?.nome ?? "—"}
+                        {v.situacao === "solicitado" && <em> · a confirmar</em>}
+                      </span>
                     </Link>
                   );
                 })}

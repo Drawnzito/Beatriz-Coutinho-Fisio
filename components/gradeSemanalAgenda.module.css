@@ -1,29 +1,27 @@
 .envoltorio {
   margin-bottom: 24px;
   overflow-x: auto;
-  /* Sem isto o scroll horizontal fica sem sinalização nenhuma de que tem
-     mais conteúdo pros lados — a barra nativa sozinha é fácil de não notar
-     no celular. */
   -webkit-overflow-scrolling: touch;
 }
 
 .grade {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(120px, 1fr);
-  gap: 8px;
+  grid-auto-columns: minmax(84px, 1fr);
+  gap: 5px;
   min-width: 100%;
 }
 
 @media (min-width: 640px) {
   .grade {
     grid-auto-columns: minmax(0, 1fr);
+    gap: 7px;
   }
 }
 
 .coluna {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   align-content: start;
 }
 
@@ -31,9 +29,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
-  padding: 8px 4px;
-  border-radius: 10px;
+  gap: 0;
+  padding: 6px 2px;
+  border-radius: 8px;
   background: var(--cor-fundo);
   text-decoration: none;
   color: var(--cor-texto);
@@ -45,39 +43,51 @@
 }
 
 .abrev {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 9.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  opacity: 0.75;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
 }
 
 .numero {
   font-family: var(--fonte-titulo);
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 1.3;
 }
 
 .slots {
   display: grid;
-  gap: 5px;
+  gap: 3px;
 }
 
 .semAtendimento {
-  margin: 4px 0 0;
-  font-size: 11.5px;
+  margin: 2px 0 0;
+  font-size: 10.5px;
   color: var(--cor-texto-suave);
   text-align: center;
 }
 
-.slotLivre {
+/* Linha única pra todo tipo de horário — menos altura, mais horários visíveis
+   de uma vez, que era o pedido: "cards ocupando muito espaço". */
+.slotLivre,
+.slotBloqueado,
+.slotOcupado {
   display: flex;
   align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 3px 5px;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.slotLivre {
   justify-content: center;
-  padding: 7px 4px;
-  border-radius: 8px;
   border: 1px dashed var(--cor-borda);
   color: var(--cor-texto-suave);
-  font-size: 12px;
-  text-decoration: none;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -88,45 +98,52 @@
 }
 
 .slotBloqueado {
-  display: grid;
-  gap: 1px;
-  padding: 7px 8px;
-  border-radius: 8px;
   background: var(--cor-fundo);
   color: var(--cor-texto-suave);
-  font-size: 11.5px;
-  opacity: 0.8;
+  opacity: 0.75;
+}
+
+.bloqueadoTexto {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .slotOcupado {
-  display: grid;
-  gap: 1px;
-  padding: 7px 8px;
-  border-radius: 0 8px 8px 0;
-  border-left: 3px solid var(--cor-primaria);
   background: var(--cor-superficie);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  text-decoration: none;
+  border: 1px solid var(--cor-borda);
   color: var(--cor-texto);
-  min-width: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .slotOcupado:hover {
+    border-color: var(--cor-primaria);
+  }
+}
+
+/* Bolinha colorida por tipo de sessão — substitui a tarja grossa de antes,
+   bem mais leve visualmente. */
+.ponto {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .hora {
-  font-size: 11px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
   color: var(--cor-texto-suave);
 }
 
 .paciente {
-  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
 
-.slotOcupado small {
-  font-size: 10.5px;
+.paciente em {
+  font-style: normal;
   color: var(--cor-texto-suave);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
