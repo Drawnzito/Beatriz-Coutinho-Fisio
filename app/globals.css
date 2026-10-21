@@ -71,7 +71,7 @@ button {
    ganha rolagem lateral — parecendo que o conteúdo encostou à esquerda. */
 .grade-auto {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -79,14 +79,14 @@ button {
    Só serve pra cartão enxuto — conteúdo longo não cabe em meia tela. */
 .grade-compacta {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 @media (min-width: 900px) {
   .grade-compacta {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
   }
 }
 

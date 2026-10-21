@@ -1032,59 +1032,75 @@ export default async function DashboardPage({
                         )}
                       </SecaoRecolhivel>
 
-                      <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-                        <input type="hidden" name="aba" value="pacientes" />
-                        {verArquivados && <input type="hidden" name="arquivados" value="1" />}
-                        <input
-                          name="buscaPaciente"
-                          defaultValue={searchParams.buscaPaciente ?? ""}
-                          placeholder="Buscar por nome ou e-mail…"
-                          style={campo}
-                        />
-                        <button type="submit" style={botaoTextoPrimario}>buscar</button>
-                        {buscaPacienteFiltro && (
-                          <Link href={hrefPacientes({ buscaPaciente: "" })} style={botaoTexto}>limpar</Link>
-                        )}
-                      </form>
-
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cor-texto-suave)", margin: 0 }}>
-                          {verArquivados ? `Pacientes arquivados (${totalPacientesLista ?? 0})` : `Pacientes ativos (${totalPacientesLista ?? 0})`}
-                        </p>
-                        <Link href={hrefPacientes({ arquivados: verArquivados ? "" : "1" })} style={botaoTexto}>
-                          {verArquivados ? "ver ativos" : "ver arquivados"}
-                        </Link>
-                      </div>
-
-                      {/* Linha enxuta: nome e próxima sessão. E-mail e idade
-                          ficam na ficha — na lista só ocupavam espaço. */}
-                      <div className="grade-auto grade-auto--2">
-                        {(pacientesLista ?? []).map((p: any) => (
-                          <LinhaPaciente
-                            key={p.id}
-                            nome={p.nome || p.email}
-                            href={hrefPacientes({ verPaciente: p.id })}
-                            proxima={proximaPorPaciente.get(p.id)}
+                      {/* Caixa própria, com a mesma cara das SecaoRecolhivel ao
+                          redor (borda, cantos, fundo) — antes era texto solto
+                          encostado direto no "Cadastrar paciente" acima e no
+                          "Acesso ao painel" abaixo, sem nenhuma fronteira
+                          visual entre as três áreas. */}
+                      <div
+                        style={{
+                          border: "1px solid var(--cor-borda)",
+                          borderRadius: 12,
+                          background: "var(--cor-superficie)",
+                          padding: "16px 15px",
+                          marginTop: 24,
+                          marginBottom: 24,
+                        }}
+                      >
+                        <form action="/dashboard" method="get" style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                          <input type="hidden" name="aba" value="pacientes" />
+                          {verArquivados && <input type="hidden" name="arquivados" value="1" />}
+                          <input
+                            name="buscaPaciente"
+                            defaultValue={searchParams.buscaPaciente ?? ""}
+                            placeholder="Buscar por nome ou e-mail…"
+                            style={campo}
                           />
-                        ))}
-                        {(pacientesLista ?? []).length === 0 && (
-                          <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
-                            {verArquivados ? "Nenhum paciente arquivado." : "Nenhum paciente logou ainda."}
-                          </p>
-                        )}
-                      </div>
+                          <button type="submit" style={botaoTextoPrimario}>buscar</button>
+                          {buscaPacienteFiltro && (
+                            <Link href={hrefPacientes({ buscaPaciente: "" })} style={botaoTexto}>limpar</Link>
+                          )}
+                        </form>
 
-                      <Paginacao
-                        pagina={paginaPacientes}
-                        total={totalPacientesLista ?? 0}
-                        tamanhoPagina={TAMANHO_PACIENTES}
-                        hrefPagina={hrefPacientesPagina}
-                      />
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                          <p style={{ fontSize: 14, fontWeight: 700, color: "var(--cor-primaria-escura)", margin: 0 }}>
+                            {verArquivados ? `Pacientes arquivados (${totalPacientesLista ?? 0})` : `Pacientes ativos (${totalPacientesLista ?? 0})`}
+                          </p>
+                          <Link href={hrefPacientes({ arquivados: verArquivados ? "" : "1" })} style={botaoTexto}>
+                            {verArquivados ? "ver ativos" : "ver arquivados"}
+                          </Link>
+                        </div>
+
+                        {/* Linha enxuta: nome e próxima sessão. E-mail e idade
+                            ficam na ficha — na lista só ocupavam espaço. */}
+                        <div className="grade-auto grade-auto--2">
+                          {(pacientesLista ?? []).map((p: any) => (
+                            <LinhaPaciente
+                              key={p.id}
+                              nome={p.nome || p.email}
+                              href={hrefPacientes({ verPaciente: p.id })}
+                              proxima={proximaPorPaciente.get(p.id)}
+                            />
+                          ))}
+                          {(pacientesLista ?? []).length === 0 && (
+                            <p style={{ color: "var(--cor-texto-suave)", fontSize: 14 }}>
+                              {verArquivados ? "Nenhum paciente arquivado." : "Nenhum paciente logou ainda."}
+                            </p>
+                          )}
+                        </div>
+
+                        <Paginacao
+                          pagina={paginaPacientes}
+                          total={totalPacientesLista ?? 0}
+                          tamanhoPagina={TAMANHO_PACIENTES}
+                          hrefPagina={hrefPacientesPagina}
+                        />
+                      </div>
 
                       {/* Quem enxerga o painel. Existe pra quando entrar outra
                           profissional no consultório — e pra ninguém descobrir
                           tarde demais que alguém tem acesso de administração. */}
-                      <div style={{ marginTop: 24 }}>
+                      <div>
                         <SecaoRecolhivel
                           titulo="Acesso ao painel"
                           descricao="Quem entra como fisioterapeuta"
