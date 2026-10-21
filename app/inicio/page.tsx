@@ -16,6 +16,7 @@ import { CartaoSessaoResumo } from "@/components/CartaoSessaoResumo";
 import { Feedback } from "@/components/Feedback";
 import { Paginacao } from "@/components/Paginacao";
 import Link from "next/link";
+import { IconeGrade } from "@/components/IconesPainel";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { semanaAtual } from "@/lib/semana";
@@ -234,6 +235,29 @@ export default async function InicioPage({
             ? `${totalSemana} ${totalSemana > 1 ? "sessões" : "sessão"} de pacientes essa semana.`
             : `Você tem ${totalSemana} ${totalSemana > 1 ? "sessões" : "sessão"} agendada${totalSemana > 1 ? "s" : ""} essa semana.`}
         </p>
+
+        {ehAdmin && (
+          <Link
+            href="/dashboard?aba=agenda&visaoAgenda=grade"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              padding: "8px 14px",
+              marginBottom: 18,
+              borderRadius: 999,
+              border: "1px solid var(--cor-primaria)",
+              background: "var(--cor-acento-suave)",
+              color: "var(--cor-primaria-escura)",
+              fontSize: 12.5,
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            <IconeGrade />
+            Ver semana em grade
+          </Link>
+        )}
 
         {!ehAdmin && (
           <div data-tour="solicitar" style={{ marginBottom: 18 }}>

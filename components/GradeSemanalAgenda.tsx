@@ -73,6 +73,7 @@ export function GradeSemanalAgenda({
                   }
 
                   const info = sessoesPorSlot.get(`${dia.iso}|${v.hora}`);
+                  const primeiroNome = info?.nome?.split(" ")[0] ?? "—";
                   return (
                     <Link
                       key={v.hora}
@@ -80,10 +81,11 @@ export function GradeSemanalAgenda({
                       className={styles.slotOcupado}
                       title={info ? `${v.hora} · ${info.nome} · ${rotuloTipoSessao(info.tipo)}` : v.hora}
                     >
-                      <span className={styles.ponto} style={{ background: info ? corTipoSessao(info.tipo) : "var(--cor-borda)" }} />
-                      <span className={styles.hora}>{v.hora}</span>
+                      <span className={styles.hora} style={{ color: info ? corTipoSessao(info.tipo) : "var(--cor-texto-suave)" }}>
+                        {v.hora}
+                      </span>
                       <span className={styles.paciente}>
-                        {info?.nome ?? "—"}
+                        {primeiroNome}
                         {v.situacao === "solicitado" && <em> · a confirmar</em>}
                       </span>
                     </Link>

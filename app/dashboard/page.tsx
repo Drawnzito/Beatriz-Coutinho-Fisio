@@ -14,6 +14,8 @@ import {
   IconeCadeado,
   IconeMais,
   IconeEvolucao,
+  IconeGrade,
+  IconeLista,
 } from "@/components/IconesPainel";
 import { SecaoRecolhivel } from "@/components/SecaoRecolhivel";
 import { CartaoSessaoAgenda } from "@/components/CartaoSessaoAgenda";
@@ -1353,16 +1355,22 @@ export default async function DashboardPage({
                     <a
                       href={hrefAgenda({ visao: visaoGrade ? "" : "grade" })}
                       style={{
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        color: "var(--cor-primaria)",
                         justifySelf: "start",
                         display: "inline-flex",
                         alignItems: "center",
-                        gap: 5,
+                        gap: 7,
+                        padding: "8px 14px",
+                        borderRadius: 999,
+                        border: "1px solid var(--cor-primaria)",
+                        background: visaoGrade ? "var(--cor-primaria)" : "var(--cor-acento-suave)",
+                        color: visaoGrade ? "#fff" : "var(--cor-primaria-escura)",
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        textDecoration: "none",
                       }}
                     >
-                      {visaoGrade ? "← ver por dia" : "ver semana em grade →"}
+                      {visaoGrade ? <IconeLista /> : <IconeGrade />}
+                      {visaoGrade ? "Ver por dia" : "Ver semana em grade"}
                     </a>
                   </div>
 

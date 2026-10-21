@@ -76,6 +76,28 @@ export function IconeEvolucao() {
   );
 }
 
+export function IconeLista() {
+  return (
+    <svg {...base} width={15} height={15} aria-hidden="true">
+      <path d="M8 6h12M8 12h12M8 18h12" />
+      <circle cx="4" cy="6" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="12" r="1.3" fill="currentColor" stroke="none" />
+      <circle cx="4" cy="18" r="1.3" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function IconeGrade() {
+  return (
+    <svg {...base} width={15} height={15} aria-hidden="true">
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+      <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+      <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+    </svg>
+  );
+}
+
 export function IconeConteudo() {
   return (
     <svg {...base} aria-hidden="true">
